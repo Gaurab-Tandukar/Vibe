@@ -3,8 +3,6 @@ const express = require("express");
 const dotenv = require("dotenv");
 const connectDB = require("./config/dbConfig");
 
-const protect = require("./middleware/authMiddleware");
-
 // Load environment variables
 dotenv.config();
 
