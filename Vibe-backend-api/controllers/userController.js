@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../model/userModel");
 const passHash = require("../util/password");
+const generateToken = require("../util/jwtToken");
 
 // @desc   Register User
 // @route  POST /api/users/register
@@ -68,13 +69,6 @@ const loginUser = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
-};
-
-// Generate JWT
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: "30d",
-  });
 };
 
 // @desc   get user profile
