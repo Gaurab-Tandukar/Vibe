@@ -77,7 +77,26 @@ const generateToken = (id) => {
   });
 };
 
+// @desc   get user profile
+// @route  POST /api/users/profile
+const getUserProfile = async (req, res) => {
+  res.status(200).json(req.user);
+};
+
+// @desc   get all users
+// @route  POST /api/users/all
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-passwordHash");
+    res.status(200).json(users);
+  } catch (err) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
+  getUserProfile,
+  getAllUsers,
 };
