@@ -70,13 +70,13 @@ const loginUser = async (req, res) => {
 };
 
 // @desc   get user profile
-// @route  POST /api/users/profile
+// @route  GET /api/users/profile
 const getUserProfile = async (req, res) => {
   res.status(200).json(req.user);
 };
 
 // @desc   get user by username
-// @route  POST /api/profile/:username
+// @route  GET /api/profile/:username
 const getUserByUsername = async (req, res) => {
   try {
     const { username } = req.params; // Get from URL params
@@ -94,7 +94,7 @@ const getUserByUsername = async (req, res) => {
 };
 
 // @desc   get all users
-// @route  POST /api/users/all
+// @route  GET /api/users/all
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-passwordHash");
