@@ -1,5 +1,3 @@
-const jwt = require("jsonwebtoken");
-
 const User = require("../model/userModel");
 const passHash = require("../util/password");
 const generateToken = require("../util/jwtToken");
@@ -77,6 +75,24 @@ const getUserProfile = async (req, res) => {
   res.status(200).json(req.user);
 };
 
+// @desc   get user by username
+// @route  POST /api/profile/:username
+const getUserByUsername = async (req, res) => {
+  try {
+    const { username } = req.params; // Get from URL params
+
+    const user = await User.findOne({ username }).select("-passwordHash");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc   get all users
 // @route  POST /api/users/all
 const getAllUsers = async (req, res) => {
@@ -93,4 +109,5 @@ module.exports = {
   loginUser,
   getUserProfile,
   getAllUsers,
+  getUserByUsername,
 };
