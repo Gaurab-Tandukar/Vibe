@@ -6,10 +6,10 @@ const generateToken = require("../util/jwtToken");
 // @route  POST /api/users/register
 const registerUser = async (req, res) => {
   try {
-    const { username, email, password } = req.body;
+    const { firstName, lastName, username, email, password } = req.body;
 
     // Validation
-    if (!username || !email || !password) {
+    if (!firstName || !lastName || !username || !email || !password) {
       return res.status(400).json({ message: "Please add all fields" });
     }
 
@@ -24,6 +24,8 @@ const registerUser = async (req, res) => {
     const hashedPassword = await passHash.hashpass(password);
 
     const user = await User.create({
+      firstName,
+      lastName,
       username,
       email,
       passwordHash: hashedPassword,
@@ -45,9 +47,9 @@ const registerUser = async (req, res) => {
 // @route  POST /api/users/login
 const loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
-    if (!email || !password) {
+    if (!username || !password) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
@@ -56,6 +58,8 @@ const loginUser = async (req, res) => {
     if (user && (await passHash.hashpass(password, user.passwordHash))) {
       res.json({
         _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
         username: user.username,
         email: user.email,
         token: generateToken(user._id),
@@ -104,10 +108,62 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+// @desc   update User Proflie
+// @route  UPDATE /api/users/profile/:username
+const updateUserProfile = async (req, res) => {
+  try {
+    const { username } = req.params; // Get from URL params
+    const { firstName, lastName, email, avatarUrl } = req.body;
+
+    const user = await User.findOneAndUpdate(
+      { username },
+      { firstName, lastName, email, avatarUrl },
+      { new: true },
+    ).select("-passwordHash");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc   update User Password
+// @route  UPDATE /api/users/profile/password/:username
+const updateUserPassword = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { oldPassword, newPassword } = req.body;
+
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (!(await passHash.hashpass(oldPassword, user.passwordHash))) {
+      return res.status(401).json({ message: "Old password is incorrect" });
+    }
+
+    const hashedNewPassword = await passHash.hashpass(newPassword);
+    user.passwordHash = hashedNewPassword;
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
   getUserProfile,
   getAllUsers,
   getUserByUsername,
+  updateUserProfile,
+  updateUserPassword,
 };
