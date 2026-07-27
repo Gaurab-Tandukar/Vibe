@@ -53,7 +53,7 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ username });
 
     if (user && (await passHash.hashpass(password, user.passwordHash))) {
       res.json({
@@ -109,7 +109,7 @@ const getAllUsers = async (req, res) => {
 };
 
 // @desc   update User Proflie
-// @route  UPDATE /api/users/profile/:username
+// @route  PUT /api/users/profile/:username
 const updateUserProfile = async (req, res) => {
   try {
     const { username } = req.params; // Get from URL params
@@ -132,7 +132,7 @@ const updateUserProfile = async (req, res) => {
 };
 
 // @desc   update User Password
-// @route  UPDATE /api/users/profile/password/:username
+// @route  PUT /api/users/profile/password/:username
 const updateUserPassword = async (req, res) => {
   try {
     const { username } = req.params;

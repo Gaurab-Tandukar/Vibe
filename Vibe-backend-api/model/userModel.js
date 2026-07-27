@@ -84,10 +84,6 @@ const userSchema = new mongoose.Schema(
   },
 );
 
-// Remove these lines if they exist — we don't need them anymore
-// userSchema.index({ username: 1 });
-// userSchema.index({ email: 1 });
-
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
