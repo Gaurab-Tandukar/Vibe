@@ -6,6 +6,7 @@ const {
   loginUser,
   getUserProfile,
   getAllUsers,
+  getUserByUsername,
 } = require("../controllers/userController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 
@@ -15,6 +16,7 @@ router.post("/login", loginUser);
 
 // Protected routes
 router.get("/profile", protect, getUserProfile);
+router.get("/profile/:username", protect, getUserByUsername);
 
 // Admin only route
 router.get("/all", protect, authorize("ADMIN"), getAllUsers);
