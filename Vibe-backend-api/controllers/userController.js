@@ -83,7 +83,7 @@ const getUserProfile = async (req, res) => {
 // @route  GET /api/profile/:username
 const getUserByUsername = async (req, res) => {
   try {
-    const { username } = req.params; // Get from URL params
+    const { username } = req.params;
 
     const user = await User.findOne({ username }).select("-passwordHash");
 
@@ -104,22 +104,29 @@ const getAllUsers = async (req, res) => {
     const users = await User.find().select("-passwordHash");
     res.status(200).json(users);
   } catch (err) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// @desc   update User Proflie
-// @route  PUT /api/users/profile/:username
+// @desc   update User Profile
+// @route  PUT /api/users/profile
 const updateUserProfile = async (req, res) => {
   try {
-    const { username } = req.params; // Get from URL params
-    const { firstName, lastName, email, avatarUrl } = req.body;
+    const currentUserId = req.user._id;
+    const { firstName, lastName, email } = req.body;
 
-    const user = await User.findOneAndUpdate(
-      { username },
-      { firstName, lastName, email, avatarUrl },
-      { new: true },
-    ).select("-passwordHash");
+    const updates = {};
+    if (firstName !== undefined) updates.firstName = firstName;
+    if (lastName !== undefined) updates.lastName = lastName;
+    if (email !== undefined) updates.email = email;
+    if (req.file) {
+      updates.avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    }
+
+    const user = await User.findByIdAndUpdate(currentUserId, updates, {
+      new: true,
+      runValidators: true,
+    }).select("-passwordHash");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -132,13 +139,19 @@ const updateUserProfile = async (req, res) => {
 };
 
 // @desc   update User Password
-// @route  PUT /api/users/profile/password/:username
+// @route  PUT /api/users/profile/password
 const updateUserPassword = async (req, res) => {
   try {
-    const { username } = req.params;
+    const currentUserId = req.user._id;
     const { oldPassword, newPassword } = req.body;
 
-    const user = await User.findOne({ username });
+    if (!oldPassword || !newPassword) {
+      return res
+        .status(400)
+        .json({ message: "Both old and new password are required" });
+    }
+
+    const user = await User.findById(currentUserId);
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -148,8 +161,7 @@ const updateUserPassword = async (req, res) => {
       return res.status(401).json({ message: "Old password is incorrect" });
     }
 
-    const hashedNewPassword = await passHash.hashpass(newPassword);
-    user.passwordHash = hashedNewPassword;
+    user.passwordHash = await passHash.hashpass(newPassword);
     await user.save();
 
     res.status(200).json({ message: "Password updated successfully" });
