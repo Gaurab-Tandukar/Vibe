@@ -11,6 +11,7 @@ const {
   updateUserPassword,
 } = require("../controllers/userController");
 const { protect, authorize } = require("../middleware/authMiddleware");
+const { upload } = require("../middleware/uploadMiddleware");
 
 // Public routes
 router.post("/register", registerUser);
@@ -20,8 +21,8 @@ router.post("/login", loginUser);
 router.get("/profile", protect, getUserProfile);
 router.get("/profile/:username", protect, getUserByUsername);
 router.get("/all", protect, getAllUsers);
-router.put("/profile/:username", protect, updateUserProfile);
-router.put("/profile/password/:username", protect, updateUserPassword);
+router.put("/profile", protect, upload.single("avatar"), updateUserProfile);
+router.put("/profile/password", protect, updateUserPassword);
 
 // Admin only route
 router.get("/all", protect, authorize("ADMIN"), getAllUsers);
