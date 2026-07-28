@@ -12,11 +12,8 @@ dotenv.config();
 const app = express();
 
 app.use(express.json());
-<<<<<<< Updated upstream
-=======
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
->>>>>>> Stashed changes
 
 // Routing
 app.get("/", (req, res) => {
