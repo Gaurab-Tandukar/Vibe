@@ -144,3 +144,5 @@ vite.config.ts.timestamp-*
 
 # upload files
 uploads/
+uploads/attachments/
+uploads/avatars/
