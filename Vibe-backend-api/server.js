@@ -22,6 +22,9 @@ app.get("/", (req, res) => {
 
 app.use("/api/users", require("./routes/userRoute"));
 app.use("/api/chats", require("./routes/conversationRoute"));
+app.use("/api/messages", require("./routes/messageRoute"));
+app.use("/api/reactions", require("./routes/reactionRoute"));
+app.use("/api/attachments", require("./routes/attachmentRoute"));
 
 // Connect to MongoDB and start server
 const startServer = async () => {

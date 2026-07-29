@@ -2,30 +2,54 @@ const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
 
-const uploadDir = path.join(__dirname, "..", "uploads", "avatars");
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+/**
+ * Creates a multer upload instance scoped to a specific subfolder
+ * under /uploads (e.g. "avatars", "attachments").
+ *
+ * @param {string} folderName - subfolder name under /uploads
+ * @param {object} options - optional overrides
+ * @param {string[]} options.allowedTypes - allowed mimetypes
+ * @param {number} options.maxSizeMB - max file size in MB
+ */
+const createUploadMiddleware = (folderName, options = {}) => {
+  const uploadDir = path.join(__dirname, "..", "uploads", folderName);
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const uniqueName = `${req.user._id}_${Date.now()}${ext}`;
-    cb(null, uniqueName);
-  },
-});
+  if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+  }
 
-const fileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp"];
-  if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(new Error("Only .jpg, .png, .webp files are allowed"));
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      const uniqueName = `${req.user._id}_${Date.now()}${ext}`;
+      cb(null, uniqueName);
+    },
+  });
+
+  const allowedTypes = options.allowedTypes || [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+  ];
+
+  const fileFilter = (req, file, cb) => {
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(
+        new Error(`File type not allowed. Allowed: ${allowedTypes.join(", ")}`),
+      );
+    }
+  };
+
+  const maxSizeMB = options.maxSizeMB || 5;
+
+  return multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: maxSizeMB * 1024 * 1024 },
+  });
 };
 
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-});
-
-module.exports = { upload };
+module.exports = createUploadMiddleware;
