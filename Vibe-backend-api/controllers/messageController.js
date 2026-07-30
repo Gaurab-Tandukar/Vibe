@@ -93,6 +93,23 @@ const createMessage = async (req, res) => {
         populate: { path: "sender", select: "username" },
       });
 
+    // NEW: broadcast to everyone in this conversation's room
+    const io = req.app.get("io");
+    io.to(conversationId).emit("newMessage", fullMessage);
+
+    // also push a notification directly to each recipient, if online
+    recipientIds.forEach((userId) => {
+      const socketId = io.onlineUsers.get(userId.toString());
+      if (socketId) {
+        io.to(socketId).emit("newNotification", {
+          conversationId,
+          messageId: message._id,
+          preview: content,
+          sender: fullMessage.sender.username,
+        });
+      }
+    });
+
     res.status(201).json(fullMessage);
   } catch (error) {
     return res.status(500).json({ message: error.message });
