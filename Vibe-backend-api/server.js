@@ -25,6 +25,7 @@ app.use("/api/chats", require("./routes/conversationRoute"));
 app.use("/api/messages", require("./routes/messageRoute"));
 app.use("/api/reactions", require("./routes/reactionRoute"));
 app.use("/api/attachments", require("./routes/attachmentRoute"));
+app.use("/api/notifications", require("./routes/notificationRoute"));
 
 // Connect to MongoDB and start server
 const startServer = async () => {
