@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Message = require("../model/messageModel");
 const Conversation = require("../model/conversationModel");
 const Attachment = require("../model/AttachmentModel");
+const Notification = require("../model/notificationModel");
 
 // @desc   create Message
 // @route  POST /api/messages
@@ -68,6 +69,19 @@ const createMessage = async (req, res) => {
     // keep conversation list sorted by recent activity
     conversation.lastMessageAt = Date.now();
     await conversation.save();
+
+    // notification
+    const recipientIds = conversation.participants.filter(
+      (p) => p.toString() !== currentUserId.toString(),
+    );
+
+    if (recipientIds.length > 0) {
+      const notificationDocs = recipientIds.map((userId) => ({
+        user: userId,
+        message: message._id,
+      }));
+      await Notification.insertMany(notificationDocs);
+    }
 
     // return fully populated message
     const fullMessage = await Message.findById(message._id)
