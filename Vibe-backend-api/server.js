@@ -1,5 +1,7 @@
 // server.js
 const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
 const dotenv = require("dotenv");
 const connectDB = require("./config/dbConfig");
 
@@ -27,13 +29,26 @@ app.use("/api/reactions", require("./routes/reactionRoute"));
 app.use("/api/attachments", require("./routes/attachmentRoute"));
 app.use("/api/notifications", require("./routes/notificationRoute"));
 
+// create a raw http server wrapping the express app
+const server = http.createServer(app);
+
+// attach socket.io to that server
+const io = new Server(server, {
+  cors: { origin: "*" },
+});
+
+// load our socket connection logic
+require("./socket/socketHandler")(io);
+
+app.set("io", io);
+
 // Connect to MongoDB and start server
 const startServer = async () => {
   await connectDB();
 
   const PORT = process.env.PORT || 3000;
 
-  app.listen(PORT, () => {
+  server.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });
 };
