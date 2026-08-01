@@ -286,4 +286,70 @@ const editMessage = async (req, res) => {
   }
 };
 
-module.exports = { createMessage, getMessages, deleteMessage, editMessage };
+// @desc   mark all unread messages in a conversation as read by current user
+// @route  PUT /api/messages/:conversationId/read
+const markMessagesAsRead = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const currentUserId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      return res.status(400).json({ message: "Invalid conversation id" });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    const isMember = conversation.participants.some(
+      (p) => p.toString() === currentUserId.toString(),
+    );
+    if (!isMember) {
+      return res
+        .status(403)
+        .json({ message: "You are not a member of this conversation" });
+    }
+
+    // add currentUserId to readBy on every message that doesn't already have it
+    const result = await Message.updateMany(
+      { conversation: conversationId, readBy: { $ne: currentUserId } },
+      { $addToSet: { readBy: currentUserId } },
+    );
+
+    // also clear their notifications for this conversation
+    const conversationMessages = await Message.find({
+      conversation: conversationId,
+    }).select("_id");
+    const messageIds = conversationMessages.map((m) => m._id);
+
+    await Notification.updateMany(
+      { user: currentUserId, message: { $in: messageIds }, isRead: false },
+      { $set: { isRead: true } },
+    );
+
+    // notify other members live that this user has read up to now
+    const io = req.app.get("io");
+    io.to(conversationId).emit("messagesRead", {
+      conversationId,
+      userId: currentUserId,
+    });
+
+    res
+      .status(200)
+      .json({
+        message: "Messages marked as read",
+        modifiedCount: result.modifiedCount,
+      });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = {
+  createMessage,
+  getMessages,
+  editMessage,
+  deleteMessage,
+  markMessagesAsRead, 
+};
