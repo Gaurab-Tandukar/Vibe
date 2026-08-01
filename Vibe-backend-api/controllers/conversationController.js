@@ -282,10 +282,182 @@ const removeMember = async (req, res) => {
   }
 };
 
+// @desc   leave a group conversation (self-service, non-admin or admin who isn't last)
+// @route  DELETE /api/chat/:id/leave
+const leaveConversation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid conversation id" });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+    if (!conversation.isGroup) {
+      return res.status(400).json({ message: "Cannot leave a private chat" });
+    }
+
+    const membership = await ConversationMember.findOne({
+      conversation: id,
+      user: currentUserId,
+    });
+    if (!membership) {
+      return res
+        .status(400)
+        .json({ message: "You are not a member of this conversation" });
+    }
+
+    // ✅ if this user is the only admin, block leaving until they transfer admin
+    if (membership.role === "admin") {
+      const adminCount = await ConversationMember.countDocuments({
+        conversation: id,
+        role: "admin",
+      });
+      if (adminCount === 1) {
+        const otherMembersCount = await ConversationMember.countDocuments({
+          conversation: id,
+          user: { $ne: currentUserId },
+        });
+
+        if (otherMembersCount > 0) {
+          return res.status(400).json({
+            message:
+              "You are the only admin. Transfer admin role to another member before leaving.",
+          });
+        }
+        // if they're the only member left, leaving effectively deletes the group below
+      }
+    }
+
+    await ConversationMember.findOneAndDelete({
+      conversation: id,
+      user: currentUserId,
+    });
+    await Conversation.findByIdAndUpdate(id, {
+      $pull: { participants: currentUserId },
+    });
+
+    // ✅ if no members remain, delete the empty group entirely
+    const remainingMembers = await ConversationMember.countDocuments({
+      conversation: id,
+    });
+    if (remainingMembers === 0) {
+      await Conversation.findByIdAndDelete(id);
+    }
+
+    res.status(200).json({ message: "Left conversation successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc   transfer admin role to another member (current admin only)
+// @route  PUT /api/chat/:id/transfer-admin
+const transferAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { newAdminUserId } = req.body;
+    const currentUserId = req.user._id;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(id) ||
+      !mongoose.Types.ObjectId.isValid(newAdminUserId)
+    ) {
+      return res.status(400).json({ message: "Invalid id(s)" });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation || !conversation.isGroup) {
+      return res
+        .status(400)
+        .json({ message: "Only group conversations have admins" });
+    }
+
+    const requesterMembership = await ConversationMember.findOne({
+      conversation: id,
+      user: currentUserId,
+    });
+    if (!requesterMembership || requesterMembership.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only the current admin can transfer this role" });
+    }
+
+    const targetMembership = await ConversationMember.findOne({
+      conversation: id,
+      user: newAdminUserId,
+    });
+    if (!targetMembership) {
+      return res
+        .status(404)
+        .json({ message: "Target user is not a member of this group" });
+    }
+
+    // ✅ swap roles
+    requesterMembership.role = "member";
+    targetMembership.role = "admin";
+
+    await requesterMembership.save();
+    await targetMembership.save();
+
+    res.status(200).json({ message: "Admin role transferred successfully" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc   rename a group conversation (admin only)
+// @route  PUT /api/chat/:id
+const renameConversation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    const currentUserId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid conversation id" });
+    }
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "Name is required" });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation || !conversation.isGroup) {
+      return res
+        .status(400)
+        .json({ message: "Only group conversations can be renamed" });
+    }
+
+    const membership = await ConversationMember.findOne({
+      conversation: id,
+      user: currentUserId,
+    });
+    if (!membership || membership.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admins can rename the group" });
+    }
+
+    conversation.name = name.trim();
+    await conversation.save();
+
+    res.status(200).json(conversation);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createConversation,
   getMyConversations,
   getConversationById,
   addMember,
   removeMember,
+  leaveConversation,
+  transferAdmin,
+  renameConversation,
 };

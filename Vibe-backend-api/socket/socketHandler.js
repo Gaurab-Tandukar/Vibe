@@ -1,25 +1,20 @@
+// socket/socketHandler.js
 const jwt = require("jsonwebtoken");
 const User = require("../model/userModel");
 
-const onlineUsers = new Map();
+const onlineUsers = new Map(); // userId -> socketId
 
 module.exports = (io) => {
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token;
-
-      if (!token) {
-        return next(new Error("No token provided"));
-      }
+      if (!token) return next(new Error("No token provided"));
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       const user = await User.findById(decoded.id).select("-passwordHash");
+      if (!user) return next(new Error("User not found"));
 
-      if (!user) {
-        return next(new Error("User not found"));
-      }
-
-      socket.user = user; // attach user to this socket, like req.user in Express
+      socket.user = user;
       next();
     } catch (error) {
       next(new Error("Authentication Failed"));
@@ -30,22 +25,44 @@ module.exports = (io) => {
     const userId = socket.user._id.toString();
     console.log(`User connected: ${socket.user.username} (${socket.id})`);
 
-    // mark this user as online
     onlineUsers.set(userId, socket.id);
 
-    // let the client tell us which conversation they're viewing
+    // tell everyone this user is online
+    socket.broadcast.emit("userOnline", { userId });
+
     socket.on("joinConversation", (conversationId) => {
-      socket.join(conversationId); // conversationId becomes the room name
+      socket.join(conversationId);
       console.log(`${socket.user.username} joined room ${conversationId}`);
     });
 
-    // handle disconnect
+    socket.on("leaveConversation", (conversationId) => {
+      socket.leave(conversationId);
+    });
+
+    // typing indicators
+    socket.on("typing", (conversationId) => {
+      socket.to(conversationId).emit("userTyping", {
+        conversationId,
+        userId,
+        username: socket.user.username,
+      });
+    });
+
+    socket.on("stopTyping", (conversationId) => {
+      socket.to(conversationId).emit("userStoppedTyping", {
+        conversationId,
+        userId,
+      });
+    });
+
     socket.on("disconnect", () => {
       console.log(`User disconnected: ${socket.user.username}`);
       onlineUsers.delete(userId);
+
+      // tell everyone this user went offline
+      socket.broadcast.emit("userOffline", { userId });
     });
   });
 
-  // expose onlineUsers so controllers can check who's connected
   io.onlineUsers = onlineUsers;
 };
