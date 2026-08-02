@@ -180,10 +180,10 @@ http://localhost:3000/uploads/<avatars|attachments>/<filename>
 
 ## 🛣️ Roadmap / Known Next Steps
 
-- [ ] Typing indicators & online presence via sockets
-- [ ] Read receipts (`readBy` tracking on messages)
-- [ ] Leave group (self-service, non-admin)
-- [ ] Admin transfer / adminless-group handling
+- [ ] Typing indicators & online presence via sockets -- done --
+- [ ] Read receipts (`readBy` tracking on messages) -- done --
+- [ ] Leave group (self-service, non-admin) -- done --
+- [ ] Admin transfer / adminless-group handling -- done --
 - [ ] Move file storage to Cloudinary before deployment
 - [ ] Rate limiting on auth & message endpoints
 - [ ] Lock CORS to production frontend URL
