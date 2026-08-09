@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import FormField from "../components/FormField";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -50,37 +51,24 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} noValidate>
-            <div className="mb-3">
-              <label htmlFor="username" className="form-label">
-                Username
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                id="username"
-                name="username"
-                value={form.username}
-                onChange={handleChange}
-                autoComplete="username"
-                required
-              />
-            </div>
+            <FormField
+              label="Username"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              autoComplete="username"
+              required
+            />
 
-            <div className="mb-3">
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
-              <input
-                type="password"
-                className="form-control"
-                id="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                autoComplete="current-password"
-                required
-              />
-            </div>
+            <FormField
+              label="Password"
+              type="password"
+              name="password"
+              value={form.password}
+              onChange={handleChange}
+              autoComplete="current-password"
+              required
+            />
 
             <button
               type="submit"

@@ -1,0 +1,116 @@
+/* ===== Vibe theme ===== */
+
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+
+:root {
+  --vibe-bg: #eff9f0;
+  --vibe-ink: #13070c;
+  --vibe-primary: #1c3144;
+  --vibe-primary-hover: #142433;
+  --vibe-primary-soft: rgba(28, 49, 68, 0.08);
+
+  --vibe-font-heading: "Space Grotesk", sans-serif;
+  --vibe-font-body: "IBM Plex Sans", sans-serif;
+}
+
+body {
+  background-color: var(--vibe-bg);
+  color: var(--vibe-ink);
+  font-family: var(--vibe-font-body);
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.card-title {
+  font-family: var(--vibe-font-heading);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* ===== Buttons ===== */
+.btn-primary {
+  background-color: var(--vibe-primary);
+  border-color: var(--vibe-primary);
+  color: var(--vibe-bg);
+  font-weight: 500;
+}
+
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
+  background-color: var(--vibe-primary-hover);
+  border-color: var(--vibe-primary-hover);
+  color: var(--vibe-bg);
+}
+
+.btn-outline-primary {
+  color: var(--vibe-primary);
+  border-color: var(--vibe-primary);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--vibe-primary);
+  color: var(--vibe-bg);
+}
+
+.btn-secondary {
+  background-color: transparent;
+  border-color: var(--vibe-ink);
+  color: var(--vibe-ink);
+}
+
+.btn-secondary:hover {
+  background-color: var(--vibe-ink);
+  border-color: var(--vibe-ink);
+  color: var(--vibe-bg);
+}
+
+/* ===== Links ===== */
+a {
+  color: var(--vibe-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+a:hover {
+  color: var(--vibe-primary-hover);
+}
+
+/* ===== Cards ===== */
+.card {
+  background-color: #ffffff;
+  border: 1px solid rgba(19, 7, 12, 0.08);
+  border-radius: 0.75rem;
+  color: var(--vibe-ink);
+}
+
+/* ===== Forms ===== */
+.form-label {
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.form-control {
+  border-color: rgba(19, 7, 12, 0.15);
+}
+
+.form-control:focus {
+  border-color: var(--vibe-primary);
+  box-shadow: 0 0 0 0.2rem var(--vibe-primary-soft);
+}
+
+/* ===== Alerts ===== */
+.alert-danger {
+  background-color: #fdecea;
+  border-color: rgba(220, 53, 69, 0.2);
+  color: #7a1f1f;
+}
+
+/* ===== Spinner (uses primary instead of Bootstrap blue) ===== */
+.spinner-border.text-primary {
+  color: var(--vibe-primary) !important;
+}

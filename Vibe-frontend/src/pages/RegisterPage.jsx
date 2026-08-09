@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import FormField from "../components/FormField";
 
 const INITIAL_FORM = {
   firstName: "",
@@ -88,114 +89,66 @@ export default function RegisterPage() {
 
           <form onSubmit={handleSubmit} noValidate>
             <div className="row">
-              <div className="col-6 mb-3">
-                <label htmlFor="firstName" className="form-label">
-                  First name
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="firstName"
-                  name="firstName"
-                  value={form.firstName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-              <div className="col-6 mb-3">
-                <label htmlFor="lastName" className="form-label">
-                  Last name
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="lastName"
-                  name="lastName"
-                  value={form.lastName}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="username" className="form-label">
-                Username
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                id="username"
-                name="username"
-                value={form.username}
+              <FormField
+                label="First name"
+                name="firstName"
+                value={form.firstName}
                 onChange={handleChange}
-                autoComplete="username"
                 required
               />
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="email" className="form-label">
-                Email
-              </label>
-              <input
-                type="email"
-                className="form-control"
-                id="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                autoComplete="email"
-                required
-              />
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="phoneNo" className="form-label">
-                Phone number
-              </label>
-              <input
-                type="tel"
-                className="form-control"
-                id="phoneNo"
-                name="phoneNo"
-                value={form.phoneNo}
+              <FormField
+                label="Last name"
+                name="lastName"
+                value={form.lastName}
                 onChange={handleChange}
                 required
               />
             </div>
+
+            <FormField
+              label="Username"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              required
+            />
+
+            <FormField
+              label="Email"
+              type="email"
+              name="email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+
+            <FormField
+              label="Phone number"
+              name="phoneNo"
+              value={form.phoneNo}
+              onChange={handleChange}
+              required
+            />
 
             <div className="row">
-              <div className="col-6 mb-3">
-                <label htmlFor="password" className="form-label">
-                  Password
-                </label>
-                <input
-                  type="password"
-                  className="form-control"
-                  id="password"
-                  name="password"
-                  value={form.password}
-                  onChange={handleChange}
-                  autoComplete="new-password"
-                  required
-                />
-              </div>
-              <div className="col-6 mb-3">
-                <label htmlFor="confirmPassword" className="form-label">
-                  Confirm password
-                </label>
-                <input
-                  type="password"
-                  className="form-control"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={form.confirmPassword}
-                  onChange={handleChange}
-                  autoComplete="new-password"
-                  required
-                />
-              </div>
+              <FormField
+                label="Password"
+                type="password"
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                autoComplete="new-password"
+                required
+              />
+              <FormField
+                label="Confirm password"
+                type="password"
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                autoComplete="new-password"
+                required
+              />
             </div>
 
             <button
