@@ -5,6 +5,7 @@ export default function FormInput({
   type = "text",
   name,
   value,
+  placeholder,
   onChange,
   autoComplete,
   required = false,
@@ -28,6 +29,7 @@ export default function FormInput({
           id={name}
           name={name}
           value={value}
+          placeholder={placeholder}
           onChange={onChange}
           autoComplete={autoComplete}
           required={required}

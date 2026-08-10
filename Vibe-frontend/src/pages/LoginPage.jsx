@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import FormField from "../components/FormField";
+import Button from "../components/Button";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -55,6 +56,7 @@ export default function LoginPage() {
               label="Username"
               name="username"
               value={form.username}
+              placeholder="BillieJeanNotMyLover"
               onChange={handleChange}
               autoComplete="username"
               required
@@ -65,18 +67,15 @@ export default function LoginPage() {
               type="password"
               name="password"
               value={form.password}
+              placeholder="********"
               onChange={handleChange}
               autoComplete="current-password"
               required
             />
 
-            <button
-              type="submit"
-              className="btn btn-primary w-100"
-              disabled={submitting}
-            >
+            <Button type="submit" className="w-100" disabled={submitting}>
               {submitting ? "Logging in..." : "Log in"}
-            </button>
+            </Button>
           </form>
 
           <p className="text-center mt-3 mb-0">

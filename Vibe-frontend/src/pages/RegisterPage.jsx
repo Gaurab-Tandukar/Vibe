@@ -93,6 +93,7 @@ export default function RegisterPage() {
                 label="First name"
                 name="firstName"
                 value={form.firstName}
+                placeholder="Billie"
                 onChange={handleChange}
                 required
               />
@@ -100,6 +101,7 @@ export default function RegisterPage() {
                 label="Last name"
                 name="lastName"
                 value={form.lastName}
+                placeholder="Jean"
                 onChange={handleChange}
                 required
               />
@@ -109,6 +111,7 @@ export default function RegisterPage() {
               label="Username"
               name="username"
               value={form.username}
+              placeholder="BillieJeanNotMyLover"
               onChange={handleChange}
               required
             />
@@ -118,6 +121,7 @@ export default function RegisterPage() {
               type="email"
               name="email"
               value={form.email}
+              placeholder="billiejean10@example.com"
               onChange={handleChange}
               required
             />
@@ -126,6 +130,7 @@ export default function RegisterPage() {
               label="Phone number"
               name="phoneNo"
               value={form.phoneNo}
+              placeholder="123-456-7890"
               onChange={handleChange}
               required
             />
@@ -136,6 +141,7 @@ export default function RegisterPage() {
                 type="password"
                 name="password"
                 value={form.password}
+                placeholder="********"
                 onChange={handleChange}
                 autoComplete="new-password"
                 required
@@ -145,6 +151,7 @@ export default function RegisterPage() {
                 type="password"
                 name="confirmPassword"
                 value={form.confirmPassword}
+                placeholder="********"
                 onChange={handleChange}
                 autoComplete="new-password"
                 required
