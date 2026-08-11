@@ -3,11 +3,12 @@
 @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
 
 :root {
-  --vibe-bg: #eff9f0;
-  --vibe-ink: #13070c;
-  --vibe-primary: #1c3144;
-  --vibe-primary-hover: #142433;
-  --vibe-primary-soft: rgba(28, 49, 68, 0.08);
+  --vibe-bg: #eee; /* page background - primary */
+  --vibe-surface: #444444; /* navbar, cards, offcanvas - secondary */
+  --vibe-ink: #2a2a2a; /* text directly on the white page (not inside a dark surface) */
+  --vibe-on-dark: #fffefe; /* text inside navbar/cards/dark surfaces */
+  --vibe-highlight: #ffbb33; /* accent - buttons, links, focus, active states */
+  --vibe-highlight-hover: #e6a62e;
 
   --vibe-font-heading: "Space Grotesk", sans-serif;
   --vibe-font-body: "IBM Plex Sans", sans-serif;
@@ -24,93 +25,118 @@ h2,
 h3,
 h4,
 h5,
-h6,
-.card-title {
+h6 {
   font-family: var(--vibe-font-heading);
   font-weight: 600;
   letter-spacing: -0.01em;
+  color: var(--vibe-ink);
+}
+
+.text-muted {
+  color: #777777 !important;
 }
 
 /* ===== Buttons ===== */
 .btn-primary {
-  background-color: var(--vibe-primary);
-  border-color: var(--vibe-primary);
-  color: var(--vibe-bg);
+  background-color: var(--vibe-highlight);
+  border-color: var(--vibe-highlight);
+  color: var(--vibe-surface);
   font-weight: 500;
 }
 
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active {
-  background-color: var(--vibe-primary-hover);
-  border-color: var(--vibe-primary-hover);
-  color: var(--vibe-bg);
+  background-color: var(--vibe-highlight-hover);
+  border-color: var(--vibe-highlight-hover);
+  color: var(--vibe-surface);
 }
 
 .btn-outline-primary {
-  color: var(--vibe-primary);
-  border-color: var(--vibe-primary);
+  color: var(--vibe-highlight);
+  border-color: var(--vibe-highlight);
 }
 
 .btn-outline-primary:hover {
-  background-color: var(--vibe-primary);
-  color: var(--vibe-bg);
+  background-color: var(--vibe-highlight);
+  color: var(--vibe-surface);
 }
 
 .btn-secondary {
   background-color: transparent;
-  border-color: var(--vibe-ink);
+  border-color: var(--vibe-surface);
   color: var(--vibe-ink);
 }
 
 .btn-secondary:hover {
-  background-color: var(--vibe-ink);
-  border-color: var(--vibe-ink);
-  color: var(--vibe-bg);
+  background-color: var(--vibe-surface);
+  border-color: var(--vibe-surface);
+  color: var(--vibe-on-dark);
 }
 
 /* ===== Links ===== */
 a {
-  color: var(--vibe-primary);
+  color: var(--vibe-highlight);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 a:hover {
-  color: var(--vibe-primary-hover);
+  color: var(--vibe-highlight-hover);
 }
 
-/* ===== Cards ===== */
+/* ===== Cards (light surface - navbar stays dark separately) ===== */
 .card {
   background-color: #ffffff;
-  border: 1px solid rgba(19, 7, 12, 0.08);
+  border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 0.75rem;
   color: var(--vibe-ink);
 }
 
-/* ===== Forms ===== */
+.card-title,
+.card-body,
+.card-text {
+  color: var(--vibe-ink);
+}
+
+/* ===== Forms (sit inside light cards) ===== */
 .form-label {
   font-weight: 500;
   font-size: 0.9rem;
+  color: var(--vibe-ink);
 }
 
 .form-control {
-  border-color: rgba(19, 7, 12, 0.15);
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.15);
+  color: var(--vibe-ink);
 }
 
 .form-control:focus {
-  border-color: var(--vibe-primary);
-  box-shadow: 0 0 0 0.2rem var(--vibe-primary-soft);
+  background-color: #ffffff;
+  color: var(--vibe-ink);
+  border-color: var(--vibe-highlight);
+  box-shadow: 0 0 0 0.2rem rgba(255, 187, 51, 0.25);
+}
+
+.form-control::placeholder {
+  color: #999999;
 }
 
 /* ===== Alerts ===== */
 .alert-danger {
-  background-color: #fdecea;
-  border-color: rgba(220, 53, 69, 0.2);
-  color: #7a1f1f;
+  background-color: rgba(220, 53, 69, 0.15);
+  border-color: rgba(220, 53, 69, 0.4);
+  color: #ff8a8a;
 }
 
-/* ===== Spinner (uses primary instead of Bootstrap blue) ===== */
+/* ===== Spinner ===== */
 .spinner-border.text-primary {
-  color: var(--vibe-primary) !important;
+  color: var(--vibe-highlight) !important;
+}
+
+/* ===== Nav active link highlight ===== */
+.nav-link.active {
+  color: var(--vibe-highlight) !important;
+  font-weight: 500;
 }
