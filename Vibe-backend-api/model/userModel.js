@@ -11,7 +11,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      minlength: 5,
       maxlength: 50,
     },
 
@@ -19,7 +18,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      minlength: 5,
       maxlength: 50,
     },
 
@@ -39,6 +37,13 @@ const userSchema = new mongoose.Schema(
       trim: true,
       lowercase: true,
       maxlength: 100,
+    },
+
+    phoneNumber: {
+      type: String,
+      unique: true,
+      trim: true,
+      maxlength: 10,
     },
 
     passwordHash: {

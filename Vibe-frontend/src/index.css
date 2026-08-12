@@ -1,23 +1,30 @@
-/* ===== Vibe theme ===== */
+/* ===== Sage / RootMint Theme ===== */
 
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Itim&display=swap");
 
 :root {
-  --vibe-bg: #eee; /* page background - primary */
-  --vibe-surface: #444444; /* navbar, cards, offcanvas - secondary */
-  --vibe-ink: #2a2a2a; /* text directly on the white page (not inside a dark surface) */
-  --vibe-on-dark: #fffefe; /* text inside navbar/cards/dark surfaces */
-  --vibe-highlight: #ffbb33; /* accent - buttons, links, focus, active states */
-  --vibe-highlight-hover: #e6a62e;
+  --sage-bg: #f0f7f2; /* soft mint page background */
+  --sage-surface: #ffffff; /* cards, navbar */
+  --sage-ink: #1b4332; /* main headings & strong text */
+  --sage-body: #344e41; /* body text */
+  --sage-muted: #6b8f71; /* secondary text */
+  --sage-accent: #40916c; /* primary buttons & links */
+  --sage-accent-hover: #2d6a4f;
+  --sage-border: #d8e8de; /* soft card borders */
+  --sage-light: #95d5b2; /* light green pills / tags */
 
-  --vibe-font-heading: "Space Grotesk", sans-serif;
-  --vibe-font-body: "IBM Plex Sans", sans-serif;
+  --sage-font-heading: "Itim", cursive;
+  --sage-font-body: "Itim", cursive;
+}
+
+* {
+  font-family: var(--sage-font-body);
 }
 
 body {
-  background-color: var(--vibe-bg);
-  color: var(--vibe-ink);
-  font-family: var(--vibe-font-body);
+  background-color: var(--sage-bg);
+  color: var(--sage-body);
+  font-family: var(--sage-font-body);
 }
 
 h1,
@@ -26,117 +33,142 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--vibe-font-heading);
-  font-weight: 600;
+  font-family: var(--sage-font-heading);
+  font-weight: 400; /* Itim only ships a regular weight - "bold" would fall back to a different font */
+  color: var(--sage-ink);
   letter-spacing: -0.01em;
-  color: var(--vibe-ink);
 }
 
 .text-muted {
-  color: #777777 !important;
+  color: var(--sage-muted) !important;
 }
 
 /* ===== Buttons ===== */
 .btn-primary {
-  background-color: var(--vibe-highlight);
-  border-color: var(--vibe-highlight);
-  color: var(--vibe-surface);
-  font-weight: 500;
+  background-color: var(--sage-accent);
+  border-color: var(--sage-accent);
+  color: white;
+  font-weight: 600;
+  border-radius: 999px; /* pill shape */
+  padding: 0.6rem 1.5rem;
 }
 
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active {
-  background-color: var(--vibe-highlight-hover);
-  border-color: var(--vibe-highlight-hover);
-  color: var(--vibe-surface);
+  background-color: var(--sage-accent-hover);
+  border-color: var(--sage-accent-hover);
+  color: white;
 }
 
 .btn-outline-primary {
-  color: var(--vibe-highlight);
-  border-color: var(--vibe-highlight);
+  color: var(--sage-accent);
+  border-color: var(--sage-accent);
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
 }
 
 .btn-outline-primary:hover {
-  background-color: var(--vibe-highlight);
-  color: var(--vibe-surface);
+  background-color: var(--sage-accent);
+  border-color: var(--sage-accent);
+  color: white;
 }
 
 .btn-secondary {
   background-color: transparent;
-  border-color: var(--vibe-surface);
-  color: var(--vibe-ink);
+  border-color: var(--sage-border);
+  color: var(--sage-body);
+  border-radius: 999px;
+  padding: 0.6rem 1.5rem;
 }
 
 .btn-secondary:hover {
-  background-color: var(--vibe-surface);
-  border-color: var(--vibe-surface);
-  color: var(--vibe-on-dark);
+  background-color: var(--sage-border);
+  border-color: var(--sage-border);
+  color: var(--sage-ink);
+}
+
+/* Smaller buttons (navbar) keep the pill shape but tighter padding */
+.btn-sm {
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
 }
 
 /* ===== Links ===== */
 a {
-  color: var(--vibe-highlight);
+  color: var(--sage-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 a:hover {
-  color: var(--vibe-highlight-hover);
+  color: var(--sage-accent-hover);
 }
 
-/* ===== Cards (light surface - navbar stays dark separately) ===== */
+/* ===== Cards ===== */
 .card {
-  background-color: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 0.75rem;
-  color: var(--vibe-ink);
+  background-color: var(--sage-surface);
+  border: 1.5px solid var(--sage-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px rgba(27, 67, 50, 0.04);
+  color: var(--sage-body);
 }
 
-.card-title,
-.card-body,
-.card-text {
-  color: var(--vibe-ink);
+.card-title {
+  color: var(--sage-ink);
 }
 
-/* ===== Forms (sit inside light cards) ===== */
-.form-label {
+/* ===== Soft tag / pill (badges) ===== */
+.badge-soft {
+  background-color: transparent;
+  border: 1.5px solid var(--sage-border);
+  color: var(--sage-body);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
   font-weight: 500;
+}
+
+/* ===== Forms ===== */
+.form-label {
+  font-weight: 600;
   font-size: 0.9rem;
-  color: var(--vibe-ink);
+  color: var(--sage-ink);
 }
 
 .form-control {
-  background-color: #ffffff;
-  border-color: rgba(0, 0, 0, 0.15);
-  color: var(--vibe-ink);
+  background-color: var(--sage-surface);
+  border: 1.5px solid var(--sage-border);
+  border-radius: 0.75rem;
+  color: var(--sage-body);
 }
 
 .form-control:focus {
-  background-color: #ffffff;
-  color: var(--vibe-ink);
-  border-color: var(--vibe-highlight);
-  box-shadow: 0 0 0 0.2rem rgba(255, 187, 51, 0.25);
+  background-color: var(--sage-surface);
+  color: var(--sage-body);
+  border-color: var(--sage-accent);
+  box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.15);
 }
 
 .form-control::placeholder {
-  color: #999999;
+  color: var(--sage-muted);
 }
 
 /* ===== Alerts ===== */
 .alert-danger {
-  background-color: rgba(220, 53, 69, 0.15);
-  border-color: rgba(220, 53, 69, 0.4);
-  color: #ff8a8a;
+  background-color: #fdecea;
+  border: 1.5px solid rgba(220, 53, 69, 0.25);
+  border-radius: 0.75rem;
+  color: #a02626;
 }
 
 /* ===== Spinner ===== */
 .spinner-border.text-primary {
-  color: var(--vibe-highlight) !important;
+  color: var(--sage-accent) !important;
 }
 
-/* ===== Nav active link highlight ===== */
+/* ===== Nav active link ===== */
 .nav-link.active {
-  color: var(--vibe-highlight) !important;
-  font-weight: 500;
+  color: var(--sage-accent) !important;
+  font-weight: 600;
 }
