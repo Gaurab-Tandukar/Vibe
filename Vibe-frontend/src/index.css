@@ -1,22 +1,30 @@
-/* ===== Vibe theme ===== */
+/* ===== Sage / RootMint Theme ===== */
 
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Itim&display=swap");
 
 :root {
-  --vibe-bg: #eff9f0;
-  --vibe-ink: #13070c;
-  --vibe-primary: #1c3144;
-  --vibe-primary-hover: #142433;
-  --vibe-primary-soft: rgba(28, 49, 68, 0.08);
+  --sage-bg: #f0f7f2; /* soft mint page background */
+  --sage-surface: #ffffff; /* cards, navbar */
+  --sage-ink: #1b4332; /* main headings & strong text */
+  --sage-body: #344e41; /* body text */
+  --sage-muted: #6b8f71; /* secondary text */
+  --sage-accent: #40916c; /* primary buttons & links */
+  --sage-accent-hover: #2d6a4f;
+  --sage-border: #d8e8de; /* soft card borders */
+  --sage-light: #95d5b2; /* light green pills / tags */
 
-  --vibe-font-heading: "Space Grotesk", sans-serif;
-  --vibe-font-body: "IBM Plex Sans", sans-serif;
+  --sage-font-heading: "Itim", cursive;
+  --sage-font-body: "Itim", cursive;
+}
+
+* {
+  font-family: var(--sage-font-body);
 }
 
 body {
-  background-color: var(--vibe-bg);
-  color: var(--vibe-ink);
-  font-family: var(--vibe-font-body);
+  background-color: var(--sage-bg);
+  color: var(--sage-body);
+  font-family: var(--sage-font-body);
 }
 
 h1,
@@ -24,93 +32,143 @@ h2,
 h3,
 h4,
 h5,
-h6,
-.card-title {
-  font-family: var(--vibe-font-heading);
-  font-weight: 600;
+h6 {
+  font-family: var(--sage-font-heading);
+  font-weight: 400; /* Itim only ships a regular weight - "bold" would fall back to a different font */
+  color: var(--sage-ink);
   letter-spacing: -0.01em;
+}
+
+.text-muted {
+  color: var(--sage-muted) !important;
 }
 
 /* ===== Buttons ===== */
 .btn-primary {
-  background-color: var(--vibe-primary);
-  border-color: var(--vibe-primary);
-  color: var(--vibe-bg);
-  font-weight: 500;
+  background-color: var(--sage-accent);
+  border-color: var(--sage-accent);
+  color: white;
+  font-weight: 600;
+  border-radius: 999px; /* pill shape */
+  padding: 0.6rem 1.5rem;
 }
 
 .btn-primary:hover,
 .btn-primary:focus,
 .btn-primary:active {
-  background-color: var(--vibe-primary-hover);
-  border-color: var(--vibe-primary-hover);
-  color: var(--vibe-bg);
+  background-color: var(--sage-accent-hover);
+  border-color: var(--sage-accent-hover);
+  color: white;
 }
 
 .btn-outline-primary {
-  color: var(--vibe-primary);
-  border-color: var(--vibe-primary);
+  color: var(--sage-accent);
+  border-color: var(--sage-accent);
+  border-radius: 999px;
+  font-weight: 600;
+  padding: 0.6rem 1.5rem;
 }
 
 .btn-outline-primary:hover {
-  background-color: var(--vibe-primary);
-  color: var(--vibe-bg);
+  background-color: var(--sage-accent);
+  border-color: var(--sage-accent);
+  color: white;
 }
 
 .btn-secondary {
   background-color: transparent;
-  border-color: var(--vibe-ink);
-  color: var(--vibe-ink);
+  border-color: var(--sage-border);
+  color: var(--sage-body);
+  border-radius: 999px;
+  padding: 0.6rem 1.5rem;
 }
 
 .btn-secondary:hover {
-  background-color: var(--vibe-ink);
-  border-color: var(--vibe-ink);
-  color: var(--vibe-bg);
+  background-color: var(--sage-border);
+  border-color: var(--sage-border);
+  color: var(--sage-ink);
+}
+
+/* Smaller buttons (navbar) keep the pill shape but tighter padding */
+.btn-sm {
+  border-radius: 999px;
+  padding: 0.35rem 1rem;
 }
 
 /* ===== Links ===== */
 a {
-  color: var(--vibe-primary);
+  color: var(--sage-accent);
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 a:hover {
-  color: var(--vibe-primary-hover);
+  color: var(--sage-accent-hover);
 }
 
 /* ===== Cards ===== */
 .card {
-  background-color: #ffffff;
-  border: 1px solid rgba(19, 7, 12, 0.08);
-  border-radius: 0.75rem;
-  color: var(--vibe-ink);
+  background-color: var(--sage-surface);
+  border: 1.5px solid var(--sage-border);
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px rgba(27, 67, 50, 0.04);
+  color: var(--sage-body);
+}
+
+.card-title {
+  color: var(--sage-ink);
+}
+
+/* ===== Soft tag / pill (badges) ===== */
+.badge-soft {
+  background-color: transparent;
+  border: 1.5px solid var(--sage-border);
+  color: var(--sage-body);
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  font-weight: 500;
 }
 
 /* ===== Forms ===== */
 .form-label {
-  font-weight: 500;
+  font-weight: 600;
   font-size: 0.9rem;
+  color: var(--sage-ink);
 }
 
 .form-control {
-  border-color: rgba(19, 7, 12, 0.15);
+  background-color: var(--sage-surface);
+  border: 1.5px solid var(--sage-border);
+  border-radius: 0.75rem;
+  color: var(--sage-body);
 }
 
 .form-control:focus {
-  border-color: var(--vibe-primary);
-  box-shadow: 0 0 0 0.2rem var(--vibe-primary-soft);
+  background-color: var(--sage-surface);
+  color: var(--sage-body);
+  border-color: var(--sage-accent);
+  box-shadow: 0 0 0 0.2rem rgba(64, 145, 108, 0.15);
+}
+
+.form-control::placeholder {
+  color: var(--sage-muted);
 }
 
 /* ===== Alerts ===== */
 .alert-danger {
   background-color: #fdecea;
-  border-color: rgba(220, 53, 69, 0.2);
-  color: #7a1f1f;
+  border: 1.5px solid rgba(220, 53, 69, 0.25);
+  border-radius: 0.75rem;
+  color: #a02626;
 }
 
-/* ===== Spinner (uses primary instead of Bootstrap blue) ===== */
+/* ===== Spinner ===== */
 .spinner-border.text-primary {
-  color: var(--vibe-primary) !important;
+  color: var(--sage-accent) !important;
+}
+
+/* ===== Nav active link ===== */
+.nav-link.active {
+  color: var(--sage-accent) !important;
+  font-weight: 600;
 }

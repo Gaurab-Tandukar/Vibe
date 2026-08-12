@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import FormField from "../components/FormField";
-import Button from "../components/Button";
+import { useAuth } from "../../hooks/useAuth";
+import FormField from "../../components/FormField";
+import Button from "../../components/Button";
 
 export default function LoginPage() {
   const { login } = useAuth();

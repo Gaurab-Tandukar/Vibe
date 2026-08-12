@@ -1,0 +1,51 @@
+.vibe-message-bubble {
+  position: absolute;
+  opacity: 0;
+  animation-name: vibe-bubble-float;
+  animation-timing-function: cubic-bezier(0.22, 0.61, 0.36, 1);
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+  pointer-events: none;
+}
+
+.vibe-message-bubble-tail {
+  position: absolute;
+  bottom: -8px;
+  left: 22px;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 9px solid; /* actual color set inline per-bubble */
+}
+
+/*
+  0%   - invisible, sitting right at the phone, slightly small (as if just "sent")
+  12%  - pops in: fades in and settles to full size (the "pop" moment)
+  70%  - drifted upward, still mostly visible
+  100% - fully faded out near the top of its travel distance
+*/
+@keyframes vibe-bubble-float {
+  0% {
+    opacity: 0;
+    transform: translateY(0) scale(0.8);
+  }
+  12% {
+    opacity: 1;
+    transform: translateY(-16px) scale(1);
+  }
+  70% {
+    opacity: 0.85;
+    transform: translateY(-150px) scale(1.04);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-230px) scale(1.08);
+  }
+}
+
+@media (max-width: 600px) {
+  .vibe-floating-messages {
+    display: none;
+  }
+}

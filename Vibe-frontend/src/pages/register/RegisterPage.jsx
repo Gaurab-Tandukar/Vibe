@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import FormField from "../components/FormField";
+import { useAuth } from "../../hooks/useAuth";
+import FormField from "../../components/FormField";
 
 const INITIAL_FORM = {
   firstName: "",
