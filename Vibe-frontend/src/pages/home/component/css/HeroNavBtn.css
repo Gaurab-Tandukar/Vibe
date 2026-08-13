@@ -1,0 +1,19 @@
+.vibe-hero-nav-btn {
+  transition: opacity 0.2s ease;
+}
+
+.vibe-hero-nav-btn:hover,
+.vibe-hero-nav-btn:focus-visible {
+  text-decoration: underline !important;
+  text-underline-offset: 3px;
+  color: #fd7c03 !important;
+}
+
+.vibe-hero-nav-btn .bi-chevron-down {
+  transition: transform 0.25s ease;
+}
+
+/* On hover, the chevron nudges down a bit - reinforces the "scroll" cue */
+.vibe-hero-nav-btn:hover .bi-chevron-down {
+  transform: translateY(3px);
+}

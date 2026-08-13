@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import FormField from "../../components/FormField";
+import CloseBtn from "../../components/CloseBtn";
 
 const INITIAL_FORM = {
   firstName: "",
@@ -73,9 +74,10 @@ export default function RegisterPage() {
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100 py-5">
       <div
-        className="card shadow-sm"
+        className="card shadow-sm position-relative"
         style={{ width: "100%", maxWidth: "480px" }}
       >
+        <CloseBtn />
         <div className="card-body p-4">
           <h2 className="card-title text-center mb-4">
             Create your Vibe account

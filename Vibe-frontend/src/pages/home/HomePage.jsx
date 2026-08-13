@@ -3,6 +3,7 @@ import { useAuth } from "../../hooks/useAuth";
 import Navbar from "../../components/Navbar";
 import Hero from "./component/Hero";
 import heroBg from "../../assets/Hero-img.jpg";
+import HeroNavBtn from "./component/HeroNavBtn";
 import FloatingMessages from "./component/FloatingMessage";
 
 export default function HomePage() {
@@ -19,7 +20,7 @@ export default function HomePage() {
           these are percentages of the Hero section, which is the nearest
           "position: relative" ancestor.
         */}
-        <FloatingMessages anchorBottom="0%" anchorLeft="62%" />
+        <FloatingMessages anchorBottom="40%" anchorLeft="62%" />
 
         <div
           className="container text-white"
@@ -37,6 +38,18 @@ export default function HomePage() {
               Log in
             </Link>
           </div>
+        </div>
+        <div
+          className="d-flex justify-content-center gap-5"
+          style={{
+            position: "absolute",
+            bottom: "2rem",
+            left: 0,
+            right: 0,
+          }}
+        >
+          <HeroNavBtn to="#features">Explore Features</HeroNavBtn>
+          <HeroNavBtn to="#contact">Contact Us</HeroNavBtn>
         </div>
       </Hero>
 

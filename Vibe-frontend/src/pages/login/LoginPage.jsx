@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import FormField from "../../components/FormField";
 import Button from "../../components/Button";
+import CloseBtn from "../../components/CloseBtn";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -39,9 +40,10 @@ export default function LoginPage() {
   return (
     <div className="container d-flex justify-content-center align-items-center min-vh-100">
       <div
-        className="card shadow-sm"
+        className="card shadow-sm  position-relative"
         style={{ width: "100%", maxWidth: "400px" }}
       >
+        <CloseBtn />
         <div className="card-body p-4">
           <h2 className="card-title text-center mb-4">Log in to Vibe</h2>
 

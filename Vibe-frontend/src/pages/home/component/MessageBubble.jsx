@@ -1,4 +1,4 @@
-import "./MessageBubble.css";
+import "./css/MessageBubble.css";
 
 const SIZES = {
   sm: { fontSize: "0.8rem", padding: "0.4rem 0.85rem", maxWidth: "150px" },
