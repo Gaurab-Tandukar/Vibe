@@ -8,7 +8,7 @@ const INITIAL_FORM = {
   firstName: "",
   lastName: "",
   username: "",
-  phoneNo: "",
+  phoneNumber: "",
   email: "",
   password: "",
   confirmPassword: "",
@@ -35,7 +35,7 @@ export default function RegisterPage() {
       firstName,
       lastName,
       username,
-      phoneNo,
+      phoneNumber,
       email,
       password,
       confirmPassword,
@@ -44,7 +44,7 @@ export default function RegisterPage() {
       !firstName ||
       !lastName ||
       !username ||
-      !phoneNo ||
+      !phoneNumber ||
       !email ||
       !password
     ) {
@@ -130,8 +130,8 @@ export default function RegisterPage() {
 
             <FormField
               label="Phone number"
-              name="phoneNo"
-              value={form.phoneNo}
+              name="phoneNumber"
+              value={form.phoneNumber}
               placeholder="123-456-7890"
               onChange={handleChange}
               required

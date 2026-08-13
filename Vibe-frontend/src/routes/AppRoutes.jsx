@@ -4,8 +4,8 @@ import HomePage from "../pages/home/HomePage";
 import LoginPage from "../pages/login/LoginPage";
 import RegisterPage from "../pages/register/RegisterPage";
 import ProfilePage from "../pages/ProfilePage";
-import AboutPage from "../pages/AboutPage";
-import ContactPage from "../pages/ContactPage";
+import AboutPage from "../pages/about/AboutPage";
+import ContactPage from "../pages/contact/ContactPage";
 import FeaturePage from "../pages/FeaturePage";
 
 export default function AppRoutes() {

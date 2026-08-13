@@ -11,6 +11,7 @@ export async function loginUser(credentials) {
 }
 
 export async function registerUser(formData) {
+  console.log(formData);
   const { data } = await axiosInstance.post(ENDPOINTS.register, formData);
   return data;
 }

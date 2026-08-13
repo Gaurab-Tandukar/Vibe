@@ -8,7 +8,7 @@ const registerUser = async (req, res) => {
   try {
     const { firstName, lastName, username, email, phoneNumber, password } =
       req.body;
-
+    console.log(req.body);
     // Validation
     if (
       !firstName ||
