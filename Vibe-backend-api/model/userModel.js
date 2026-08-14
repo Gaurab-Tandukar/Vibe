@@ -56,6 +56,18 @@ const userSchema = new mongoose.Schema(
       maxlength: 500,
     },
 
+    bannerUrl: {
+      type: String,
+      maxlength: 500,
+    },
+
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 200,
+      default: "",
+    },
+
     status: {
       type: String,
       enum: ["online", "offline", "away"],

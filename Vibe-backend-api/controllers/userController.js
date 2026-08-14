@@ -122,14 +122,20 @@ const getAllUsers = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const currentUserId = req.user._id;
-    const { firstName, lastName, email } = req.body;
+    const { firstName, lastName, email, bio } = req.body;
 
     const updates = {};
     if (firstName !== undefined) updates.firstName = firstName;
     if (lastName !== undefined) updates.lastName = lastName;
     if (email !== undefined) updates.email = email;
-    if (req.file) {
-      updates.avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    if (bio !== undefined) updates.bio = bio;
+
+    // req.files instead of req.file since we now accept multiple file fields
+    if (req.files?.avatar) {
+      updates.avatarUrl = `/uploads/avatars/${req.files.avatar[0].filename}`;
+    }
+    if (req.files?.banner) {
+      updates.bannerUrl = `/uploads/banners/${req.files.banner[0].filename}`;
     }
 
     const user = await User.findByIdAndUpdate(currentUserId, updates, {

@@ -12,14 +12,16 @@ const fs = require("fs");
  * @param {number} options.maxSizeMB - max file size in MB
  */
 const createUploadMiddleware = (folderName, options = {}) => {
-  const uploadDir = path.join(__dirname, "..", "uploads", folderName);
-
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
+  const resolveDir = (fieldname) => {
+    const sub =
+      typeof folderName === "string" ? folderName : folderName[fieldname];
+    const dir = path.join(__dirname, "..", "uploads", sub);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    return dir;
+  };
 
   const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, uploadDir),
+    destination: (req, file, cb) => cb(null, resolveDir(file.fieldname)),
     filename: (req, file, cb) => {
       const ext = path.extname(file.originalname);
       const uniqueName = `${req.user._id}_${Date.now()}${ext}`;
