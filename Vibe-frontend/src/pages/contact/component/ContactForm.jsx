@@ -37,7 +37,7 @@ export default function ContactForm() {
 
   if (sent) {
     return (
-      <div className="text-center" style={{ maxWidth: "400px" }}>
+      <div className="contact-form-container text-center d-flex flex-column justify-content-center">
         <h3 className="mb-2">Message sent!</h3>
         <p className="text-muted mb-3">
           Thanks for reaching out - we'll get back to you soon.
@@ -48,7 +48,7 @@ export default function ContactForm() {
   }
 
   return (
-    <div style={{ width: "100%", maxWidth: "400px" }}>
+    <div className="contact-form-container">
       <h2 className="mb-4">Get in touch</h2>
 
       {formError && (
@@ -101,6 +101,27 @@ export default function ContactForm() {
           {submitting ? "Sending..." : "Send message"}
         </Button>
       </form>
+
+      <style>{`
+        .contact-form-container {
+          width: 100%;
+          max-width: 420px;
+          min-height: 520px;
+          background-color: #ffffff;
+          border: 1px solid #e2e2e2;
+          border-radius: 20px;
+          padding: 2.5rem;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+        }
+
+        @media (max-width: 575px) {
+          .contact-form-container {
+            padding: 1.75rem;
+            border-radius: 16px;
+            min-height: auto;
+          }
+        }
+      `}</style>
     </div>
   );
 }

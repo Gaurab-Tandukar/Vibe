@@ -1,24 +1,54 @@
 import Navbar from "../../components/Navbar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
+import {
+  faShieldHeart,
+  faBolt,
+  faUsers,
+  faHeart,
+} from "@fortawesome/free-solid-svg-icons";
 import { useRef } from "react";
 import teamMember1 from "../../assets/team-gaurab.jpg";
 import teamMember2 from "../../assets/team-dilip.jpg";
+import doodlePattern from "../../assets/doodle-pattern.svg";
 import "./css/About.css";
 import Footer from "../../components/Footer";
 
 const team = [
   {
     name: "Gaurab Tandukar",
-    role: "Founder & Full stack Engineer",
+    role: "Founder & Backend Engineer",
     image: teamMember1,
     color: "arch-yellow",
   },
   {
     name: "Dilip Shrestha",
-    role: "Co-Founder & UI/UX Engineer",
+    role: "Co-Founder & Frontend Engineer",
     image: teamMember2,
     color: "arch-blue",
+  },
+];
+
+const values = [
+  {
+    icon: faShieldHeart,
+    title: "Privacy First",
+    text: "Your conversations are yours. We build with privacy baked in, not bolted on.",
+  },
+  {
+    icon: faBolt,
+    title: "Fast & Reliable",
+    text: "Messages that land instantly, every time — no spinners, no waiting.",
+  },
+  {
+    icon: faUsers,
+    title: "Built for People",
+    text: "Every feature starts with a real conversation we had with real users.",
+  },
+  {
+    icon: faHeart,
+    title: "Made with Care",
+    text: "We sweat the small stuff because small stuff is what people notice.",
   },
 ];
 
@@ -32,10 +62,14 @@ export default function About() {
   return (
     <>
       <Navbar />
-      <section className="about-section">
+
+      {/* Meet the team */}
+      <section
+        className="about-section"
+        style={{ backgroundImage: `url(${doodlePattern})` }}
+      >
         <div className="container">
           <div className="row align-items-center justify-content-center g-4">
-            {/* Left member */}
             <div className="col-6 col-md-3 order-1">
               <div className={`arch-shape ${team[0].color}`}>
                 <img src={team[0].image} alt={team[0].name} />
@@ -46,7 +80,6 @@ export default function About() {
               </div>
             </div>
 
-            {/* Center content */}
             <div className="col-12 col-md-5 order-3 order-md-2 text-center">
               <span className="about-eyebrow">About Us</span>
               <h2 className="about-title">Meet the Team</h2>
@@ -64,7 +97,6 @@ export default function About() {
               </button>
             </div>
 
-            {/* Right member */}
             <div className="col-6 col-md-3 order-2 order-md-3">
               <div className={`arch-shape ${team[1].color}`}>
                 <img src={team[1].image} alt={team[1].name} />
@@ -78,10 +110,10 @@ export default function About() {
         </div>
       </section>
 
-      {/* Content revealed on scroll-down click */}
+      {/* Our Story + Stats */}
       <section ref={nextSectionRef} className="about-story-section">
-        <div className="container py-5">
-          <div className="row g-4">
+        <div className="container">
+          <div className="row g-4 align-items-center">
             <div className="col-lg-6">
               <h3 className="fw-bold mb-3">Our Story</h3>
               <p className="text-muted">
@@ -127,6 +159,31 @@ export default function About() {
           </div>
         </div>
       </section>
+
+      {/* Our Values */}
+      <section className="values-section">
+        <div className="container py-5">
+          <div className="text-center mb-5">
+            <span className="about-eyebrow">What We Stand For</span>
+            <h3 className="fw-bold">Our Values</h3>
+          </div>
+          <div className="row g-4">
+            {values.map((v) => (
+              <div className="col-6 col-md-3" key={v.title}>
+                <div className="value-card text-center h-100">
+                  <div className="value-icon">
+                    <FontAwesomeIcon icon={v.icon} />
+                  </div>
+                  <h6 className="fw-bold mt-3 mb-2">{v.title}</h6>
+                  <p className="text-muted small mb-0">{v.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Milestones */}
       <Footer />
     </>
   );

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import FormField from "../../components/FormField";
 import CloseBtn from "../../components/CloseBtn";
+import doodlePattern from "../../assets/doodle-pattern.svg";
 
 const INITIAL_FORM = {
   firstName: "",
@@ -72,7 +73,15 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="container d-flex justify-content-center align-items-center min-vh-100 py-5">
+    <div
+      className="container-fluid d-flex justify-content-center align-items-center min-vh-100 py-5"
+      style={{
+        backgroundColor: "#eef3ea",
+        backgroundImage: `url(${doodlePattern})`,
+        backgroundRepeat: "repeat",
+        backgroundSize: "320px 320px",
+      }}
+    >
       <div
         className="card shadow-sm position-relative"
         style={{ width: "100%", maxWidth: "480px" }}
