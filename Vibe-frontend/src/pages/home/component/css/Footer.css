@@ -1,0 +1,58 @@
+.footer-hero {
+  background-size: cover;
+  background-position: bottom center;
+  background-repeat: no-repeat;
+  min-height: 620px; /* taller so the full tree is visible */
+  padding: 4rem 0;
+  background-color: #eef3ea; /* fallback matching image bg */
+}
+
+.footer-heading {
+  font-weight: 800;
+  color: #14532d;
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.15;
+}
+
+.footer-subtext {
+  color: #3f5d4c;
+  max-width: 420px;
+  font-size: 1.05rem;
+  margin-top: 1rem;
+}
+
+/* Matches the ground color in the illustration so it reads as one
+   continuous surface rather than a separate bar */
+.footer-bottom {
+  background-color: #c2682a;
+  margin-top: -4px; /* removes any subpixel seam between image & bar */
+}
+
+.text-white-75 {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.footer-link {
+  color: rgba(255, 255, 255, 0.75);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 0.2s ease;
+}
+.footer-link:hover {
+  color: #fff;
+}
+
+.footer-icon {
+  color: rgba(255, 255, 255, 0.85);
+  transition: color 0.2s ease;
+}
+.footer-icon:hover {
+  color: #fff;
+}
+
+@media (max-width: 767px) {
+  .footer-hero {
+    background-position: bottom right -120px;
+    min-height: 420px;
+  }
+}

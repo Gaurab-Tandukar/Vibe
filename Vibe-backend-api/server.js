@@ -4,6 +4,7 @@ const http = require("http");
 const { Server } = require("socket.io");
 const dotenv = require("dotenv");
 const connectDB = require("./config/dbConfig");
+const cors = require("cors");
 
 // pathing for file upload
 const path = require("path");
@@ -12,6 +13,13 @@ const path = require("path");
 dotenv.config();
 
 const app = express();
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

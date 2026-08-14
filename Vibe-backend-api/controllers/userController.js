@@ -6,10 +6,18 @@ const generateToken = require("../util/jwtToken");
 // @route  POST /api/users/register
 const registerUser = async (req, res) => {
   try {
-    const { firstName, lastName, username, email, password } = req.body;
-
+    const { firstName, lastName, username, email, phoneNumber, password } =
+      req.body;
+    console.log(req.body);
     // Validation
-    if (!firstName || !lastName || !username || !email || !password) {
+    if (
+      !firstName ||
+      !lastName ||
+      !username ||
+      !email ||
+      !phoneNumber ||
+      !password
+    ) {
       return res.status(400).json({ message: "Please add all fields" });
     }
 
@@ -28,6 +36,7 @@ const registerUser = async (req, res) => {
       lastName,
       username,
       email,
+      phoneNumber,
       passwordHash: hashedPassword,
     });
 
