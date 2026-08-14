@@ -6,7 +6,6 @@ import RegisterPage from "../pages/register/RegisterPage";
 import ProfilePage from "../pages/ProfilePage";
 import AboutPage from "../pages/about/AboutPage";
 import ContactPage from "../pages/contact/ContactPage";
-import FeaturePage from "../pages/FeaturePage";
 
 export default function AppRoutes() {
   return (
@@ -14,7 +13,6 @@ export default function AppRoutes() {
       <Route path="/" element={<HomePage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
-      <Route path="/feature" element={<FeaturePage />} />
 
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />

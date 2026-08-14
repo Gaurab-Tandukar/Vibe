@@ -8,7 +8,7 @@ import FeatureSection from "./component/FeatureSection";
 import HowItWorks from "./component/HowItWorks";
 import StatsStrip from "./component/Statsstrip";
 import Testimonials from "./component/Testimonials";
-import Footer from "./component/Footer";
+import Footer from "../../components/Footer";
 
 export default function HomePage() {
   return (
