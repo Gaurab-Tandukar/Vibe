@@ -15,6 +15,7 @@ export default function Hero({
         backgroundRepeat: "no-repeat",
         display: "flex",
         flexDirection: "column",
+        gap: "1rem",
       }}
     >
       {/*
@@ -34,8 +35,15 @@ export default function Hero({
         />
       )}
 
-      {/* Content (Navbar + hero text) renders above the overlay */}
-      <div style={{ position: "relative", zIndex: 1 }}>{children}</div>
+      {/*
+        No "position: relative" here anymore - this div doesn't need its own
+        containing block. The <section> above already provides one, so any
+        position:absolute children (like your bottom-pinned buttons) now
+        measure against the FULL hero height, not just this div's content height.
+        z-index still works fine without "position" here since this is a flex
+        item inside the section's flex container.
+      */}
+      <div style={{ zIndex: 1 }}>{children}</div>
     </section>
   );
 }

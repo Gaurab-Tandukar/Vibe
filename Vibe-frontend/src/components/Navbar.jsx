@@ -128,11 +128,11 @@ export default function Navbar() {
                     Home
                   </NavLink>
                 </li>
-                <li className="nav-item">
+                {/* <li className="nav-item">
                   <NavLink className="nav-link vibe-nav-link" to="/feature">
                     Feature
                   </NavLink>
-                </li>
+                </li> */}
                 <li className="nav-item">
                   <NavLink className="nav-link vibe-nav-link" to="/about">
                     About
@@ -187,7 +187,7 @@ export default function Navbar() {
                     >
                       Login
                     </Link>
-                    <Link
+                    {/* <Link
                       to="/register"
                       className="btn btn-sm fw-semibold"
                       style={{
@@ -199,7 +199,7 @@ export default function Navbar() {
                       }}
                     >
                       Sign up
-                    </Link>
+                    </Link> */}
                   </>
                 )}
               </div>

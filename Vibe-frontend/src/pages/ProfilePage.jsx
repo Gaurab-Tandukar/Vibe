@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 
 export default function ProfilePage() {
   const { user, logout } = useAuth();
+  console.log(user);
   const navigate = useNavigate();
 
   function handleLogout() {
@@ -28,7 +29,7 @@ export default function ProfilePage() {
             <strong>Email:</strong> {user?.email}
           </p>
           <p className="mb-3">
-            <strong>Phone:</strong> {user?.phoneNo}
+            <strong>Phone:</strong> {user?.phoneNumber}
           </p>
 
           <button className="btn btn-outline-danger" onClick={handleLogout}>
