@@ -6,6 +6,11 @@ import {
   getMyConversations,
   createConversation,
   getAllUsers,
+  hideConversation,
+  togglePinConversation,
+  toggleMuteConversation,
+  markAsRead,
+  markAsUnread,
 } from "../api/conversationService";
 import Logo from "../assets/vibe-logo.png";
 import "./css/Sidebar.css";
@@ -13,10 +18,11 @@ import "./css/Sidebar.css";
 const Sidebar = ({ onSelectChat }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const currentUserId = user?._id || user?.id;
 
   // Component States
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [activeGroupId, setActiveGroupId] = useState(null); // null = Direct Messages
+  const [activeGroupId, setActiveGroupId] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
 
   // Data States
@@ -26,7 +32,7 @@ const Sidebar = ({ onSelectChat }) => {
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Helper to extract full display name from database fields
+  // Helper to extract full display name
   const getUserDisplayName = (u) => {
     if (!u) return "User";
     if (u.firstName || u.lastName) {
@@ -35,7 +41,18 @@ const Sidebar = ({ onSelectChat }) => {
     return u.username || u.name || "User";
   };
 
-  // 1. Fetch conversations & users on mount
+  // Safe helper to extract recipient user object from DM participants
+  const getDMRecipient = (conv) => {
+    if (!conv || !Array.isArray(conv.participants)) return null;
+    return (
+      conv.participants.find((p) => {
+        const pId = typeof p === "object" ? p._id || p.id : p;
+        return String(pId) !== String(currentUserId);
+      }) || null
+    );
+  };
+
+  // Load conversations & users on mount
   useEffect(() => {
     let isMounted = true;
 
@@ -50,16 +67,12 @@ const Sidebar = ({ onSelectChat }) => {
 
         setConversations(userConvs || []);
 
-        // Unsurpass array wrappers if backend returns data in a sub-field
         const rawUsers = Array.isArray(usersResponse)
           ? usersResponse
           : usersResponse?.data || usersResponse?.users || [];
 
-        const currentUserId = user?._id || user?.id;
-
-        // Filter out the currently logged-in user
         const filteredUsers = currentUserId
-          ? rawUsers.filter((u) => u._id !== currentUserId)
+          ? rawUsers.filter((u) => String(u._id) !== String(currentUserId))
           : rawUsers;
 
         setAllUsers(filteredUsers);
@@ -78,9 +91,9 @@ const Sidebar = ({ onSelectChat }) => {
     return () => {
       isMounted = false;
     };
-  }, [user?._id, user?.id]);
+  }, [currentUserId]);
 
-  // 2. Dynamic Search Handler matching username, email, firstName, and lastName
+  // Handle Search Input
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
@@ -109,7 +122,6 @@ const Sidebar = ({ onSelectChat }) => {
     }
   };
 
-  // 3. Select user from search results (creates or retrieves DM)
   const handleSelectUserFromSearch = async (targetUser) => {
     try {
       const conv = await createConversation({
@@ -135,23 +147,89 @@ const Sidebar = ({ onSelectChat }) => {
     }
   };
 
-  // UI Helpers
-  const toggleCollapse = () => setIsCollapsed((c) => !c);
-
-  const getDMRecipientName = (conv) => {
-    const recipient = conv.participants?.find(
-      (p) => p._id !== (user?._id || user?.id),
-    );
-    return recipient ? getUserDisplayName(recipient) : "Direct Message";
+  // Context Menu Actions
+  const handleHideChat = async (e, convId) => {
+    closeDropdown(e);
+    try {
+      await hideConversation(convId);
+      setConversations((prev) => prev.filter((c) => c._id !== convId));
+      if (activeChatId === convId) {
+        setActiveChatId(null);
+        if (onSelectChat) onSelectChat(null);
+      }
+    } catch (err) {
+      console.error("Failed to hide conversation:", err);
+    }
   };
 
-  // Filter conversations for DMs vs Groups
-  const groupChats = conversations.filter((c) => c.isGroup);
-  const directMessages = conversations.filter((c) => !c.isGroup);
-  const activeGroup = groupChats.find((g) => g._id === activeGroupId) || null;
+  const handleTogglePin = async (e, convId) => {
+    closeDropdown(e);
+    try {
+      const res = await togglePinConversation(convId);
+      const updated = res.conversation || res;
+      setConversations((prev) =>
+        prev.map((c) => (c._id === convId ? updated : c)),
+      );
+    } catch (err) {
+      console.error("Failed to toggle pin state:", err);
+    }
+  };
+  const handleToggleMute = async (e, convId) => {
+    closeDropdown(e);
+    try {
+      const res = await toggleMuteConversation(convId);
+      const updated = res.conversation || res;
+      setConversations((prev) =>
+        prev.map((c) => (c._id === convId ? updated : c)),
+      );
+    } catch (err) {
+      console.error("Failed to toggle mute state:", err);
+    }
+  };
 
-  const avatarUrl = resolveMediaUrl(user?.avatarUrl);
-  const displayName = getUserDisplayName(user);
+  const handleToggleReadStatus = async (e, convId, isCurrentlyUnread) => {
+    closeDropdown(e);
+    try {
+      const res = isCurrentlyUnread
+        ? await markAsRead(convId)
+        : await markAsUnread(convId);
+      const updated = res.conversation || res;
+
+      setConversations((prev) =>
+        prev.map((c) => (c._id === convId ? updated : c)),
+      );
+    } catch (err) {
+      console.error("Failed to update read status:", err);
+    }
+  };
+  const toggleCollapse = () => setIsCollapsed((c) => !c);
+
+  // Dismisses any open Bootstrap dropdown popup programmatically
+  const closeDropdown = (e) => {
+    if (e) e.stopPropagation();
+    const openDropdowns = document.querySelectorAll(".chat-options-btn.show");
+    openDropdowns.forEach((btn) => {
+      if (window.bootstrap?.Dropdown) {
+        const instance = window.bootstrap.Dropdown.getInstance(btn);
+        if (instance) instance.hide();
+      } else {
+        btn.click(); // Fallback trigger
+      }
+    });
+  };
+  // Grouping & Sorting: Pinned chats move to top
+  const groupChats = conversations.filter((c) => c.isGroup);
+  const directMessages = conversations
+    .filter((c) => !c.isGroup)
+    .sort((a, b) => {
+      const aPinned = a.pinnedBy?.includes(currentUserId) ? 1 : 0;
+      const bPinned = b.pinnedBy?.includes(currentUserId) ? 1 : 0;
+      return bPinned - aPinned;
+    });
+
+  const activeGroup = groupChats.find((g) => g._id === activeGroupId) || null;
+  const currentUserAvatar = resolveMediaUrl(user?.avatarUrl);
+  const currentUserDisplayName = getUserDisplayName(user);
   const status = user?.status || "offline";
   const statusColors = {
     online: "success",
@@ -181,7 +259,7 @@ const Sidebar = ({ onSelectChat }) => {
         transition: "width 0.2s ease",
       }}
     >
-      {/* ===== SERVER RAIL (Groups / Navigation) ===== */}
+      {/* ===== SERVER RAIL ===== */}
       <div
         className="d-flex flex-column align-items-center"
         style={{
@@ -218,11 +296,7 @@ const Sidebar = ({ onSelectChat }) => {
 
         <div
           className="sidebar-rail-list flex-grow-1 w-100 d-flex flex-column align-items-center gap-2"
-          style={{
-            overflowY: "auto",
-            overflowX: "hidden",
-            minHeight: 0,
-          }}
+          style={{ overflowY: "auto", overflowX: "hidden", minHeight: 0 }}
         >
           {groupChats.map((group) => (
             <button
@@ -259,7 +333,7 @@ const Sidebar = ({ onSelectChat }) => {
         </div>
       </div>
 
-      {/* ===== CHAT & SEARCH PANEL ===== */}
+      {/* ===== CHAT PANEL ===== */}
       {!isCollapsed && (
         <div
           className="d-flex flex-column"
@@ -276,7 +350,7 @@ const Sidebar = ({ onSelectChat }) => {
             </h6>
           </div>
 
-          {/* Search Input */}
+          {/* Search Bar */}
           <div className="px-3 mb-2">
             <div className="input-group input-group-sm sidebar-search">
               <span className="input-group-text border-end-0">
@@ -292,7 +366,7 @@ const Sidebar = ({ onSelectChat }) => {
             </div>
           </div>
 
-          {/* Chat / Search Result List */}
+          {/* Conversation List */}
           <div className="sidebar-chat-list flex-grow-1 overflow-auto px-2 d-flex flex-column gap-1">
             {loading ? (
               <div className="text-center py-3 text-muted small">
@@ -310,6 +384,8 @@ const Sidebar = ({ onSelectChat }) => {
                 ) : (
                   searchResults.map((u) => {
                     const uDisplayName = getUserDisplayName(u);
+                    const userAvatar = resolveMediaUrl(u.avatarUrl);
+
                     return (
                       <button
                         key={u._id}
@@ -317,14 +393,24 @@ const Sidebar = ({ onSelectChat }) => {
                         onClick={() => handleSelectUserFromSearch(u)}
                       >
                         <span
-                          className="d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0 rounded-circle"
-                          style={{
-                            width: "36px",
-                            height: "36px",
-                            backgroundColor: "var(--sbd-accent)",
-                          }}
+                          className="position-relative flex-shrink-0 rounded-circle overflow-hidden"
+                          style={{ width: "36px", height: "36px" }}
                         >
-                          {uDisplayName.charAt(0).toUpperCase()}
+                          {userAvatar ? (
+                            <img
+                              src={userAvatar}
+                              alt={uDisplayName}
+                              className="w-100 h-100"
+                              style={{ objectFit: "cover" }}
+                            />
+                          ) : (
+                            <span
+                              className="w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-white"
+                              style={{ backgroundColor: "var(--sbd-accent)" }}
+                            >
+                              {uDisplayName.charAt(0).toUpperCase()}
+                            </span>
+                          )}
                         </span>
                         <div className="d-flex flex-column overflow-hidden">
                           <span
@@ -342,76 +428,166 @@ const Sidebar = ({ onSelectChat }) => {
                   })
                 )}
               </div>
-            ) : activeGroup ? (
-              <button className="sidebar-chat-item btn text-start d-flex align-items-center gap-2 rounded-4 px-2 py-2 active">
-                <span
-                  className="d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0 rounded-3"
-                  style={{
-                    width: "40px",
-                    height: "40px",
-                    backgroundColor: "var(--sbd-accent)",
-                  }}
-                >
-                  {activeGroup.name
-                    ? activeGroup.name.charAt(0).toUpperCase()
-                    : "#"}
-                </span>
-                <div className="d-flex flex-column overflow-hidden">
-                  <span
-                    className="text-truncate"
-                    style={{ color: "var(--sbd-text)" }}
-                  >
-                    {activeGroup.name}
-                  </span>
-                  <span
-                    className="text-truncate small"
-                    style={{ color: "var(--sbd-muted)" }}
-                  >
-                    Group Channel
-                  </span>
-                </div>
-              </button>
             ) : (
               directMessages.map((chat) => {
-                const name = getDMRecipientName(chat);
+                const recipient = getDMRecipient(chat);
+                const name = recipient
+                  ? getUserDisplayName(recipient)
+                  : "Direct Message";
+                const recipientAvatar = resolveMediaUrl(recipient?.avatarUrl);
+
+                const isPinned = chat.pinnedBy?.includes(currentUserId);
+                const isMuted = chat.mutedBy?.includes(currentUserId);
+                const isUnread = chat.unreadBy?.includes(currentUserId);
+
                 return (
-                  <button
+                  <div
                     key={chat._id}
-                    className={`sidebar-chat-item btn text-start d-flex align-items-center gap-2 rounded-4 px-2 py-2 ${
-                      activeChatId === chat._id ? "active" : ""
-                    }`}
+                    className="sidebar-chat-item d-flex align-items-center px-2 py-2 mb-1"
+                    style={{ cursor: "pointer" }}
                     onClick={() => {
                       setActiveChatId(chat._id);
-                      if (onSelectChat) {
-                        onSelectChat({ id: chat._id, name });
-                      }
+                      if (isUnread)
+                        handleToggleReadStatus(null, chat._id, true);
+                      if (onSelectChat) onSelectChat({ id: chat._id, name });
                     }}
                   >
+                    {/* Recipient Avatar */}
                     <span
-                      className="d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0 rounded-circle"
-                      style={{
-                        width: "40px",
-                        height: "40px",
-                        backgroundColor: "var(--sbd-accent)",
-                      }}
+                      className="position-relative flex-shrink-0 me-2 rounded-circle overflow-hidden"
+                      style={{ width: "44px", height: "44px" }}
                     >
-                      {name.charAt(0).toUpperCase()}
+                      {recipientAvatar ? (
+                        <img
+                          src={recipientAvatar}
+                          alt={name}
+                          className="w-100 h-100"
+                          style={{ objectFit: "cover" }}
+                        />
+                      ) : (
+                        <span
+                          className="w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-white"
+                          style={{ backgroundColor: "var(--sbd-accent)" }}
+                        >
+                          {name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
                     </span>
-                    <div className="d-flex flex-column overflow-hidden">
-                      <span
-                        className="text-truncate"
-                        style={{ color: "var(--sbd-text)" }}
-                      >
-                        {name}
-                      </span>
+
+                    {/* Chat Name & Info */}
+                    <div className="d-flex flex-column overflow-hidden flex-grow-1 me-1">
+                      <div className="d-flex align-items-center gap-1">
+                        <span
+                          className={`text-truncate ${isUnread ? "fw-bold" : ""}`}
+                          style={{
+                            color: "var(--sbd-text)",
+                            fontSize: "0.95rem",
+                          }}
+                        >
+                          {name}
+                        </span>
+                        {isPinned && (
+                          <i
+                            className="bi bi-pin-angle-fill sidebar-status-badge ms-1"
+                            title="Pinned"
+                          ></i>
+                        )}
+                      </div>
                       <span
                         className="text-truncate small"
-                        style={{ color: "var(--sbd-muted)" }}
+                        style={{
+                          color: "var(--sbd-muted)",
+                          fontSize: "0.78rem",
+                        }}
                       >
-                        Direct Message
+                        Active 20m ago
                       </span>
                     </div>
-                  </button>
+
+                    {/* Right Muted / Unread Badges */}
+                    <div className="d-flex align-items-center gap-1 me-1 flex-shrink-0">
+                      {isMuted && (
+                        <i
+                          className="bi bi-bell-slash-fill sidebar-status-badge"
+                          title="Muted"
+                        ></i>
+                      )}
+                      {isUnread && (
+                        <span className="unread-dot" title="Unread"></span>
+                      )}
+                    </div>
+
+                    {/* Options Popup Dropdown */}
+                    <div className="dropdown flex-shrink-0 ms-auto">
+                      <button
+                        className="btn btn-sm p-0 border-0 chat-options-btn"
+                        type="button"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        onClick={(e) => e.stopPropagation()}
+                        style={{ fontSize: "1.1rem" }}
+                      >
+                        <i className="bi bi-three-dots"></i>
+                      </button>
+
+                      <ul className="dropdown-menu dropdown-menu-end sidebar-context-menu shadow">
+                        <li>
+                          <button
+                            className="dropdown-item"
+                            onClick={(e) =>
+                              handleToggleReadStatus(e, chat._id, isUnread)
+                            }
+                          >
+                            <span>
+                              {isUnread ? "Mark as read" : "Mark as unread"}
+                            </span>
+                            <i
+                              className={`bi ${
+                                isUnread
+                                  ? "bi-envelope-open"
+                                  : "bi-envelope-plus"
+                              }`}
+                            ></i>
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            className="dropdown-item"
+                            onClick={(e) => handleTogglePin(e, chat._id)}
+                          >
+                            <span>{isPinned ? "Unpin" : "Pin"}</span>
+                            <i
+                              className={`bi ${
+                                isPinned ? "bi-pin-angle" : "bi-pin-angle-fill"
+                              }`}
+                            ></i>
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            className="dropdown-item"
+                            onClick={(e) => handleToggleMute(e, chat._id)}
+                          >
+                            <span>{isMuted ? "Unmute" : "Mute"}</span>
+                            <i
+                              className={`bi ${
+                                isMuted ? "bi-bell" : "bi-bell-slash"
+                              }`}
+                            ></i>
+                          </button>
+                        </li>
+                        <li>
+                          <button
+                            className="dropdown-item text-danger"
+                            onClick={(e) => handleHideChat(e, chat._id)}
+                          >
+                            <span>Delete</span>
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                 );
               })
             )}
@@ -434,10 +610,10 @@ const Sidebar = ({ onSelectChat }) => {
                 className="position-relative flex-shrink-0"
                 style={{ width: "36px", height: "36px" }}
               >
-                {avatarUrl ? (
+                {currentUserAvatar ? (
                   <img
-                    src={avatarUrl}
-                    alt={displayName}
+                    src={currentUserAvatar}
+                    alt={currentUserDisplayName}
                     className="rounded-circle w-100 h-100"
                     style={{ objectFit: "cover" }}
                   />
@@ -449,7 +625,7 @@ const Sidebar = ({ onSelectChat }) => {
                       color: "#fff",
                     }}
                   >
-                    {displayName.charAt(0).toUpperCase()}
+                    {currentUserDisplayName.charAt(0).toUpperCase()}
                   </span>
                 )}
                 <span
@@ -466,7 +642,7 @@ const Sidebar = ({ onSelectChat }) => {
                   className="text-truncate small"
                   style={{ color: "var(--sbd-text)" }}
                 >
-                  {displayName}
+                  {currentUserDisplayName}
                 </span>
                 <span
                   className="text-truncate"

@@ -31,6 +31,34 @@ const conversationSchema = new mongoose.Schema(
       },
     ],
 
+    hiddenBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    pinnedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    
+    mutedBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    unreadBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
     createdAt: {
       type: Date,
       default: Date.now,
@@ -45,6 +73,7 @@ const conversationSchema = new mongoose.Schema(
 conversationSchema.index({ isGroup: 1 });
 conversationSchema.index({ lastMessageAt: -1 });
 conversationSchema.index({ participants: 1 });
+conversationSchema.index({ hiddenBy: 1 });
 
 conversationSchema.virtual("members", {
   ref: "ConversationMember",

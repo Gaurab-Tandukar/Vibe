@@ -199,3 +199,89 @@
   width: 48px;
   height: 48px;
 }
+
+/* Sidebar Row Hover */
+.sidebar-chat-item {
+  position: relative;
+  border-radius: 12px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.sidebar-chat-item:hover {
+  background-color: rgba(
+    255,
+    255,
+    255,
+    0.06
+  ) !important; /* Subtle background change */
+}
+
+/* Hide options button by default, reveal on row hover */
+.sidebar-chat-item .chat-options-btn {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease-in-out;
+  background: transparent;
+  border: none;
+  color: #a0a0a0;
+}
+
+.sidebar-chat-item:hover .chat-options-btn,
+.sidebar-chat-item .chat-options-btn.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sidebar-chat-item .chat-options-btn:hover {
+  color: #ffffff;
+}
+
+/* Status Badges */
+.sidebar-status-badge {
+  font-size: 0.85rem;
+  color: #a0a0a0;
+}
+
+/* Rounded Dark Context Menu (Popup) */
+.sidebar-context-menu {
+  background-color: #242526 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  padding: 8px !important;
+  min-width: 180px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  z-index: 1050;
+  /* Popup placement alignment matching reference */
+  margin-top: 4px !important;
+}
+
+.sidebar-context-menu .dropdown-item {
+  color: #e4e6eb;
+  font-size: 0.9rem;
+  padding: 10px 14px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.sidebar-context-menu .dropdown-item:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: #ffffff !important;
+}
+
+.sidebar-context-menu .dropdown-item.text-danger {
+  color: #ff4d4f !important;
+}
+
+.sidebar-context-menu .dropdown-item.text-danger:hover {
+  background-color: rgba(255, 77, 79, 0.15) !important;
+  color: #ff4d4f !important;
+}
+
+.sidebar-context-menu .dropdown-item i {
+  font-size: 1.1rem;
+}
