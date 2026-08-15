@@ -1,0 +1,14 @@
+/* Chat Window Custom Tweaks */
+.btn-ghost:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
+}
+
+/* Rounded corner adjustments for sent/received bubbles */
+.rounded-br-0 {
+  border-bottom-right-radius: 2px !important;
+}
+
+.rounded-bl-0 {
+  border-bottom-left-radius: 2px !important;
+}

@@ -178,7 +178,7 @@ export default function EditProfilePage() {
       {/* Soft sage overlay */}
       <div
         className="position-absolute top-0 start-0 w-100 h-100"
-        style={{ background: "rgba(238, 243, 234, 0.78)", zIndex: 0 }}
+        style={{ background: "sage--bg", zIndex: 0 }}
       />
 
       <div

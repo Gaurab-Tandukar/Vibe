@@ -118,15 +118,21 @@ const createConversation = async (req, res) => {
 // @route  GET /api/chat
 const getMyConversations = async (req, res) => {
   try {
+    const userId = req.user._id || req.user.id;
+
     const conversations = await Conversation.find({
-      participants: req.user._id,
+      participants: userId,
+      hiddenBy: { $ne: userId },
     })
-      .populate("participants", "username email avatarUrl status")
-      .sort({ lastMessageAt: -1 });
+      .populate(
+        "participants",
+        "username firstName lastName avatarUrl email status",
+      )
+      .sort({ updatedAt: -1 });
 
     res.status(200).json(conversations);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ message: "Error fetching conversations", error });
   }
 };
 
@@ -451,6 +457,160 @@ const renameConversation = async (req, res) => {
   }
 };
 
+// @desc   soft delete (hide) a conversation
+// @route  PATCH /api/chat/:conversationId/hide
+const hideConversation = async (req, res) => {
+  try {
+    const { conversationId } = req.params;
+    const userId = req.user._id; // Extracted from auth middleware
+
+    const conversation = await Conversation.findByIdAndUpdate(
+      conversationId,
+      { $addToSet: { hiddenBy: userId } }, // Adds userId without duplicates
+      { returnDocument: "after" },
+    );
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    res.status(200).json({ message: "Conversation hidden successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error hiding conversation", error });
+  }
+};
+
+// Helper to populate participants consistently
+const POPULATE_FIELDS = "username firstName lastName avatarUrl email status";
+
+// @desc    Toggle pin conversations
+// @route   PATCH /api/chat/:conversationId/pin
+const togglePinConversation = async (req, res) => {
+  try {
+    const conversationId = req.params.id || req.params.conversationId;
+    const userId = req.user._id || req.user.id;
+
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: userId,
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    const isPinned = conversation.pinnedBy.includes(userId);
+    const update = isPinned
+      ? { $pull: { pinnedBy: userId } }
+      : { $addToSet: { pinnedBy: userId } };
+
+    const updatedConv = await Conversation.findByIdAndUpdate(
+      conversationId,
+      update,
+      { returnDocument: "after" },
+    ).populate("participants", POPULATE_FIELDS);
+
+    res.status(200).json({
+      message: isPinned ? "Conversation unpinned" : "Conversation pinned",
+      isPinned: !isPinned,
+      conversation: updatedConv,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error toggling pin state", error: error.message });
+  }
+};
+
+// @desc    Toggle mute conversations
+// @route   PATCH /api/chat/:conversationId/mute
+const toggleMuteConversation = async (req, res) => {
+  try {
+    const conversationId = req.params.id || req.params.conversationId;
+    const userId = req.user._id || req.user.id;
+
+    const conversation = await Conversation.findOne({
+      _id: conversationId,
+      participants: userId,
+    });
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    const isMuted = conversation.mutedBy.includes(userId);
+    const update = isMuted
+      ? { $pull: { mutedBy: userId } }
+      : { $addToSet: { mutedBy: userId } };
+
+    const updatedConv = await Conversation.findByIdAndUpdate(
+      conversationId,
+      update,
+      { returnDocument: "after" },
+    ).populate("participants", POPULATE_FIELDS);
+
+    res.status(200).json({
+      message: isMuted ? "Conversation unmuted" : "Conversation muted",
+      isMuted: !isMuted,
+      conversation: updatedConv,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error toggling mute state", error: error.message });
+  }
+};
+
+// @desc    Mark as Unread conversations
+// @route   PATCH /api/chat/:conversationId/unread
+const markAsUnread = async (req, res) => {
+  try {
+    const conversationId = req.params.id || req.params.conversationId;
+    const userId = req.user._id || req.user.id;
+
+    const conversation = await Conversation.findOneAndUpdate(
+      { _id: conversationId, participants: userId },
+      { $addToSet: { unreadBy: userId } },
+      { returnDocument: "after" },
+    ).populate("participants", POPULATE_FIELDS);
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    res.status(200).json({ message: "Marked as unread", conversation });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error marking as unread", error: error.message });
+  }
+};
+
+// @desc    Mark as read conversations
+// @route   PATCH /api/chat/:conversationId/read
+const markAsRead = async (req, res) => {
+  try {
+    const conversationId = req.params.id || req.params.conversationId;
+    const userId = req.user._id || req.user.id;
+
+    const conversation = await Conversation.findOneAndUpdate(
+      { _id: conversationId, participants: userId },
+      { $pull: { unreadBy: userId } },
+      { returnDocument: "after" },
+    ).populate("participants", POPULATE_FIELDS);
+
+    if (!conversation) {
+      return res.status(404).json({ message: "Conversation not found" });
+    }
+
+    res.status(200).json({ message: "Marked as read", conversation });
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error marking as read", error: error.message });
+  }
+};
+
 module.exports = {
   createConversation,
   getMyConversations,
@@ -460,4 +620,9 @@ module.exports = {
   leaveConversation,
   transferAdmin,
   renameConversation,
+  hideConversation,
+  togglePinConversation,
+  toggleMuteConversation,
+  markAsUnread,
+  markAsRead,
 };

@@ -6,7 +6,7 @@ export default function GuestRoute() {
   const { isAuthenticated } = useContext(AuthContext);
 
   if (isAuthenticated) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to="/chat" replace />;
   }
 
   return <Outlet />;
