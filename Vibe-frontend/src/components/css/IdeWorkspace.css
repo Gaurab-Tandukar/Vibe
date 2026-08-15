@@ -1,0 +1,41 @@
+/* FlexLayout Light Theme Overrides */
+.flexlayout__layout {
+  background-color: #f4f8f5 !important; /* Soft mint background matching Welcome screen */
+}
+
+/* Tab Header Bar */
+.flexlayout__tabset_header {
+  background-color: #e6ede8 !important;
+  border-bottom: 1px solid #d0ded4 !important;
+}
+
+/* Tab Buttons */
+.flexlayout__tab {
+  background-color: #dce7df !important;
+  color: #2b3a30 !important;
+  border-right: 1px solid #c8d8cc !important;
+  border-radius: 6px 6px 0 0;
+  font-weight: 500;
+}
+
+/* Active Selected Tab */
+.flexlayout__tab--selected {
+  background-color: #ffffff !important;
+  color: #101813 !important;
+  border-top: 3px solid #38d39f !important; /* Match Vibe primary green accent */
+}
+
+/* Window Splitters */
+.flexlayout__splitter {
+  background-color: #dce7df !important;
+}
+
+.flexlayout__splitter:hover {
+  background-color: #38d39f !important;
+}
+
+/* Drag-and-Drop Drop Zone Preview */
+.flexlayout__outline_rect {
+  border: 2px dashed #38d39f !important;
+  background-color: rgba(56, 211, 159, 0.15) !important;
+}

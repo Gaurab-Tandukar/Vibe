@@ -1,4 +1,4 @@
-import { createContext, useState } from "react";
+import { createContext, useState, useEffect } from "react";
 import { loginUser, registerUser } from "../api/authSevice";
 import { fetchProfile } from "../api/profileService";
 
@@ -14,17 +14,39 @@ export const AuthProvider = ({ children }) => {
 
   const [error, setError] = useState(null);
 
+  // Hydrate user profile on fresh page load if token exists
+  useEffect(() => {
+    async function hydrateUser() {
+      const token = localStorage.getItem("vibe_token");
+      if (!token) return;
+
+      try {
+        const fullUser = await fetchProfile();
+        localStorage.setItem("vibe_user", JSON.stringify(fullUser));
+        setUser(fullUser);
+      } catch (err) {
+        console.error("Failed to sync profile data:", err);
+      }
+    }
+
+    hydrateUser();
+  }, []);
+
   async function login(credentials) {
     setError(null);
     try {
       const data = await loginUser(credentials);
-      const { token, ...userData } = data;
+      const { token } = data;
 
+      // Save token first so fetchProfile authenticates properly
       localStorage.setItem("vibe_token", token);
-      localStorage.setItem("vibe_user", JSON.stringify(userData));
-      setUser(userData);
 
-      console.log("User saved:", userData);
+      // Fetch full profile (includes avatarUrl, status, tags, etc.)
+      const fullUser = await fetchProfile();
+      localStorage.setItem("vibe_user", JSON.stringify(fullUser));
+      setUser(fullUser);
+
+      console.log("User logged in & profile saved:", fullUser);
 
       return { success: true };
     } catch (err) {
@@ -40,7 +62,6 @@ export const AuthProvider = ({ children }) => {
       const regResult = await registerUser(formData);
       localStorage.setItem("vibe_token", regResult.token);
 
-      // register's response is missing firstName/lastName, so fetch the full profile
       const fullUser = await fetchProfile();
       localStorage.setItem("vibe_user", JSON.stringify(fullUser));
       setUser(fullUser);

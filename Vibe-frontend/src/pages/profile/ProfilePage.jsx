@@ -5,6 +5,7 @@ import { fetchProfile, getUserByUsername } from "../../api/profileService";
 import Loader from "../../components/Loader";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 import doodlePattern from "../../assets/doodle-pattern.svg";
+import StatusDot from "./component/StatusDot";
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -48,7 +49,6 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOwnProfile, username]);
 
   if (loading)
@@ -72,7 +72,7 @@ export default function ProfilePage() {
   const aboutMe = profile?.aboutMe;
   const badges = profile?.badges || [];
   const connections = profile?.connections || [];
-  const roles = profile?.roles || [];
+  const tags = profile?.tags || [];
   const activity = profile?.activity;
 
   return (
@@ -92,6 +92,7 @@ export default function ProfilePage() {
         style={{ zIndex: 0 }}
       />
 
+      {/* Back to chat button */}
       <button
         type="button"
         className="btn btn-white border rounded-pill shadow-sm d-none d-lg-inline-flex align-items-center gap-2 px-3 py-2 position-fixed"
@@ -117,8 +118,6 @@ export default function ProfilePage() {
           zIndex: 1,
         }}
       >
-        {/* position-relative here so any absolutely-positioned card
-            elements anchor to this card's corner, not the whole page */}
         <div className="card border-0 shadow-sm overflow-hidden bg-white rounded-4 position-relative">
           {/* Banner */}
           <div
@@ -126,7 +125,7 @@ export default function ProfilePage() {
               height: "150px",
               background: bannerUrl
                 ? `url(${bannerUrl}) center/cover no-repeat`
-                : "linear-gradient(135deg, #ff7a18, #af002d 70%)",
+                : "linear-gradient(135deg, #2d6a4f, #1b4332)",
             }}
           />
 
@@ -166,7 +165,7 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {/* Status indicator – bottom right of avatar */}
+              {/* Status indicator */}
               <StatusDot status={profile?.status} />
             </div>
 
@@ -182,19 +181,32 @@ export default function ProfilePage() {
               </button>
             )}
 
-            {/* Name */}
+            {/* Header info: Name & Username */}
             <div className="mt-2">
               <h4 className="mb-0 fw-semibold">
                 {fullName || profile?.username}
               </h4>
               <p className="text-secondary mb-2">@{profile?.username}</p>
 
-              {/* Activity */}
+              {/* Active Activity Banner */}
               {activity?.label && (
-                <p className="text-secondary small mb-2">
-                  <i className="bi bi-controller me-1"></i>
-                  {activity.label}
-                </p>
+                <div
+                  className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-3 mb-3"
+                  style={{
+                    backgroundColor: "rgba(34, 197, 94, 0.08)",
+                    border: "1px solid rgba(34, 197, 94, 0.2)",
+                    color: "#15803d",
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  <i className="bi bi-controller fs-6"></i>
+                  <span>
+                    <strong className="text-capitalize">
+                      {activity.type || "Playing"}:
+                    </strong>{" "}
+                    {activity.label}
+                  </span>
+                </div>
               )}
 
               {/* Badges */}
@@ -206,10 +218,11 @@ export default function ProfilePage() {
                       className="d-inline-flex align-items-center justify-content-center"
                       title={badge.label}
                       style={{
-                        width: "28px",
-                        height: "28px",
+                        width: "30px",
+                        height: "30px",
                         borderRadius: "50%",
                         background: "rgba(64, 145, 108, 0.12)",
+                        color: "#1b4332",
                       }}
                     >
                       {badge.icon ? (
@@ -218,7 +231,7 @@ export default function ProfilePage() {
                           style={{ fontSize: "0.85rem" }}
                         ></i>
                       ) : (
-                        <span style={{ fontSize: "0.7rem" }}>
+                        <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
                           {badge.label?.[0]}
                         </span>
                       )}
@@ -227,51 +240,66 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {profile?.bio && <p className="mb-2">{profile.bio}</p>}
+              {/* Bio */}
+              {profile?.bio && <p className="mb-3 text-dark">{profile.bio}</p>}
 
-              {/* Roles */}
-              {roles.length > 0 && (
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                  {roles.map((role, i) => (
-                    <span
-                      key={i}
-                      className="badge bg-light text-secondary border rounded-pill px-3"
-                    >
-                      {role}
-                    </span>
-                  ))}
-                </div>
-              )}
-
+              {/* Member Since */}
               {memberSince && (
-                <p className="text-secondary small mb-3">
-                  Member since {memberSince}
+                <p className="d-flex text-secondary small mb-3 gap-1">
+                  <i className="bi bi-calendar3 me-2 opacity-75"></i>
+                  <span>Member since {memberSince}</span>
                 </p>
               )}
 
-              <hr className="my-3" />
+              <hr className="my-3 opacity-25" />
 
               {/* About Me */}
               <div className="mb-4">
-                <p className="text-secondary small text-uppercase fw-semibold mb-1">
+                <p className="text-secondary small text-uppercase fw-bold mb-2 tracking-wide">
                   About Me
                 </p>
                 {aboutMe ? (
-                  <p className="mb-0">{aboutMe}</p>
+                  <p className="mb-0 text-dark" style={{ lineHeight: "1.6" }}>
+                    {aboutMe}
+                  </p>
                 ) : isOwnProfile ? (
-                  <p className="text-secondary fst-italic mb-0">
-                    Click to add an About Me
+                  <p className="text-secondary fst-italic mb-0 small">
+                    Click settings above to write your bio.
                   </p>
                 ) : null}
               </div>
 
-              {/* Contact – improved look (own profile only) */}
+              {/* Tags Section */}
+              {tags.length > 0 && (
+                <div className="mb-4">
+                  <p className="text-secondary small text-uppercase fw-bold mb-2 tracking-wide">
+                    Interests & Skills
+                  </p>
+                  <div className="d-flex flex-wrap gap-2">
+                    {tags.map((tag, i) => (
+                      <span
+                        key={i}
+                        className="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill small fw-medium"
+                        style={{
+                          backgroundColor: "#f0fdf4",
+                          color: "#166534",
+                          border: "1px solid #bbf7d0",
+                        }}
+                      >
+                        <i className="bi bi-hash opacity-50"></i>
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Contact (Own Profile Only) */}
               {isOwnProfile && (
                 <div className="mb-4">
-                  <p className="text-secondary small text-uppercase fw-semibold mb-3">
-                    Contact
+                  <p className="text-secondary small text-uppercase fw-bold mb-3 tracking-wide">
+                    Contact Details
                   </p>
-
                   <div className="d-flex flex-column gap-2">
                     {/* Email */}
                     <div className="d-flex align-items-center gap-3">
@@ -288,7 +316,9 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <div className="text-secondary small">Email</div>
-                        <div className="fw-medium">{profile?.email}</div>
+                        <div className="fw-medium text-dark">
+                          {profile?.email}
+                        </div>
                       </div>
                     </div>
 
@@ -307,7 +337,7 @@ export default function ProfilePage() {
                       </div>
                       <div>
                         <div className="text-secondary small">Phone</div>
-                        <div className="fw-medium">
+                        <div className="fw-medium text-dark">
                           {profile?.phoneNumber || "—"}
                         </div>
                       </div>
@@ -316,10 +346,10 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* Connections */}
+              {/* Social Connections */}
               {connections.length > 0 && (
                 <div className="mb-2">
-                  <p className="text-secondary small text-uppercase fw-semibold mb-3">
+                  <p className="text-secondary small text-uppercase fw-bold mb-3 tracking-wide">
                     Connections
                   </p>
                   <div className="d-flex flex-column gap-2">
@@ -329,17 +359,20 @@ export default function ProfilePage() {
                         href={conn.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="d-flex align-items-center gap-3 p-2 rounded-3 text-decoration-none"
+                        className="d-flex align-items-center gap-3 p-2 rounded-3 text-decoration-none border"
                         style={{
-                          background: "#f8f9fa",
-                          transition: "background 0.15s ease",
+                          background: "#fafafa",
+                          borderColor: "#e2e8f0",
+                          transition: "all 0.15s ease",
                         }}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.background = "#eef1f4")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.background = "#f8f9fa")
-                        }
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = "#f1f5f9";
+                          e.currentTarget.style.borderColor = "#cbd5e1";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = "#fafafa";
+                          e.currentTarget.style.borderColor = "#e2e8f0";
+                        }}
                       >
                         <div
                           className="d-flex align-items-center justify-content-center rounded-circle bg-white border"
@@ -352,23 +385,23 @@ export default function ProfilePage() {
                           {conn.icon ? (
                             <i
                               className={conn.icon}
-                              style={{ fontSize: "1rem" }}
+                              style={{ fontSize: "1rem", color: "#334155" }}
                             ></i>
                           ) : (
-                            <i className="bi bi-link-45deg"></i>
+                            <i className="bi bi-link-45deg text-secondary"></i>
                           )}
                         </div>
                         <div className="flex-grow-1 overflow-hidden">
-                          <div className="text-body fw-medium text-truncate">
-                            {conn.name}
+                          <div className="text-dark fw-medium text-truncate">
+                            {conn.name || conn.platform}
                           </div>
                           {conn.url && (
-                            <div className="text-secondary small text-truncate">
+                            <div className="text-secondary small text-truncate opacity-75">
                               {conn.url.replace(/^https?:\/\//, "")}
                             </div>
                           )}
                         </div>
-                        <i className="bi bi-box-arrow-up-right text-secondary small"></i>
+                        <i className="bi bi-box-arrow-up-right text-secondary small px-1"></i>
                       </a>
                     ))}
                   </div>
@@ -379,32 +412,5 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
-  );
-}
-
-/* Status dot positioned at bottom-right of the avatar */
-function StatusDot({ status }) {
-  const map = {
-    online: { color: "#22c55e", label: "Online" },
-    away: { color: "#eab308", label: "Away" },
-    offline: { color: "#94a3b8", label: "Offline" },
-  };
-
-  const current = map[status] || map.offline;
-
-  return (
-    <span
-      title={current.label}
-      className="position-absolute d-inline-block rounded-circle"
-      style={{
-        width: "16px",
-        height: "16px",
-        backgroundColor: current.color,
-        border: "3px solid #fff",
-        bottom: "2px",
-        right: "2px",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.15)",
-      }}
-    />
   );
 }
