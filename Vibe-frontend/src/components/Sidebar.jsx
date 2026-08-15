@@ -78,7 +78,7 @@ const Sidebar = ({ onSelectChat }) => {
     return () => {
       isMounted = false;
     };
-  }, [user?._id]);
+  }, [user?._id, user?.id]);
 
   // 2. Dynamic Search Handler matching username, email, firstName, and lastName
   const handleSearchChange = (e) => {
