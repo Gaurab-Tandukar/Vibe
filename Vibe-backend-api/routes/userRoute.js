@@ -22,12 +22,22 @@ router.post("/login", loginUser);
 router.get("/profile", protect, getUserProfile);
 router.get("/profile/:username", protect, getUserByUsername);
 router.get("/all", protect, getAllUsers);
+
+const profileUpload = createUploadMiddleware({
+  avatar: "avatars",
+  banner: "banners",
+});
+
 router.put(
   "/profile",
   protect,
-  avatarUpload.single("avatar"),
+  profileUpload.fields([
+    { name: "avatar", maxCount: 1 },
+    { name: "banner", maxCount: 1 },
+  ]),
   updateUserProfile,
 );
+
 router.put("/profile/password", protect, updateUserPassword);
 
 // Admin only route

@@ -5,6 +5,7 @@ const { Server } = require("socket.io");
 const dotenv = require("dotenv");
 const connectDB = require("./config/dbConfig");
 const cors = require("cors");
+const errorHandler = require("./middleware/Errorhandler");
 
 // pathing for file upload
 const path = require("path");
@@ -36,6 +37,8 @@ app.use("/api/messages", require("./routes/messageRoute"));
 app.use("/api/reactions", require("./routes/reactionRoute"));
 app.use("/api/attachments", require("./routes/attachmentRoute"));
 app.use("/api/notifications", require("./routes/notificationRoute"));
+
+app.use(errorHandler);
 
 // create a raw http server wrapping the express app
 const server = http.createServer(app);
