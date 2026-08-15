@@ -24,6 +24,8 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem("vibe_user", JSON.stringify(userData));
       setUser(userData);
 
+      console.log("User saved:", userData);
+
       return { success: true };
     } catch (err) {
       const message = err.response?.data?.message || "Login failed.";
@@ -57,6 +59,14 @@ export const AuthProvider = ({ children }) => {
     setUser(null);
   }
 
+  function updateUser(updatedFields) {
+    setUser((prev) => {
+      const newUser = { ...prev, ...updatedFields };
+      localStorage.setItem("vibe_user", JSON.stringify(newUser));
+      return newUser;
+    });
+  }
+
   const value = {
     user,
     isAuthenticated: !!user,
@@ -64,6 +74,7 @@ export const AuthProvider = ({ children }) => {
     login,
     register,
     logout,
+    updateUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

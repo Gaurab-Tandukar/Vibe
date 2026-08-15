@@ -4,7 +4,11 @@ const baseURL = import.meta.env.VITE_API_URL;
 
 const axiosInstance = axios.create({
   baseURL: baseURL,
-  headers: { "Content-Type": "application/json" },
+  // No default Content-Type here on purpose — axios sets
+  // "application/json" automatically for plain objects, and
+  // "multipart/form-data; boundary=..." automatically for FormData.
+  // Forcing "application/json" here breaks file uploads (avatar/banner)
+  // because it overrides the multipart boundary FormData needs.
 });
 
 // Runs before every request leaves the app.

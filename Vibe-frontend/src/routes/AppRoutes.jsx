@@ -4,9 +4,10 @@ import GuestRoute from "../components/GuestRoute";
 import HomePage from "../pages/home/HomePage";
 import LoginPage from "../pages/login/LoginPage";
 import RegisterPage from "../pages/register/RegisterPage";
-import ProfilePage from "../pages/ProfilePage";
+import ProfilePage from "../pages/profile/ProfilePage";
 import AboutPage from "../pages/about/AboutPage";
 import ContactPage from "../pages/contact/ContactPage";
+import EditProfilePage from "../pages/profile/EditProfilePage";
 
 export default function AppRoutes() {
   return (
@@ -22,6 +23,8 @@ export default function AppRoutes() {
 
       <Route element={<ProtectedRoute />}>
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/profile/:username" element={<ProfilePage />} />
+        <Route path="/profile/edit" element={<EditProfilePage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

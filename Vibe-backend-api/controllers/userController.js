@@ -122,13 +122,39 @@ const getAllUsers = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const currentUserId = req.user._id;
-    const { firstName, lastName, email, bio } = req.body;
+    const { firstName, lastName, email, bio, aboutMe, connections, tags } =
+      req.body;
 
     const updates = {};
     if (firstName !== undefined) updates.firstName = firstName;
     if (lastName !== undefined) updates.lastName = lastName;
     if (email !== undefined) updates.email = email;
     if (bio !== undefined) updates.bio = bio;
+    if (aboutMe !== undefined) updates.aboutMe = aboutMe;
+
+    // connections/tags come through as JSON strings when sent via
+    // multipart/form-data (FormData) alongside the avatar/banner files.
+    // If they're already arrays (e.g. a plain JSON request), use as-is.
+    if (connections !== undefined) {
+      try {
+        updates.connections =
+          typeof connections === "string"
+            ? JSON.parse(connections)
+            : connections;
+      } catch (err) {
+        return res
+          .status(400)
+          .json({ message: "connections must be valid JSON" });
+      }
+    }
+
+    if (tags !== undefined) {
+      try {
+        updates.tags = typeof tags === "string" ? JSON.parse(tags) : tags;
+      } catch (err) {
+        return res.status(400).json({ message: "tags must be valid JSON" });
+      }
+    }
 
     // req.files instead of req.file since we now accept multiple file fields
     if (req.files?.avatar) {
@@ -139,7 +165,7 @@ const updateUserProfile = async (req, res) => {
     }
 
     const user = await User.findByIdAndUpdate(currentUserId, updates, {
-      new: true,
+      returnDocument: "after",
       runValidators: true,
     }).select("-passwordHash");
 

@@ -17,13 +17,13 @@ import Footer from "../../components/Footer";
 const team = [
   {
     name: "Gaurab Tandukar",
-    role: "Founder & Backend Engineer",
+    role: "Founder & Full Stack Engineer",
     image: teamMember1,
     color: "arch-yellow",
   },
   {
     name: "Dilip Shrestha",
-    role: "Co-Founder & Frontend Engineer",
+    role: "Co-Founder & UI/UX Engineer",
     image: teamMember2,
     color: "arch-blue",
   },

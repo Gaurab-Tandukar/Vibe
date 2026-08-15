@@ -1,5 +1,31 @@
 const mongoose = require("mongoose");
 
+const badgeSchema = new mongoose.Schema(
+  {
+    icon: { type: String, trim: true, maxlength: 100 }, // e.g. bootstrap-icons class
+    label: { type: String, trim: true, maxlength: 50 },
+  },
+  { _id: false },
+);
+
+const connectionSchema = new mongoose.Schema(
+  {
+    platform: { type: String, trim: true, maxlength: 50 }, // e.g. "spotify", "github"
+    name: { type: String, trim: true, maxlength: 100 }, // display name/handle
+    url: { type: String, trim: true, maxlength: 500 },
+    icon: { type: String, trim: true, maxlength: 100 },
+  },
+  { _id: false },
+);
+
+const activitySchema = new mongoose.Schema(
+  {
+    type: { type: String, trim: true, maxlength: 30 }, // e.g. "playing", "listening"
+    label: { type: String, trim: true, maxlength: 100 }, // e.g. "Playing Valorant"
+  },
+  { _id: false },
+);
+
 const userSchema = new mongoose.Schema(
   {
     _id: {
@@ -66,6 +92,33 @@ const userSchema = new mongoose.Schema(
       trim: true,
       maxlength: 200,
       default: "",
+    },
+
+    aboutMe: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+      default: "",
+    },
+
+    badges: {
+      type: [badgeSchema],
+      default: [],
+    },
+
+    connections: {
+      type: [connectionSchema],
+      default: [],
+    },
+
+    tags: {
+      type: [String],
+      default: [],
+    },
+
+    activity: {
+      type: activitySchema,
+      default: null,
     },
 
     status: {

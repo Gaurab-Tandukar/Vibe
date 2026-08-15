@@ -1,0 +1,69 @@
+/* ===== Loader — Sage / RootMint themed (stripped down) ===== */
+
+.pl-root {
+  --pl-bg: var(--sage-bg, #f0f7f2);
+  --pl-body: var(--sage-body, #344e41);
+  --pl-muted: var(--sage-muted, #6b8f71);
+  --pl-accent: var(--sage-accent, #40916c);
+  --pl-border: var(--sage-border, #d8e8de);
+
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: var(--pl-bg);
+  font-family: "Itim", cursive;
+  z-index: 2000;
+}
+
+/* CSS-ring fallback spinner (used when useIcon is false) */
+.pl-spinner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 4px solid var(--pl-border);
+  border-top-color: var(--pl-accent);
+  animation: pl-spin 0.8s linear infinite;
+}
+
+.pl-spinner-icon {
+  font-size: 42px;
+  color: var(--pl-accent);
+}
+
+@keyframes pl-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pl-message {
+  font-size: 14px;
+  color: var(--pl-muted);
+  text-align: center;
+  min-height: 18px;
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.pl-message.pl-fade-out {
+  opacity: 0;
+  transform: translateY(4px);
+}
+.pl-message.pl-fade-in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-spinner,
+  .pl-spinner-icon {
+    animation: none !important;
+  }
+}
