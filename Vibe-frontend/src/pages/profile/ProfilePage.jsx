@@ -4,7 +4,6 @@ import { useAuth } from "../../hooks/useAuth";
 import { fetchProfile, getUserByUsername } from "../../api/profileService";
 import Loader from "../../components/Loader";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
-
 import doodlePattern from "../../assets/doodle-pattern.svg";
 
 export default function ProfilePage() {
@@ -90,8 +89,24 @@ export default function ProfilePage() {
       {/* Soft overlay */}
       <div
         className="position-absolute top-0 start-0 w-100 h-100"
-        style={{ background: "sage--bg", zIndex: 0 }}
+        style={{ zIndex: 0 }}
       />
+
+      <button
+        type="button"
+        className="btn btn-white border rounded-pill shadow-sm d-none d-lg-inline-flex align-items-center gap-2 px-3 py-2 position-fixed"
+        style={{
+          backgroundColor: "#fff",
+          color: "var(--sage-ink, #1b4332)",
+          top: "3.5rem",
+          left: "2rem",
+          zIndex: 2,
+        }}
+        onClick={() => navigate("/chat")}
+      >
+        <i className="bi bi-arrow-left"></i>
+        Back to chat
+      </button>
 
       <div
         className="container position-relative"
@@ -102,7 +117,9 @@ export default function ProfilePage() {
           zIndex: 1,
         }}
       >
-        <div className="card border-0 shadow-sm overflow-hidden bg-white rounded-4">
+        {/* position-relative here so any absolutely-positioned card
+            elements anchor to this card's corner, not the whole page */}
+        <div className="card border-0 shadow-sm overflow-hidden bg-white rounded-4 position-relative">
           {/* Banner */}
           <div
             style={{

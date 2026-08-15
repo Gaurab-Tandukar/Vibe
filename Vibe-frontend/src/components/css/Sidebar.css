@@ -1,0 +1,201 @@
+/* ===== Sidebar — dark, on-brand variant (rest of the app stays light sage) ===== */
+
+.sidebar-dark {
+  /* Neutral near-black, Discord-style. Only the accent stays sage-green
+     so it still reads as the same brand, just without a green-tinted base. */
+  --sbd-rail: #16171a; /* darkest: server rail + user bar */
+  --sbd-panel: #1c1d21; /* chat list panel, one step lighter */
+  --sbd-hover: #26272c; /* hover/active surface within the panel */
+  --sbd-border: #2c2d33;
+  --sbd-text: #f2f3f5;
+  --sbd-muted: #8b8d94;
+  --sbd-accent: #52c98a; /* brightened sage-accent for legibility on dark */
+
+  font-family: "Itim", cursive;
+}
+
+/* Rail icons: circle -> rounded square on hover/active, Discord's signature move */
+.sidebar-dark .sidebar-rail-icon {
+  width: 48px;
+  height: 48px;
+  background-color: var(--sbd-panel);
+  color: var(--sbd-accent);
+  border: none;
+  transition:
+    border-radius 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.sidebar-dark .sidebar-rail-icon:hover,
+.sidebar-dark .sidebar-rail-icon.active {
+  border-radius: 16px !important;
+  background-color: var(--sbd-accent);
+  color: #16171a;
+}
+
+/* Logo button: no colored fill, ever — just a ring so it stays visible full-bleed */
+.sidebar-dark .sidebar-home-icon {
+  background-color: transparent;
+}
+
+.sidebar-dark .sidebar-home-icon:hover,
+.sidebar-dark .sidebar-home-icon.active {
+  background-color: transparent !important;
+  box-shadow: 0 0 0 2px var(--sbd-accent);
+}
+
+/* Chat list items */
+.sidebar-dark .sidebar-chat-item {
+  background-color: transparent;
+  border: none;
+}
+
+.sidebar-dark .sidebar-chat-item:hover {
+  background-color: var(--sbd-hover);
+}
+
+.sidebar-dark .sidebar-chat-item.active {
+  background-color: var(--sbd-hover);
+}
+
+/* Search input */
+.sidebar-dark .sidebar-search .input-group-text,
+.sidebar-dark .sidebar-search .form-control {
+  background-color: var(--sbd-hover);
+  border: 1px solid var(--sbd-border);
+  color: var(--sbd-text);
+}
+
+.sidebar-dark .sidebar-search .input-group-text {
+  color: var(--sbd-muted);
+}
+
+.sidebar-dark .sidebar-search .form-control::placeholder {
+  color: var(--sbd-muted);
+}
+
+.sidebar-dark .sidebar-search .form-control:focus {
+  background-color: var(--sbd-hover);
+  color: var(--sbd-text);
+  box-shadow: none;
+  border-color: var(--sbd-accent);
+}
+
+/* Ghost buttons (collapse toggle, user bar identity, settings gear) */
+.sidebar-dark .sidebar-ghost-btn {
+  background-color: transparent;
+  border: none;
+  color: var(--sbd-muted);
+}
+
+.sidebar-dark .sidebar-ghost-btn:hover {
+  background-color: var(--sbd-hover);
+  color: var(--sbd-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-dark .sidebar-rail-icon {
+    transition: none !important;
+  }
+}
+
+/* ===== Sidebar base ===== */
+.sidebar-dark {
+  /* already handled by inline styles, but good as fallback */
+  background-color: var(--sbd-panel);
+}
+
+/* ===== Thin + stable scrollbar for the chat list ===== */
+.sidebar-chat-list {
+  scrollbar-gutter: stable; /* prevents content jump */
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #4a4a4a transparent;
+}
+
+/* Chrome / Edge / Safari */
+.sidebar-chat-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-chat-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-chat-list::-webkit-scrollbar-thumb {
+  background-color: #4a4a4a;
+  border-radius: 3px;
+}
+
+.sidebar-chat-list::-webkit-scrollbar-thumb:hover {
+  background-color: #5e5e5e;
+}
+
+/* Optional: also apply the same thin scrollbar to the rail if it overflows */
+.sidebar-dark .overflow-auto::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-dark .overflow-auto::-webkit-scrollbar-thumb {
+  background-color: #4a4a4a;
+  border-radius: 2px;
+}
+
+/* ===== Scrollable Group Rail ===== */
+.sidebar-rail-list {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a transparent;
+}
+
+.sidebar-rail-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-rail-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-rail-list::-webkit-scrollbar-thumb {
+  background-color: #4a4a4a;
+  border-radius: 2px;
+}
+
+.sidebar-rail-list::-webkit-scrollbar-thumb:hover {
+  background-color: #5e5e5e;
+}
+
+/* ===== Scrollable Group Rail ===== */
+.sidebar-rail-list {
+  min-height: 0; /* critical for flex children to scroll */
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: #4a4a4a transparent;
+}
+
+.sidebar-rail-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-rail-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-rail-list::-webkit-scrollbar-thumb {
+  background-color: #4a4a4a;
+  border-radius: 2px;
+}
+
+.sidebar-rail-list::-webkit-scrollbar-thumb:hover {
+  background-color: #5e5e5e;
+}
+
+/* Make sure icons don’t shrink */
+.sidebar-rail-icon {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+}
