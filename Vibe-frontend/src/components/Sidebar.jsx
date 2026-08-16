@@ -4,7 +4,6 @@ import { useAuth } from "../hooks/useAuth";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import {
   getMyConversations,
-  createConversation,
   getAllUsers,
   hideConversation,
   togglePinConversation,
@@ -12,6 +11,10 @@ import {
   markAsRead,
   markAsUnread,
 } from "../api/conversationService";
+import { getUserDisplayName, getDMRecipient } from "./SidebarHelpers";
+import ConversationSearch from "./ConversationSearch";
+import NewDirectMessageModal from "./NewDirectMessageModal";
+import NewGroupModal from "./NewGroupModal";
 import Logo from "../assets/vibe-logo.png";
 import "./css/Sidebar.css";
 
@@ -24,33 +27,14 @@ const Sidebar = ({ onSelectChat }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [activeGroupId, setActiveGroupId] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
+  const [showNewDMModal, setShowNewDMModal] = useState(false);
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Data States
   const [conversations, setConversations] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Helper to extract full display name
-  const getUserDisplayName = (u) => {
-    if (!u) return "User";
-    if (u.firstName || u.lastName) {
-      return `${u.firstName || ""} ${u.lastName || ""}`.trim();
-    }
-    return u.username || u.name || "User";
-  };
-
-  // Safe helper to extract recipient user object from DM participants
-  const getDMRecipient = (conv) => {
-    if (!conv || !Array.isArray(conv.participants)) return null;
-    return (
-      conv.participants.find((p) => {
-        const pId = typeof p === "object" ? p._id || p.id : p;
-        return String(pId) !== String(currentUserId);
-      }) || null
-    );
-  };
 
   // Load conversations & users on mount
   useEffect(() => {
@@ -93,63 +77,44 @@ const Sidebar = ({ onSelectChat }) => {
     };
   }, [currentUserId]);
 
-  // Handle Search Input
-  const handleSearchChange = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-
-    const trimmedQuery = query.trim().toLowerCase();
-
-    if (trimmedQuery.length > 0 && Array.isArray(allUsers)) {
-      const filtered = allUsers.filter((u) => {
-        const username = (u.username || "").toLowerCase();
-        const email = (u.email || "").toLowerCase();
-        const firstName = (u.firstName || "").toLowerCase();
-        const lastName = (u.lastName || "").toLowerCase();
-        const fullName = `${firstName} ${lastName}`.trim();
-
-        return (
-          username.includes(trimmedQuery) ||
-          email.includes(trimmedQuery) ||
-          firstName.includes(trimmedQuery) ||
-          lastName.includes(trimmedQuery) ||
-          fullName.includes(trimmedQuery)
-        );
-      });
-      setSearchResults(filtered);
+  // Jump to an existing conversation surfaced by the search bar
+  const handleSelectExistingConversation = (conv) => {
+    if (conv.isGroup) {
+      setActiveGroupId(conv._id);
+      setActiveChatId(conv._id);
     } else {
-      setSearchResults([]);
+      setActiveGroupId(null);
+      setActiveChatId(conv._id);
+    }
+
+    if (onSelectChat) {
+      const name = conv.isGroup
+        ? conv.name
+        : getUserDisplayName(getDMRecipient(conv, currentUserId));
+      onSelectChat({ id: conv._id, name });
     }
   };
 
-  const handleSelectUserFromSearch = async (targetUser) => {
-    try {
-      // Backend un-hides (and clears the pin) atomically if this DM
-      // already existed and was previously hidden — see
-      // conversationController.createConversation
-      const conv = await createConversation({
-        isGroup: false,
-        members: [targetUser._id],
-      });
+  // Called by both NewDirectMessageModal and NewGroupModal on success
+  const handleConversationCreated = (conv, targetUser) => {
+    setConversations((prev) =>
+      prev.some((c) => c._id === conv._id)
+        ? prev.map((c) => (c._id === conv._id ? conv : c))
+        : [conv, ...prev],
+    );
 
-      setConversations((prev) =>
-        prev.some((c) => c._id === conv._id)
-          ? prev.map((c) => (c._id === conv._id ? conv : c))
-          : [conv, ...prev],
-      );
+    setActiveChatId(conv._id);
+    setActiveGroupId(conv.isGroup ? conv._id : null);
 
-      setActiveChatId(conv._id);
-      setActiveGroupId(null);
-
-      if (onSelectChat) {
-        onSelectChat({ id: conv._id, name: getUserDisplayName(targetUser) });
-      }
-
-      setSearchQuery("");
-      setSearchResults([]);
-    } catch (err) {
-      console.error("Failed to start DM:", err);
+    if (onSelectChat) {
+      const name = conv.isGroup
+        ? conv.name
+        : getUserDisplayName(targetUser || getDMRecipient(conv, currentUserId));
+      onSelectChat({ id: conv._id, name });
     }
+
+    setShowNewDMModal(false);
+    setShowNewGroupModal(false);
   };
 
   // Context Menu Actions
@@ -351,27 +316,45 @@ const Sidebar = ({ onSelectChat }) => {
             borderRight: "1px solid var(--sbd-border)",
           }}
         >
-          <div className="px-3 pt-3 pb-2">
+          <div className="px-3 pt-3 pb-2 d-flex align-items-center justify-content-between">
             <h6 className="mb-0" style={{ color: "var(--sbd-text)" }}>
               {activeGroup ? activeGroup.name : "Direct Messages"}
             </h6>
-          </div>
-
-          {/* Search Bar */}
-          <div className="px-3 mb-2">
-            <div className="input-group input-group-sm sidebar-search">
-              <span className="input-group-text border-end-0">
-                <i className="bi bi-search"></i>
-              </span>
-              <input
-                type="text"
-                className="form-control border-start-0 ps-0"
-                placeholder="Find or start a conversation"
-                value={searchQuery}
-                onChange={handleSearchChange}
-              />
+            <div className="d-flex align-items-center gap-1">
+              <button
+                type="button"
+                className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center"
+                style={{ width: "28px", height: "28px" }}
+                title="New message"
+                onClick={() => setShowNewDMModal(true)}
+              >
+                <i
+                  className="bi bi-person-plus"
+                  style={{ fontSize: "0.95rem" }}
+                ></i>
+              </button>
+              <button
+                type="button"
+                className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center"
+                style={{ width: "28px", height: "28px" }}
+                title="New group"
+                onClick={() => setShowNewGroupModal(true)}
+              >
+                <i className="bi bi-people" style={{ fontSize: "0.95rem" }}></i>
+              </button>
             </div>
           </div>
+
+          {/* Search — scoped to conversations already loaded in the sidebar
+              (the backend never returns hidden conversations), so this only
+              jumps to existing chats and never creates anything new. */}
+          <ConversationSearch
+            conversations={conversations}
+            currentUserId={currentUserId}
+            query={searchQuery}
+            onQueryChange={setSearchQuery}
+            onSelect={handleSelectExistingConversation}
+          />
 
           {/* Conversation List */}
           <div className="sidebar-chat-list flex-grow-1 overflow-auto px-2 d-flex flex-column gap-1">
@@ -379,65 +362,9 @@ const Sidebar = ({ onSelectChat }) => {
               <div className="text-center py-3 text-muted small">
                 Loading...
               </div>
-            ) : searchQuery.trim() !== "" ? (
-              <div>
-                <span className="text-muted extra-small fw-bold px-2 d-block mb-1">
-                  USERS FOUND ({searchResults.length})
-                </span>
-                {searchResults.length === 0 ? (
-                  <div className="px-2 small text-muted py-2">
-                    No users found
-                  </div>
-                ) : (
-                  searchResults.map((u) => {
-                    const uDisplayName = getUserDisplayName(u);
-                    const userAvatar = resolveMediaUrl(u.avatarUrl);
-
-                    return (
-                      <button
-                        key={u._id}
-                        className="sidebar-chat-item btn text-start d-flex align-items-center gap-2 rounded-4 px-2 py-2 w-100 mb-1"
-                        onClick={() => handleSelectUserFromSearch(u)}
-                      >
-                        <span
-                          className="position-relative flex-shrink-0 rounded-circle overflow-hidden"
-                          style={{ width: "36px", height: "36px" }}
-                        >
-                          {userAvatar ? (
-                            <img
-                              src={userAvatar}
-                              alt={uDisplayName}
-                              className="w-100 h-100"
-                              style={{ objectFit: "cover" }}
-                            />
-                          ) : (
-                            <span
-                              className="w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-white"
-                              style={{ backgroundColor: "var(--sbd-accent)" }}
-                            >
-                              {uDisplayName.charAt(0).toUpperCase()}
-                            </span>
-                          )}
-                        </span>
-                        <div className="d-flex flex-column overflow-hidden">
-                          <span
-                            className="text-truncate small"
-                            style={{ color: "var(--sbd-text)" }}
-                          >
-                            {uDisplayName}
-                          </span>
-                          <span className="text-truncate extra-small text-muted">
-                            {u.username ? `@${u.username}` : u.email}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            ) : (
+            ) : searchQuery.trim() !== "" ? null : (
               directMessages.map((chat) => {
-                const recipient = getDMRecipient(chat);
+                const recipient = getDMRecipient(chat, currentUserId);
                 const name = recipient
                   ? getUserDisplayName(recipient)
                   : "Direct Message";
@@ -446,11 +373,14 @@ const Sidebar = ({ onSelectChat }) => {
                 const isPinned = chat.pinnedBy?.includes(currentUserId);
                 const isMuted = chat.mutedBy?.includes(currentUserId);
                 const isUnread = chat.unreadBy?.includes(currentUserId);
+                const isActive = activeChatId === chat._id;
 
                 return (
                   <div
                     key={chat._id}
-                    className="sidebar-chat-item d-flex align-items-center px-2 py-2 mb-1"
+                    className={`sidebar-chat-item d-flex align-items-center px-2 py-2 mb-1 ${
+                      isActive ? "active" : ""
+                    }`}
                     style={{ cursor: "pointer" }}
                     onClick={() => {
                       setActiveChatId(chat._id);
@@ -670,6 +600,20 @@ const Sidebar = ({ onSelectChat }) => {
           </div>
         </div>
       )}
+
+      <NewDirectMessageModal
+        show={showNewDMModal}
+        onClose={() => setShowNewDMModal(false)}
+        allUsers={allUsers}
+        onCreated={handleConversationCreated}
+      />
+
+      <NewGroupModal
+        show={showNewGroupModal}
+        onClose={() => setShowNewGroupModal(false)}
+        allUsers={allUsers}
+        onCreated={handleConversationCreated}
+      />
     </div>
   );
 };
