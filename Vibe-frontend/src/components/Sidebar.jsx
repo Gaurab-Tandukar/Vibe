@@ -124,14 +124,19 @@ const Sidebar = ({ onSelectChat }) => {
 
   const handleSelectUserFromSearch = async (targetUser) => {
     try {
+      // Backend un-hides (and clears the pin) atomically if this DM
+      // already existed and was previously hidden — see
+      // conversationController.createConversation
       const conv = await createConversation({
         isGroup: false,
         members: [targetUser._id],
       });
 
-      if (!conversations.some((c) => c._id === conv._id)) {
-        setConversations((prev) => [conv, ...prev]);
-      }
+      setConversations((prev) =>
+        prev.some((c) => c._id === conv._id)
+          ? prev.map((c) => (c._id === conv._id ? conv : c))
+          : [conv, ...prev],
+      );
 
       setActiveChatId(conv._id);
       setActiveGroupId(null);
@@ -151,6 +156,8 @@ const Sidebar = ({ onSelectChat }) => {
   const handleHideChat = async (e, convId) => {
     closeDropdown(e);
     try {
+      // Backend clears the pin atomically as part of hiding — see
+      // conversationController.hideConversation
       await hideConversation(convId);
       setConversations((prev) => prev.filter((c) => c._id !== convId));
       if (activeChatId === convId) {
