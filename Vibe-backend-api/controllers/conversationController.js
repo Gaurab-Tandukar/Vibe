@@ -58,14 +58,35 @@ const createConversation = async (req, res) => {
     }
 
     // 7. Prevent duplicate private conversation
+    // 7. Prevent duplicate private conversation
     if (!isGroup) {
       const existing = await Conversation.findOne({
         isGroup: false,
         participants: { $all: [currentUserId, uniqueMembers[0]], $size: 2 },
-      }).populate("participants", "username email avatarUrl");
+      });
 
       if (existing) {
-        return res.status(200).json(existing); // return existing private chat
+        const wasHidden = existing.hiddenBy.some(
+          (id) => id.toString() === currentUserId.toString(),
+        );
+        const wasPinned = existing.pinnedBy.some(
+          (id) => id.toString() === currentUserId.toString(),
+        );
+
+        // Starting a new conversation with someone whose chat you'd hidden
+        // should un-hide it, and un-hiding always clears the pin too.
+        if (wasHidden || wasPinned) {
+          existing.hiddenBy.pull(currentUserId);
+          existing.pinnedBy.pull(currentUserId);
+          await existing.save();
+        }
+
+        const populated = await existing.populate(
+          "participants",
+          "username email avatarUrl",
+        );
+
+        return res.status(200).json(populated); // return existing private chat
       }
     }
 
@@ -466,15 +487,21 @@ const hideConversation = async (req, res) => {
 
     const conversation = await Conversation.findByIdAndUpdate(
       conversationId,
-      { $addToSet: { hiddenBy: userId } }, // Adds userId without duplicates
+      {
+        $addToSet: { hiddenBy: userId },
+        $pull: { pinnedBy: userId }, // hiding a chat always clears its pin
+      },
       { returnDocument: "after" },
-    );
+    ).populate("participants", POPULATE_FIELDS);
 
     if (!conversation) {
       return res.status(404).json({ message: "Conversation not found" });
     }
 
-    res.status(200).json({ message: "Conversation hidden successfully" });
+    res.status(200).json({
+      message: "Conversation hidden successfully",
+      conversation,
+    });
   } catch (error) {
     res.status(500).json({ message: "Error hiding conversation", error });
   }
