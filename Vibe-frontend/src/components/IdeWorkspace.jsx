@@ -50,6 +50,12 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
   const [model] = useState(() => Model.fromJson(initialJson));
   const layoutRef = useRef(null);
 
+  // Only relevant while openChats is empty (WelcomePage overlay showing).
+  // Lets buttons on WelcomePage be clickable normally, but pointer events
+  // pass through to the Layout underneath specifically while a chat is
+  // being dragged in from the sidebar, so it can still be dropped.
+  const [isDragging, setIsDragging] = useState(false);
+
   useEffect(() => {
     if (!openChats || openChats.length === 0) return;
 
@@ -60,10 +66,6 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
       const existingNode = model.getNodeById(chatId);
 
       if (!existingNode) {
-        // Add to whatever tabset is currently active — avoids having to
-        // track/guess a tabset's internal id (custom ids set on tabset/row
-        // nodes in initial JSON aren't honored by flexlayout-react; only
-        // tab-level ids are preserved).
         layoutRef.current?.addTabToActiveTabSet(buildTabJson(chat));
       } else {
         model.doAction(Actions.selectTab(chatId));
@@ -74,8 +76,6 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
   useImperativeHandle(
     ref,
     () => ({
-      // Focuses an already-open tab by id. Called by ChatHome when the
-      // sidebar click resolves to a chat that's already in openChats.
       selectChat: (chatId) => {
         const id = String(chatId ?? "");
         if (id && model.getNodeById(id)) {
@@ -93,11 +93,15 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
           return;
         }
 
-        // layoutRef is now guaranteed to exist even when openChats.length === 0
+        setIsDragging(true);
+
         layoutRef.current?.addTabWithDragAndDrop(
           event.nativeEvent ?? event,
           buildTabJson(chat),
           (node) => {
+            // Fires whether the drop succeeded or was cancelled — always
+            // clear the flag so WelcomePage becomes clickable again.
+            setIsDragging(false);
             if (node && onDropped) {
               onDropped(chat);
             }
@@ -135,7 +139,7 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
             position: "absolute",
             inset: 0,
             zIndex: 1,
-            pointerEvents: "none", // Allows native drag events to pass through to Layout underneath
+            pointerEvents: isDragging ? "none" : "auto",
           }}
         >
           <WelcomePage />
