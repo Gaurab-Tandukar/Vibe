@@ -8,7 +8,7 @@ import ProfilePage from "../pages/profile/ProfilePage";
 import AboutPage from "../pages/about/AboutPage";
 import ContactPage from "../pages/contact/ContactPage";
 import EditProfilePage from "../pages/profile/EditProfilePage";
-import ChatHome from "../pages/main/ChatHome";
+import ChatHome from "../pages/chat/ChatHome";
 
 export default function AppRoutes() {
   return (

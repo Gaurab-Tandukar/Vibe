@@ -49,6 +49,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOwnProfile, username]);
 
   if (loading)
@@ -259,7 +260,10 @@ export default function ProfilePage() {
                   About Me
                 </p>
                 {aboutMe ? (
-                  <p className="mb-0 text-dark" style={{ lineHeight: "1.6" }}>
+                  <p
+                    className="mb-0 text-dark"
+                    style={{ lineHeight: "1.6", textAlign: "justify" }}
+                  >
                     {aboutMe}
                   </p>
                 ) : isOwnProfile ? (

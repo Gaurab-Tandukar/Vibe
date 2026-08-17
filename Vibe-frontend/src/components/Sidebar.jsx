@@ -11,14 +11,100 @@ import {
   markAsRead,
   markAsUnread,
 } from "../api/conversationService";
-import { getUserDisplayName, getDMRecipient } from "./SidebarHelpers";
+import { getUserDisplayName, getDMRecipient } from "./sidebarHelpers";
 import ConversationSearch from "./ConversationSearch";
 import NewDirectMessageModal from "./NewDirectMessageModal";
 import NewGroupModal from "./NewGroupModal";
 import Logo from "../assets/vibe-logo.png";
 import "./css/Sidebar.css";
 
-const Sidebar = ({ onSelectChat }) => {
+// Builds a small, themed "chip" element used as the native drag-image when
+// a chat is dragged out of the sidebar — replaces the browser's default
+// translucent screenshot of the row with something purpose-built.
+// Must be appended to the DOM (off-screen is fine) for setDragImage to
+// capture it; caller is responsible for removing it shortly after.
+const buildChatDragPreview = (name, avatarUrl) => {
+  const el = document.createElement("div");
+  el.style.cssText = `
+    position: fixed;
+    top: -1000px;
+    left: -1000px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px 6px 6px;
+    border-radius: 999px;
+    background: var(--sbd-panel, #1e1f22);
+    border: 1px solid var(--sbd-border, #333);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+    font-family: inherit;
+    max-width: 220px;
+  `;
+
+  const avatarWrap = document.createElement("div");
+  avatarWrap.style.cssText = `
+    position: relative;
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--sbd-accent, #52c98a);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+  `;
+
+  if (avatarUrl) {
+    const img = document.createElement("img");
+    img.src = avatarUrl;
+    img.style.cssText = "width:100%; height:100%; object-fit:cover;";
+    avatarWrap.appendChild(img);
+  } else {
+    avatarWrap.textContent = (name || "?").charAt(0).toUpperCase();
+  }
+
+  // Small badge hinting this will open as a new tab
+  const badge = document.createElement("div");
+  badge.style.cssText = `
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: var(--sbd-accent, #52c98a);
+    border: 2px solid var(--sbd-panel, #1e1f22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  `;
+  badge.innerHTML =
+    '<i class="bi bi-plus-lg" style="font-size:8px; color:#fff; line-height:1;"></i>';
+  avatarWrap.appendChild(badge);
+
+  const label = document.createElement("span");
+  label.textContent = name;
+  label.style.cssText = `
+    color: var(--sbd-text, #e6e6e6);
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  `;
+
+  el.appendChild(avatarWrap);
+  el.appendChild(label);
+  document.body.appendChild(el);
+
+  return el;
+};
+
+const Sidebar = ({ onSelectChat, onChatDragStart }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserId = user?._id || user?.id;
@@ -382,6 +468,22 @@ const Sidebar = ({ onSelectChat }) => {
                       isActive ? "active" : ""
                     }`}
                     style={{ cursor: "pointer" }}
+                    draggable={Boolean(onChatDragStart)}
+                    onDragStart={(e) => {
+                      if (onChatDragStart) {
+                        const preview = buildChatDragPreview(
+                          name,
+                          recipientAvatar,
+                        );
+                        e.dataTransfer.setDragImage(preview, 18, 22);
+                        e.dataTransfer.effectAllowed = "move";
+                        // The browser snapshots the image synchronously
+                        // during dragstart — safe to remove right after.
+                        setTimeout(() => preview.remove(), 0);
+
+                        onChatDragStart(e, { id: chat._id, name });
+                      }
+                    }}
                     onClick={() => {
                       setActiveChatId(chat._id);
                       if (isUnread)
