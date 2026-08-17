@@ -23,6 +23,7 @@ export default function AppRoutes() {
       <Route path="/contact" element={<ContactPage />} />
 
       <Route element={<ProtectedRoute />}>
+        <Route path="/chat" element={<ChatHome />} />
         <Route path="/Chat" element={<ChatHome />} />
         <Route path="/profile" element={<ProfilePage />} />
         <Route path="/profile/:username" element={<ProfilePage />} />

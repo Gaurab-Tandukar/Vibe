@@ -11,7 +11,7 @@ import {
   markAsRead,
   markAsUnread,
 } from "../api/conversationService";
-import { getUserDisplayName, getDMRecipient } from "./sidebarHelpers";
+import { getUserDisplayName, getDMRecipient } from "./Sidebarhelpers";
 import ConversationSearch from "./ConversationSearch";
 import NewDirectMessageModal from "./NewDirectMessageModal";
 import NewGroupModal from "./NewGroupModal";
@@ -485,6 +485,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                       }
                     }}
                     onClick={() => {
+                      console.log("[Sidebar] clicked chat:", chat._id, name);
                       setActiveChatId(chat._id);
                       if (isUnread)
                         handleToggleReadStatus(null, chat._id, true);
