@@ -216,6 +216,10 @@
   ) !important; /* Subtle background change */
 }
 
+.sidebar-chat-item[draggable="true"] {
+  -webkit-user-drag: element;
+}
+
 /* Hide options button by default, reveal on row hover */
 .sidebar-chat-item .chat-options-btn {
   opacity: 0;
