@@ -16,6 +16,8 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState(() => new Set());
+  // userId -> ISO timestamp of when they last went offline
+  const [lastSeenMap, setLastSeenMap] = useState(() => new Map());
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -39,12 +41,19 @@ export const SocketProvider = ({ children }) => {
       setOnlineUsers((prev) => new Set(prev).add(userId));
     };
 
-    const handleUserOffline = ({ userId }) => {
+    const handleUserOffline = ({ userId, lastSeenAt }) => {
       setOnlineUsers((prev) => {
         const next = new Set(prev);
         next.delete(userId);
         return next;
       });
+      if (lastSeenAt) {
+        setLastSeenMap((prev) => {
+          const next = new Map(prev);
+          next.set(userId, lastSeenAt);
+          return next;
+        });
+      }
     };
 
     newSocket.on("connect", handleConnect);
@@ -61,6 +70,7 @@ export const SocketProvider = ({ children }) => {
       setSocket(null);
       setIsConnected(false);
       setOnlineUsers(new Set());
+      setLastSeenMap(new Map());
     };
   }, [isAuthenticated, user?._id]);
 
@@ -68,6 +78,7 @@ export const SocketProvider = ({ children }) => {
     socket,
     isConnected,
     onlineUsers,
+    lastSeenMap,
   };
 
   return (

@@ -45,6 +45,7 @@ module.exports = (io) => {
         conversationId,
         userId,
         username: socket.user.username,
+        avatarUrl: socket.user.avatarUrl,
       });
     });
 
@@ -60,7 +61,9 @@ module.exports = (io) => {
       onlineUsers.delete(userId);
 
       // tell everyone this user went offline
-      socket.broadcast.emit("userOffline", { userId });
+      const lastSeenAt = new Date().toISOString();
+
+      socket.broadcast.emit("userOffline", { userId, lastSeenAt });
     });
   });
 

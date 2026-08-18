@@ -66,6 +66,8 @@ const messageSchema = new mongoose.Schema(
   {
     timestamps: true,
     collection: "messages",
+    toObject: { virtuals: true },
+    toJSON: { virtuals: true },
   },
 );
 

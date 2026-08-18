@@ -3,8 +3,6 @@ const Reaction = require("../model/reactionModel");
 const Message = require("../model/messageModel");
 const Conversation = require("../model/conversationModel");
 
-// @desc   add or toggle a reaction on a message
-// @route  POST /api/reactions/:messageId
 const addReaction = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -28,7 +26,6 @@ const addReaction = async (req, res) => {
         .json({ message: "Cannot react to a deleted message" });
     }
 
-    // ✅ ensure the reactor is actually a member of the conversation
     const conversation = await Conversation.findById(message.conversation);
     const isMember = conversation.participants.some(
       (p) => p.toString() === currentUserId.toString(),
@@ -39,7 +36,6 @@ const addReaction = async (req, res) => {
         .json({ message: "You are not a member of this conversation" });
     }
 
-    // toggle: if this exact user+message+emoji already exists, remove it
     const existing = await Reaction.findOne({
       message: messageId,
       user: currentUserId,
@@ -48,27 +44,40 @@ const addReaction = async (req, res) => {
 
     if (existing) {
       await existing.deleteOne();
-      return res.status(200).json({ message: "Reaction removed" });
+    } else {
+      try {
+        await Reaction.create({
+          message: messageId,
+          user: currentUserId,
+          emoji,
+        });
+      } catch (error) {
+        if (error.code === 11000) {
+          return res.status(409).json({ message: "Reaction already exists" });
+        }
+        throw error;
+      }
     }
 
-    const reaction = await Reaction.create({
-      message: messageId,
-      user: currentUserId,
-      emoji,
+    // send the full, current reaction list for this message so every
+    // client just replaces its local copy — avoids drift from missed events
+    const reactions = await Reaction.find({ message: messageId }).populate(
+      "user",
+      "username avatarUrl",
+    );
+
+    const io = req.app.get("io");
+    io.to(message.conversation.toString()).emit("reactionUpdated", {
+      messageId,
+      reactions,
     });
 
-    res.status(201).json(reaction);
+    res.status(200).json({ reactions });
   } catch (error) {
-    // handles the unique index (message+user+emoji) race condition gracefully
-    if (error.code === 11000) {
-      return res.status(409).json({ message: "Reaction already exists" });
-    }
     res.status(500).json({ message: error.message });
   }
 };
 
-// @desc   get all reactions for a message
-// @route  GET /api/reactions/:messageId
 const getReactions = async (req, res) => {
   try {
     const { messageId } = req.params;

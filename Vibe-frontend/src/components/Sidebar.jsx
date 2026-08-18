@@ -174,10 +174,17 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
     }
 
     if (onSelectChat) {
-      const name = conv.isGroup
-        ? conv.name
-        : getUserDisplayName(getDMRecipient(conv, currentUserId));
-      onSelectChat({ id: conv._id, name });
+      const recipient = conv.isGroup
+        ? null
+        : getDMRecipient(conv, currentUserId);
+      const name = conv.isGroup ? conv.name : getUserDisplayName(recipient);
+      onSelectChat({
+        id: conv._id,
+        name,
+        avatarUrl: conv.isGroup ? undefined : recipient?.avatarUrl,
+        recipientId: conv.isGroup ? undefined : recipient?._id,
+        isGroup: Boolean(conv.isGroup),
+      });
     }
   };
 
@@ -193,10 +200,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
     setActiveGroupId(conv.isGroup ? conv._id : null);
 
     if (onSelectChat) {
-      const name = conv.isGroup
-        ? conv.name
-        : getUserDisplayName(targetUser || getDMRecipient(conv, currentUserId));
-      onSelectChat({ id: conv._id, name });
+      const recipient = targetUser || getDMRecipient(conv, currentUserId);
+      const name = conv.isGroup ? conv.name : getUserDisplayName(recipient);
+      onSelectChat({
+        id: conv._id,
+        name,
+        avatarUrl: conv.isGroup ? undefined : recipient?.avatarUrl,
+        recipientId: conv.isGroup ? undefined : recipient?._id,
+        isGroup: Boolean(conv.isGroup),
+      });
     }
 
     setShowNewDMModal(false);
@@ -366,7 +378,11 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                 setActiveGroupId(group._id);
                 setActiveChatId(group._id);
                 if (onSelectChat) {
-                  onSelectChat({ id: group._id, name: group.name });
+                  onSelectChat({
+                    id: group._id,
+                    name: group.name,
+                    isGroup: true,
+                  });
                 }
               }}
               title={group.name}
@@ -481,15 +497,27 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                         // during dragstart — safe to remove right after.
                         setTimeout(() => preview.remove(), 0);
 
-                        onChatDragStart(e, { id: chat._id, name });
+                        onChatDragStart(e, {
+                          id: chat._id,
+                          name,
+                          avatarUrl: recipient?.avatarUrl,
+                          recipientId: recipient?._id,
+                          isGroup: false,
+                        });
                       }
                     }}
                     onClick={() => {
-                      console.log("[Sidebar] clicked chat:", chat._id, name);
                       setActiveChatId(chat._id);
                       if (isUnread)
                         handleToggleReadStatus(null, chat._id, true);
-                      if (onSelectChat) onSelectChat({ id: chat._id, name });
+                      if (onSelectChat)
+                        onSelectChat({
+                          id: chat._id,
+                          name,
+                          avatarUrl: recipient?.avatarUrl,
+                          recipientId: recipient?._id,
+                          isGroup: false,
+                        });
                     }}
                   >
                     {/* Recipient Avatar */}

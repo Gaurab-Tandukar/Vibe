@@ -229,6 +229,12 @@ const deleteMessage = async (req, res) => {
     // also remove any attachments tied to this message
     await Attachment.deleteMany({ message: message._id });
 
+    const io = req.app.get("io");
+    io.to(message.conversation.toString()).emit("messageDeleted", {
+      messageId: message._id,
+      conversationId: message.conversation,
+    });
+
     res.status(200).json({ message: "Message deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -279,6 +285,12 @@ const editMessage = async (req, res) => {
         populate: { path: "sender", select: "username" },
       })
       .populate("reactions");
+
+    const io = req.app.get("io");
+    io.to(fullMessage.conversation.toString()).emit(
+      "messageEdited",
+      fullMessage,
+    );
 
     res.status(200).json(fullMessage);
   } catch (error) {
@@ -335,12 +347,10 @@ const markMessagesAsRead = async (req, res) => {
       userId: currentUserId,
     });
 
-    res
-      .status(200)
-      .json({
-        message: "Messages marked as read",
-        modifiedCount: result.modifiedCount,
-      });
+    res.status(200).json({
+      message: "Messages marked as read",
+      modifiedCount: result.modifiedCount,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -351,5 +361,5 @@ module.exports = {
   getMessages,
   editMessage,
   deleteMessage,
-  markMessagesAsRead, 
+  markMessagesAsRead,
 };
