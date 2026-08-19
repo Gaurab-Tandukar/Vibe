@@ -15,6 +15,8 @@ const {
   toggleMuteConversation,
   markAsUnread,
   markAsRead,
+  blockUser,
+  unblockUser,
 } = require("../controllers/conversationController");
 const { protect } = require("../middleware/authMiddleware");
 
@@ -31,5 +33,7 @@ router.patch("/:conversationId/pin", protect, togglePinConversation);
 router.patch("/:conversationId/mute", protect, toggleMuteConversation);
 router.patch("/:conversationId/unread", protect, markAsUnread);
 router.patch("/:conversationId/read", protect, markAsRead);
+router.patch("/:conversationId/block", protect, blockUser);
+router.patch("/:conversationId/unblock", protect, unblockUser);
 
 module.exports = router;

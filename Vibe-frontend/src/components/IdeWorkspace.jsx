@@ -32,14 +32,26 @@ const initialJson = {
   },
 };
 
+// Carries everything ChatWindow needs into the tab's config.
 const buildTabJson = (chat) => {
   const chatId = normalizeChatId(chat);
   return {
     type: "tab",
     id: chatId,
     name: chat?.name || "Chat",
-    component: "chatWindow", // MUST match node.getComponent()
-    config: { chatId: chatId, name: chat?.name || "Chat" },
+    component: "chatWindow",
+    config: {
+      chatId,
+      name: chat?.name || "Chat",
+      avatarUrl: chat?.avatarUrl,
+      recipientId: chat?.recipientId,
+      recipientUsername: chat?.recipientUsername,
+      isGroup: Boolean(chat?.isGroup),
+      // Seed values only — ChatWindow owns pin/mute/block state after mount
+      isPinned: Boolean(chat?.isPinned),
+      isMuted: Boolean(chat?.isMuted),
+      isBlocked: Boolean(chat?.isBlocked), // ← added
+    },
   };
 };
 
@@ -51,9 +63,6 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
   const layoutRef = useRef(null);
 
   // Only relevant while openChats is empty (WelcomePage overlay showing).
-  // Lets buttons on WelcomePage be clickable normally, but pointer events
-  // pass through to the Layout underneath specifically while a chat is
-  // being dragged in from the sidebar, so it can still be dropped.
   const [isDragging, setIsDragging] = useState(false);
 
   useEffect(() => {
@@ -99,8 +108,6 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
           event.nativeEvent ?? event,
           buildTabJson(chat),
           (node) => {
-            // Fires whether the drop succeeded or was cancelled — always
-            // clear the flag so WelcomePage becomes clickable again.
             setIsDragging(false);
             if (node && onDropped) {
               onDropped(chat);
@@ -124,7 +131,29 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
 
     if (component === "chatWindow") {
       const config = node.getConfig() || {};
-      return <ChatWindow chatId={config.chatId} name={config.name} />;
+
+      return (
+        <ChatWindow
+          key={config.chatId}
+          chatId={config.chatId}
+          name={config.name}
+          avatarUrl={config.avatarUrl}
+          recipientId={config.recipientId}
+          recipientUsername={config.recipientUsername}
+          isGroup={config.isGroup}
+          initialIsPinned={config.isPinned}
+          initialIsMuted={config.isMuted}
+          initialIsBlocked={config.isBlocked} // ← added
+          onClose={() => {
+            // Close this tab programmatically
+            model.doAction(Actions.deleteTab(config.chatId));
+            // Also notify parent so openChats stays in sync
+            if (onCloseChat) {
+              onCloseChat(config.chatId);
+            }
+          }}
+        />
+      );
     }
 
     return null;

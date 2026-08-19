@@ -44,6 +44,29 @@ const createMessage = async (req, res) => {
         .json({ message: "You are not a member of this conversation" });
     }
 
+    // Only relevant for 1:1 chats (block chat participants)
+    if (!conversation.isGroup) {
+      const isBlockedByMe = conversation.blockedBy?.some(
+        (id) => id.toString() === currentUserId.toString(),
+      );
+
+      const otherParticipant = conversation.participants.find(
+        (p) => p.toString() !== currentUserId.toString(),
+      );
+
+      const isBlockedByOther = otherParticipant
+        ? conversation.blockedBy?.some(
+            (id) => id.toString() === otherParticipant.toString(),
+          )
+        : false;
+
+      if (isBlockedByMe || isBlockedByOther) {
+        return res.status(403).json({
+          message: "You cannot send messages in this conversation",
+        });
+      }
+    }
+
     // create the message
     const message = await Message.create({
       conversation: conversationId,
@@ -93,7 +116,7 @@ const createMessage = async (req, res) => {
         populate: { path: "sender", select: "username" },
       });
 
-    // NEW: broadcast to everyone in this conversation's room
+    // broadcast to everyone in this conversation's room
     const io = req.app.get("io");
     io.to(conversationId).emit("newMessage", fullMessage);
 

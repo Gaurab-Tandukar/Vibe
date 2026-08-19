@@ -638,6 +638,145 @@ const markAsRead = async (req, res) => {
   }
 };
 
+// @desc    Block user in a conversation (1:1 only)
+// @route   PATCH /api/chat/:conversationId/block
+const blockUser = async (req, res) => {
+  try {
+    const conversationId = req.params.conversationId || req.params.id;
+    const userId = req.user._id || req.user.id;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid conversation ID",
+      });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    // Only allow blocking in 1:1 conversations
+    if (conversation.isGroup) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Cannot block users in group conversations. Remove them instead.",
+      });
+    }
+
+    // Check if current user is a participant
+    const isParticipant = conversation.participants.some(
+      (p) => p.toString() === userId.toString(),
+    );
+
+    if (!isParticipant) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not a participant of this conversation",
+      });
+    }
+
+    // Already blocked?
+    const alreadyBlocked = conversation.blockedBy.some(
+      (id) => id.toString() === userId.toString(),
+    );
+
+    if (alreadyBlocked) {
+      return res.status(400).json({
+        success: false,
+        message: "User is already blocked",
+      });
+    }
+
+    // Add current user to blockedBy
+    conversation.blockedBy.push(userId);
+
+    // Optional: also hide the conversation for the blocker
+    if (
+      !conversation.hiddenBy.some((id) => id.toString() === userId.toString())
+    ) {
+      conversation.hiddenBy.push(userId);
+    }
+
+    await conversation.save();
+
+    // Optional: emit socket event so the other user gets real-time update
+    // req.app.get("io")?.to(conversationId).emit("user_blocked", { conversationId, blockedBy: userId });
+
+    return res.status(200).json({
+      success: true,
+      message: "User blocked successfully",
+      data: {
+        conversationId: conversation._id,
+        blockedBy: conversation.blockedBy,
+      },
+    });
+  } catch (error) {
+    console.error("blockUser error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while blocking user",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Unblock user in a conversation
+// @route   PATCH /api/chat/:conversationId/unblock
+// @access  Private
+const unblockUser = async (req, res) => {
+  try {
+    const conversationId = req.params.conversationId || req.params.id;
+    const userId = req.user._id || req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid conversation ID",
+      });
+    }
+
+    const conversation = await Conversation.findById(conversationId);
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "Conversation not found",
+      });
+    }
+
+    // Remove user from blockedBy
+    conversation.blockedBy = conversation.blockedBy.filter(
+      (id) => id.toString() !== userId.toString(),
+    );
+
+    await conversation.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "User unblocked successfully",
+      data: {
+        conversationId: conversation._id,
+        blockedBy: conversation.blockedBy,
+      },
+    });
+  } catch (error) {
+    console.error("unblockUser error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while unblocking user",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   createConversation,
   getMyConversations,
@@ -652,4 +791,6 @@ module.exports = {
   toggleMuteConversation,
   markAsUnread,
   markAsRead,
+  blockUser,
+  unblockUser,
 };

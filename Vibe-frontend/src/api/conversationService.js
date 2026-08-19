@@ -41,6 +41,20 @@ export const toggleMuteConversation = async (conversationId) => {
   return response.data;
 };
 
+export const blockUser = async (conversationId) => {
+  const response = await axiosInstance.patch(
+    `${ENDPOINTS.chats}/${conversationId}/block`,
+  );
+  return response.data;
+};
+
+export const unblockUser = async (conversationId) => {
+  const response = await axiosInstance.patch(
+    `${ENDPOINTS.chats}/${conversationId}/unblock`,
+  );
+  return response.data;
+};
+
 export const markAsUnread = async (conversationId) => {
   const response = await axiosInstance.patch(
     ENDPOINTS.chats + `/${conversationId}/unread`,

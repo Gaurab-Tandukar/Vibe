@@ -5,6 +5,7 @@ import {
   useCallback,
   useLayoutEffect,
 } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useSocket } from "../context/SocketContext";
 import {
@@ -15,6 +16,12 @@ import {
 } from "../api/messageService";
 import { toggleReaction } from "../api/reactionService";
 import { uploadAttachment } from "../api/attachmentService";
+import {
+  togglePinConversation,
+  toggleMuteConversation,
+  blockUser,
+  unblockUser,
+} from "../api/conversationService";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import doodlePattern from "../assets/doodle-pattern.svg";
 import "./css/ChatWindow.css";
@@ -46,9 +53,7 @@ const formatRelativeTime = (isoString) => {
   return `${Math.floor(diffHr / 24)}d ago`;
 };
 
-// Circular avatar with an image + graceful initials fallback. Used for
-// message-row avatars, the typing bubble, and the header. `sender` can be
-// any object with { username / name, avatarUrl }.
+// Circular avatar with an image + graceful initials fallback.
 function Avatar({
   sender,
   show = true,
@@ -96,8 +101,14 @@ export default function ChatWindow({
   name,
   avatarUrl,
   recipientId,
+  recipientUsername,
   isGroup,
+  initialIsPinned = false,
+  initialIsMuted = false,
+  initialIsBlocked = false,
+  onClose, // parent can pass a function to close this tab
 }) {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const currentUserId = user?._id || user?.id;
   const { socket, onlineUsers, lastSeenMap } = useSocket();
@@ -112,11 +123,18 @@ export default function ChatWindow({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
+  // Conversation-level state
+  const [isPinned, setIsPinned] = useState(Boolean(initialIsPinned));
+  const [isMuted, setIsMuted] = useState(Boolean(initialIsMuted));
+  const [isBlocked, setIsBlocked] = useState(Boolean(initialIsBlocked));
+
+  // Simple toast
+  const [toast, setToast] = useState(null);
+
   // Modal State for Deleting
   const [messageToDelete, setMessageToDelete] = useState(null);
 
-  // userId -> { username, avatarUrl }, for everyone currently typing in
-  // this conversation (never includes the current user — remote only).
+  // userId -> { username, avatarUrl }
   const [typingUsers, setTypingUsers] = useState(new Map());
 
   const messagesEndRef = useRef(null);
@@ -125,12 +143,14 @@ export default function ChatWindow({
   const inputRef = useRef(null);
   const isInitialLoadRef = useRef(true);
 
-  // Local "am I currently signaling typing?" flag + the debounce timer
-  // that will emit "stopTyping" after a pause.
   const isTypingRef = useRef(false);
   const typingTimeoutRef = useRef(null);
-  // Per-remote-user auto-expiry timers, keyed by userId.
   const typingExpiryTimeoutsRef = useRef(new Map());
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   const clearAllTypingExpiryTimers = () => {
     typingExpiryTimeoutsRef.current.forEach((timeoutId) =>
@@ -173,8 +193,6 @@ export default function ChatWindow({
       setOpenPickerFor(null);
       setMessageToDelete(null);
 
-      // Leaving/switching chats mid-type shouldn't leave a stuck "typing..."
-      // indicator for the person we were messaging.
       if (isTypingRef.current) {
         socket?.emit("stopTyping", chatId);
         isTypingRef.current = false;
@@ -270,8 +288,6 @@ export default function ChatWindow({
       );
     };
 
-    // A message arriving from this user means they're done typing —
-    // covers the case where "stopTyping" itself got dropped.
     const clearTypingFor = (userId) => {
       setTypingUsers((prev) => {
         if (!prev.has(userId)) return prev;
@@ -314,7 +330,6 @@ export default function ChatWindow({
       clearTypingFor(userId);
     };
 
-    // socket haldle and sunction call
     socket.on("newMessage", handleNewMessage);
     socket.on("messageEdited", handleMessageEdited);
     socket.on("messageDeleted", handleMessageDeleted);
@@ -365,7 +380,7 @@ export default function ChatWindow({
     };
   }, [openPickerFor]);
 
-  // ─── Scroll to Replied Message (Top of Screen with Padding) ─────────────
+  // ─── Scroll to Replied Message ────────────────────────────────────────────
   const scrollToMessage = (messageId) => {
     if (!messageId || !chatContainerRef.current) return;
 
@@ -374,7 +389,7 @@ export default function ChatWindow({
       const containerTop = chatContainerRef.current.getBoundingClientRect().top;
       const targetTop = targetElement.getBoundingClientRect().top;
       const offsetTop =
-        targetTop - containerTop + chatContainerRef.current.scrollTop - 16; // 16px space from top
+        targetTop - containerTop + chatContainerRef.current.scrollTop - 16;
 
       chatContainerRef.current.scrollTo({
         top: offsetTop,
@@ -441,7 +456,6 @@ export default function ChatWindow({
       const text = inputText.trim();
       if ((!text && !pendingAttachment) || sending || uploading) return;
 
-      // Sending counts as "done typing" — don't wait for the debounce timer.
       if (isTypingRef.current) {
         isTypingRef.current = false;
         if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
@@ -467,7 +481,6 @@ export default function ChatWindow({
           attachments: attachmentsPayload,
         });
 
-        // Always scroll to bottom after sending a message (including replies to top messages)
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
         }, 80);
@@ -517,6 +530,75 @@ export default function ChatWindow({
     handleReact(msg._id, "❤️");
   };
 
+  // ─── Info popup actions ───────────────────────────────────────────────────
+  const handleViewProfile = () => {
+    if (isGroup || !recipientUsername) return;
+    navigate(`/profile/${recipientUsername}`);
+  };
+
+  const handleTogglePin = async () => {
+    if (!chatId) return;
+    try {
+      const res = await togglePinConversation(chatId);
+      const updated = res.conversation || res;
+      if (updated?.pinnedBy && currentUserId) {
+        setIsPinned(updated.pinnedBy.includes(currentUserId));
+      } else {
+        setIsPinned((prev) => !prev);
+      }
+    } catch (err) {
+      console.error("Failed to toggle pin:", err?.response?.data || err);
+    }
+  };
+
+  const handleToggleMute = async () => {
+    if (!chatId) return;
+    try {
+      const res = await toggleMuteConversation(chatId);
+      const updated = res.conversation || res;
+      if (updated?.mutedBy && currentUserId) {
+        setIsMuted(updated.mutedBy.includes(currentUserId));
+      } else {
+        setIsMuted((prev) => !prev);
+      }
+    } catch (err) {
+      console.error("Failed to toggle mute:", err?.response?.data || err);
+    }
+  };
+
+  // ─── Block / Unblock ──────────────────────────────────────────────────────
+  const handleToggleBlock = async () => {
+    if (!chatId || isGroup) return;
+
+    try {
+      if (isBlocked) {
+        // UNBLOCK
+        await unblockUser(chatId);
+        setIsBlocked(false);
+        showToast("User unblocked", "success");
+      } else {
+        // BLOCK
+        await blockUser(chatId);
+        setIsBlocked(true);
+        showToast("User blocked", "success");
+
+        // Close the tab after blocking
+        if (typeof onClose === "function") {
+          // small delay so user can see the toast
+          setTimeout(() => {
+            onClose();
+          }, 800);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to toggle block:", err?.response?.data || err);
+      showToast(
+        err?.response?.data?.message || "Something went wrong",
+        "error",
+      );
+    }
+  };
+
   // ─── Helpers ──────────────────────────────────────────────────────────────
   const summarizeReactions = (reactions = []) => {
     if (!reactions.length) return [];
@@ -539,10 +621,6 @@ export default function ChatWindow({
     return Array.from(map.values());
   };
 
-  // A message is the "last in its group" when the next message is from a
-  // different sender (or there is no next message yet) — that's the one
-  // that gets the visible avatar, WhatsApp/Slack-style, so consecutive
-  // messages from the same person don't each repeat the picture.
   const isLastInSenderGroup = (index) => {
     const current = messages[index];
     const next = messages[index + 1];
@@ -635,7 +713,12 @@ export default function ChatWindow({
     <div className="d-flex flex-column h-100 w-100 bg-white overflow-hidden shadow-sm position-relative">
       {/* Header */}
       <div className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0 bg-white">
-        <div className="d-flex align-items-center gap-2 overflow-hidden">
+        <div
+          className="d-flex align-items-center gap-2 overflow-hidden"
+          style={{ cursor: isGroup ? "default" : "pointer" }}
+          onClick={handleViewProfile}
+          title={isGroup ? undefined : "View profile"}
+        >
           <Avatar
             sender={{ username: name, avatarUrl }}
             size={40}
@@ -673,6 +756,58 @@ export default function ChatWindow({
               )}
             </span>
           </div>
+        </div>
+
+        {/* Info button + popup */}
+        <div className="dropdown flex-shrink-0">
+          <button
+            type="button"
+            className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+            style={{ width: 32, height: 32 }}
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            title="Conversation info"
+          >
+            <i className="bi bi-info-circle" style={{ fontSize: "1rem" }} />
+          </button>
+
+          <ul className="dropdown-menu dropdown-menu-end shadow">
+            {!isGroup && (
+              <li>
+                <button className="dropdown-item" onClick={handleViewProfile}>
+                  <span>View profile</span>
+                  <i className="bi bi-person" />
+                </button>
+              </li>
+            )}
+            <li>
+              <button className="dropdown-item" onClick={handleToggleMute}>
+                <span>{isMuted ? "Unmute" : "Mute"}</span>
+                <i className={`bi ${isMuted ? "bi-bell" : "bi-bell-slash"}`} />
+              </button>
+            </li>
+            <li>
+              <button className="dropdown-item" onClick={handleTogglePin}>
+                <span>{isPinned ? "Unpin" : "Pin"}</span>
+                <i
+                  className={`bi ${
+                    isPinned ? "bi-pin-angle" : "bi-pin-angle-fill"
+                  }`}
+                />
+              </button>
+            </li>
+            {!isGroup && (
+              <li>
+                <button
+                  className={`dropdown-item ${isBlocked ? "" : "text-danger"}`}
+                  onClick={handleToggleBlock}
+                >
+                  <span>{isBlocked ? "Unblock" : "Block"}</span>
+                  <i className="bi bi-slash-circle" />
+                </button>
+              </li>
+            )}
+          </ul>
         </div>
       </div>
 
@@ -738,7 +873,7 @@ export default function ChatWindow({
                     </div>
                   )}
 
-                  {/* Avatar (other users only, last message in a run) */}
+                  {/* Avatar (other users only) */}
                   {!isMe && (
                     <div className="order-first mb-0">
                       <Avatar sender={msg.sender} show={showAvatar} />
@@ -847,7 +982,7 @@ export default function ChatWindow({
                       )}
                     </p>
 
-                    {/* Instagram-Style Reaction Badge Overlay */}
+                    {/* Reaction Badge */}
                     {reactionSummary.length > 0 && !msg.isDeleted && (
                       <div
                         className="instagram-reaction-badge reaction-picker-btn"
@@ -928,7 +1063,7 @@ export default function ChatWindow({
           })
         )}
 
-        {/* Typing indicator bubble */}
+        {/* Typing indicator */}
         {typingUsers.size > 0 && (
           <div className="d-flex flex-column align-items-start chat-bubble-row">
             <div
@@ -1022,7 +1157,7 @@ export default function ChatWindow({
           style={{ width: 38, height: 38 }}
           title="Attach file"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading || Boolean(pendingAttachment)}
+          disabled={uploading || Boolean(pendingAttachment) || isBlocked}
         >
           <i className="bi bi-plus-lg" />
         </button>
@@ -1033,10 +1168,12 @@ export default function ChatWindow({
             type="text"
             className="form-control border-0 bg-light rounded-pill px-3 py-2"
             style={{ fontSize: "0.95rem" }}
-            placeholder={`Message ${name || ""}...`}
+            placeholder={
+              isBlocked ? "You blocked this user" : `Message ${name || ""}...`
+            }
             value={inputText}
             onChange={handleInputChange}
-            disabled={sending}
+            disabled={sending || isBlocked}
           />
         </div>
 
@@ -1045,7 +1182,10 @@ export default function ChatWindow({
           className="btn btn-success btn-sm rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
           style={{ width: 38, height: 38 }}
           disabled={
-            (!inputText.trim() && !pendingAttachment) || sending || uploading
+            (!inputText.trim() && !pendingAttachment) ||
+            sending ||
+            uploading ||
+            isBlocked
           }
           title="Send message"
         >
@@ -1088,6 +1228,18 @@ export default function ChatWindow({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 rounded-pill shadow text-white ${
+            toast.type === "error" ? "bg-danger" : "bg-success"
+          }`}
+          style={{ zIndex: 9999, fontSize: "0.9rem" }}
+        >
+          {toast.message}
         </div>
       )}
     </div>

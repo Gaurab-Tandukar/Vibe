@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useSocket } from "../context/SocketContext";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import {
   getMyConversations,
@@ -15,6 +16,7 @@ import { getUserDisplayName, getDMRecipient } from "./Sidebarhelpers";
 import ConversationSearch from "./ConversationSearch";
 import NewDirectMessageModal from "./NewDirectMessageModal";
 import NewGroupModal from "./NewGroupModal";
+import StatusDot from "../pages/profile/component/StatusDot";
 import Logo from "../assets/vibe-logo.png";
 import "./css/Sidebar.css";
 
@@ -107,6 +109,7 @@ const buildChatDragPreview = (name, avatarUrl) => {
 const Sidebar = ({ onSelectChat, onChatDragStart }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { getUserStatus, myStatus } = useSocket();
   const currentUserId = user?._id || user?.id;
 
   // Component States
@@ -300,11 +303,19 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
   const activeGroup = groupChats.find((g) => g._id === activeGroupId) || null;
   const currentUserAvatar = resolveMediaUrl(user?.avatarUrl);
   const currentUserDisplayName = getUserDisplayName(user);
-  const status = user?.status || "offline";
+  // Live presence for the current user (idle-timer driven), falling back
+  // to whatever was on the user object at login if the socket hasn't
+  // connected yet.
+  const status = myStatus || user?.status || "offline";
   const statusColors = {
     online: "success",
     away: "warning",
     offline: "secondary",
+  };
+  const statusLabels = {
+    online: "Online",
+    away: "Away",
+    offline: "Offline",
   };
 
   const sidebarWidth = isCollapsed ? 72 : 320;
@@ -471,6 +482,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                   ? getUserDisplayName(recipient)
                   : "Direct Message";
                 const recipientAvatar = resolveMediaUrl(recipient?.avatarUrl);
+                const recipientStatus = getUserStatus(recipient?._id);
 
                 const isPinned = chat.pinnedBy?.includes(currentUserId);
                 const isMuted = chat.mutedBy?.includes(currentUserId);
@@ -516,30 +528,37 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                           name,
                           avatarUrl: recipient?.avatarUrl,
                           recipientId: recipient?._id,
+                          recipientUsername: recipient?.username,
                           isGroup: false,
+                          isPinned: chat.pinnedBy?.includes(currentUserId),
+                          isMuted: chat.mutedBy?.includes(currentUserId),
+                          isBlocked: chat.blockedBy?.includes(currentUserId), // ← add this
                         });
                     }}
                   >
-                    {/* Recipient Avatar */}
+                    {/* Recipient Avatar Container */}
                     <span
-                      className="position-relative flex-shrink-0 me-2 rounded-circle overflow-hidden"
+                      className="position-relative flex-shrink-0 me-2"
                       style={{ width: "44px", height: "44px" }}
                     >
                       {recipientAvatar ? (
                         <img
                           src={recipientAvatar}
                           alt={name}
-                          className="w-100 h-100"
+                          className="w-100 h-100 rounded-circle"
                           style={{ objectFit: "cover" }}
                         />
                       ) : (
                         <span
-                          className="w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-white"
+                          className="w-100 h-100 rounded-circle d-flex align-items-center justify-content-center fw-bold text-white"
                           style={{ backgroundColor: "var(--sbd-accent)" }}
                         >
                           {name.charAt(0).toUpperCase()}
                         </span>
                       )}
+
+                      {/* Status Dot can now freely pop outside without getting clipped! */}
+                      <StatusDot status={recipientStatus} />
                     </span>
 
                     {/* Chat Name & Info */}
@@ -568,7 +587,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                           fontSize: "0.78rem",
                         }}
                       >
-                        Active 20m ago
+                        {statusLabels[recipientStatus] || "Offline"}
                       </span>
                     </div>
 
@@ -696,12 +715,16 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                     {currentUserDisplayName.charAt(0).toUpperCase()}
                   </span>
                 )}
+                {/* Updated Status Dot Position */}
                 <span
-                  className={`position-absolute bottom-0 end-0 rounded-circle bg-${statusColors[status]}`}
+                  className={`position-absolute rounded-circle bg-${statusColors[status]}`}
                   style={{
-                    width: "11px",
-                    height: "11px",
+                    width: "12px",
+                    height: "12px",
+                    bottom: "-2px",
+                    right: "-2px",
                     border: "2px solid var(--sbd-rail)",
+                    zIndex: 1,
                   }}
                 ></span>
               </span>
@@ -716,7 +739,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
                   className="text-truncate"
                   style={{ fontSize: "0.72rem", color: "var(--sbd-muted)" }}
                 >
-                  {status}
+                  {statusLabels[status] || status}
                 </span>
               </span>
             </button>
