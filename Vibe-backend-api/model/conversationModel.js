@@ -44,7 +44,7 @@ const conversationSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
-    
+
     mutedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -53,6 +53,13 @@ const conversationSchema = new mongoose.Schema(
     ],
 
     unreadBy: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+
+    blockedBy: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
@@ -74,6 +81,7 @@ conversationSchema.index({ isGroup: 1 });
 conversationSchema.index({ lastMessageAt: -1 });
 conversationSchema.index({ participants: 1 });
 conversationSchema.index({ hiddenBy: 1 });
+conversationSchema.index({ blockedBy: 1 });
 
 conversationSchema.virtual("members", {
   ref: "ConversationMember",

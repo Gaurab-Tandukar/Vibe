@@ -44,6 +44,29 @@ const createMessage = async (req, res) => {
         .json({ message: "You are not a member of this conversation" });
     }
 
+    // Only relevant for 1:1 chats (block chat participants)
+    if (!conversation.isGroup) {
+      const isBlockedByMe = conversation.blockedBy?.some(
+        (id) => id.toString() === currentUserId.toString(),
+      );
+
+      const otherParticipant = conversation.participants.find(
+        (p) => p.toString() !== currentUserId.toString(),
+      );
+
+      const isBlockedByOther = otherParticipant
+        ? conversation.blockedBy?.some(
+            (id) => id.toString() === otherParticipant.toString(),
+          )
+        : false;
+
+      if (isBlockedByMe || isBlockedByOther) {
+        return res.status(403).json({
+          message: "You cannot send messages in this conversation",
+        });
+      }
+    }
+
     // create the message
     const message = await Message.create({
       conversation: conversationId,
@@ -66,14 +89,25 @@ const createMessage = async (req, res) => {
       await Attachment.insertMany(attachmentDocs);
     }
 
-    // keep conversation list sorted by recent activity
-    conversation.lastMessageAt = Date.now();
-    await conversation.save();
-
     // notification
     const recipientIds = conversation.participants.filter(
       (p) => p.toString() !== currentUserId.toString(),
     );
+
+    // keep conversation list sorted by recent activity + mark recipients unread
+    conversation.lastMessageAt = Date.now();
+    conversation.unreadBy = (conversation.unreadBy || []).filter(
+      (id) => id.toString() !== currentUserId.toString(),
+    );
+    recipientIds.forEach((recipientId) => {
+      const alreadyUnread = conversation.unreadBy.some(
+        (id) => id.toString() === recipientId.toString(),
+      );
+      if (!alreadyUnread) {
+        conversation.unreadBy.push(recipientId);
+      }
+    });
+    await conversation.save();
 
     if (recipientIds.length > 0) {
       const notificationDocs = recipientIds.map((userId) => ({
@@ -93,7 +127,7 @@ const createMessage = async (req, res) => {
         populate: { path: "sender", select: "username" },
       });
 
-    // NEW: broadcast to everyone in this conversation's room
+    // broadcast to everyone in this conversation's room
     const io = req.app.get("io");
     io.to(conversationId).emit("newMessage", fullMessage);
 
@@ -229,6 +263,12 @@ const deleteMessage = async (req, res) => {
     // also remove any attachments tied to this message
     await Attachment.deleteMany({ message: message._id });
 
+    const io = req.app.get("io");
+    io.to(message.conversation.toString()).emit("messageDeleted", {
+      messageId: message._id,
+      conversationId: message.conversation,
+    });
+
     res.status(200).json({ message: "Message deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -279,6 +319,12 @@ const editMessage = async (req, res) => {
         populate: { path: "sender", select: "username" },
       })
       .populate("reactions");
+
+    const io = req.app.get("io");
+    io.to(fullMessage.conversation.toString()).emit(
+      "messageEdited",
+      fullMessage,
+    );
 
     res.status(200).json(fullMessage);
   } catch (error) {
@@ -335,12 +381,10 @@ const markMessagesAsRead = async (req, res) => {
       userId: currentUserId,
     });
 
-    res
-      .status(200)
-      .json({
-        message: "Messages marked as read",
-        modifiedCount: result.modifiedCount,
-      });
+    res.status(200).json({
+      message: "Messages marked as read",
+      modifiedCount: result.modifiedCount,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -351,5 +395,5 @@ module.exports = {
   getMessages,
   editMessage,
   deleteMessage,
-  markMessagesAsRead, 
+  markMessagesAsRead,
 };

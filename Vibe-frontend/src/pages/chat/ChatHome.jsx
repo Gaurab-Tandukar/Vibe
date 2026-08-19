@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Sidebar from "../../components/Sidebar";
 import IdeWorkspace from "../../components/IdeWorkspace";
 
@@ -7,6 +7,30 @@ const normalizeChatId = (chat) => String(chat?._id ?? chat?.id ?? "");
 export default function ChatHome() {
   const [openChats, setOpenChats] = useState([]);
   const ideWorkspaceRef = useRef(null);
+
+  useEffect(() => {
+    const handleBlockChanged = (event) => {
+      const detail = event?.detail || {};
+      const conversationId = detail.conversationId;
+      const blocked = Boolean(detail.blocked);
+      if (!blocked || !conversationId) return;
+
+      setOpenChats((prev) =>
+        prev.filter((c) => String(c.id) !== String(conversationId)),
+      );
+    };
+
+    window.addEventListener(
+      "vibe:conversation-block-changed",
+      handleBlockChanged,
+    );
+    return () => {
+      window.removeEventListener(
+        "vibe:conversation-block-changed",
+        handleBlockChanged,
+      );
+    };
+  }, []);
 
   const handleSelectChat = (chat) => {
     if (!chat) return;

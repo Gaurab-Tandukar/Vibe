@@ -1,0 +1,132 @@
+@keyframes popIn {
+  0% {
+    opacity: 0;
+    transform: translateY(8px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.chat-bubble-latest {
+  animation: popIn 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+.chat-bubble-latest.chat-bubble-me {
+  transform-origin: bottom right;
+}
+.chat-bubble-latest.chat-bubble-other {
+  transform-origin: bottom left;
+}
+.chat-bubble-animated {
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+  position: relative;
+  user-select: none;
+}
+.chat-bubble-actions {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.chat-bubble-row:hover .chat-bubble-actions {
+  opacity: 1;
+}
+.reaction-picker {
+  position: absolute;
+  background: #ffffff;
+  border: 1px solid #eaeaea;
+  border-radius: 30px;
+  padding: 4px 8px;
+  display: flex;
+  gap: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  z-index: 10;
+  animation: popIn 0.15s ease-out;
+}
+.reaction-picker-top {
+  bottom: calc(100% + 6px);
+}
+.reaction-picker-bottom {
+  top: calc(100% + 6px);
+}
+.reaction-picker button {
+  transition: transform 0.15s ease;
+}
+.reaction-picker button:hover {
+  transform: scale(1.25);
+}
+.instagram-reaction-badge {
+  position: absolute;
+  bottom: -10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: #ffffff;
+  border: 1px solid #e1e1e1;
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  z-index: 2;
+}
+.chat-bubble-me .instagram-reaction-badge {
+  right: 12px;
+}
+.chat-bubble-other .instagram-reaction-badge {
+  left: 12px;
+}
+.reply-preview-clickable {
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+.reply-preview-clickable:hover {
+  opacity: 1 !important;
+}
+.modal-backdrop-custom {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: popIn 0.15s ease-out;
+}
+.typing-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #9aa0a6;
+  display: inline-block;
+  animation: typingBounce 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes typingBounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}

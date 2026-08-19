@@ -15,11 +15,16 @@ const {
   toggleMuteConversation,
   markAsUnread,
   markAsRead,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
+  getGroupMembers,
 } = require("../controllers/conversationController");
 const { protect } = require("../middleware/authMiddleware");
 
 router.post("/", protect, createConversation);
 router.get("/", protect, getMyConversations);
+router.get("/blocked/users", protect, getBlockedUsers);
 router.get("/:id", protect, getConversationById);
 router.post("/:id/members", protect, addMember);
 router.delete("/:id/members/:userId", protect, removeMember);
@@ -31,5 +36,8 @@ router.patch("/:conversationId/pin", protect, togglePinConversation);
 router.patch("/:conversationId/mute", protect, toggleMuteConversation);
 router.patch("/:conversationId/unread", protect, markAsUnread);
 router.patch("/:conversationId/read", protect, markAsRead);
+router.patch("/:conversationId/block", protect, blockUser);
+router.patch("/:conversationId/unblock", protect, unblockUser);
+router.get("/:id/members", protect, getGroupMembers);
 
 module.exports = router;
