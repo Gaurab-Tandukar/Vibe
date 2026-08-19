@@ -16,12 +16,7 @@ import {
 } from "../api/messageService";
 import { toggleReaction } from "../api/reactionService";
 import { uploadAttachment } from "../api/attachmentService";
-import {
-  togglePinConversation,
-  toggleMuteConversation,
-  blockUser,
-  unblockUser,
-} from "../api/conversationService";
+import { blockUser, unblockUser } from "../api/conversationService";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import doodlePattern from "../assets/doodle-pattern.svg";
 import "./css/ChatWindow.css";
@@ -103,9 +98,8 @@ export default function ChatWindow({
   recipientId,
   recipientUsername,
   isGroup,
-  initialIsPinned = false,
-  initialIsMuted = false,
   initialIsBlocked = false,
+  initialIsBlockedByOther = false,
   onClose, // parent can pass a function to close this tab
 }) {
   const navigate = useNavigate();
@@ -124,9 +118,10 @@ export default function ChatWindow({
   const [uploadError, setUploadError] = useState(null);
 
   // Conversation-level state
-  const [isPinned, setIsPinned] = useState(Boolean(initialIsPinned));
-  const [isMuted, setIsMuted] = useState(Boolean(initialIsMuted));
   const [isBlocked, setIsBlocked] = useState(Boolean(initialIsBlocked));
+  const [isBlockedByOther, setIsBlockedByOther] = useState(
+    Boolean(initialIsBlockedByOther),
+  );
 
   // Simple toast
   const [toast, setToast] = useState(null);
@@ -136,6 +131,11 @@ export default function ChatWindow({
 
   // userId -> { username, avatarUrl }
   const [typingUsers, setTypingUsers] = useState(new Map());
+
+  const isConversationBlocked = isBlocked || isBlockedByOther;
+  const blockedNotice = isBlocked
+    ? "You blocked this user. Unblock to continue messaging."
+    : "This user has blocked you. Messaging is disabled.";
 
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
@@ -400,6 +400,7 @@ export default function ChatWindow({
 
   // ─── Trigger Reply Action ────────────────────────────────────────────────
   const handleStartReply = (msg) => {
+    if (isConversationBlocked) return;
     setReplyingTo(msg);
     setTimeout(() => {
       inputRef.current?.focus();
@@ -408,6 +409,7 @@ export default function ChatWindow({
 
   // ─── Typing signal (debounced) ────────────────────────────────────────────
   const handleInputChange = (e) => {
+    if (isConversationBlocked) return;
     const value = e.target.value;
     setInputText(value);
 
@@ -427,6 +429,7 @@ export default function ChatWindow({
 
   // ─── File upload ──────────────────────────────────────────────────────────
   const handleFileChange = async (e) => {
+    if (isConversationBlocked) return;
     const file = e.target.files?.[0];
     e.target.value = "";
 
@@ -454,7 +457,13 @@ export default function ChatWindow({
       e.preventDefault();
 
       const text = inputText.trim();
-      if ((!text && !pendingAttachment) || sending || uploading) return;
+      if (
+        (!text && !pendingAttachment) ||
+        sending ||
+        uploading ||
+        isConversationBlocked
+      )
+        return;
 
       if (isTypingRef.current) {
         isTypingRef.current = false;
@@ -486,6 +495,14 @@ export default function ChatWindow({
         }, 80);
       } catch (err) {
         console.error("Failed to send message:", err?.response?.data || err);
+        if (
+          err?.response?.status === 403 &&
+          /cannot send messages in this conversation/i.test(
+            err?.response?.data?.message || "",
+          )
+        ) {
+          setIsBlockedByOther(true);
+        }
         setInputText(text);
         if (attachmentsPayload?.[0])
           setPendingAttachment(attachmentsPayload[0]);
@@ -501,6 +518,7 @@ export default function ChatWindow({
       replyingTo,
       pendingAttachment,
       socket,
+      isConversationBlocked,
     ],
   );
 
@@ -517,6 +535,7 @@ export default function ChatWindow({
   };
 
   const handleReact = async (messageId, emoji) => {
+    if (isConversationBlocked) return;
     setOpenPickerFor(null);
     try {
       await toggleReaction(messageId, emoji);
@@ -526,7 +545,7 @@ export default function ChatWindow({
   };
 
   const handleDoubleClickMessage = (msg) => {
-    if (msg.isDeleted) return;
+    if (msg.isDeleted || isConversationBlocked) return;
     handleReact(msg._id, "❤️");
   };
 
@@ -536,50 +555,39 @@ export default function ChatWindow({
     navigate(`/profile/${recipientUsername}`);
   };
 
-  const handleTogglePin = async () => {
-    if (!chatId) return;
-    try {
-      const res = await togglePinConversation(chatId);
-      const updated = res.conversation || res;
-      if (updated?.pinnedBy && currentUserId) {
-        setIsPinned(updated.pinnedBy.includes(currentUserId));
-      } else {
-        setIsPinned((prev) => !prev);
-      }
-    } catch (err) {
-      console.error("Failed to toggle pin:", err?.response?.data || err);
-    }
-  };
-
-  const handleToggleMute = async () => {
-    if (!chatId) return;
-    try {
-      const res = await toggleMuteConversation(chatId);
-      const updated = res.conversation || res;
-      if (updated?.mutedBy && currentUserId) {
-        setIsMuted(updated.mutedBy.includes(currentUserId));
-      } else {
-        setIsMuted((prev) => !prev);
-      }
-    } catch (err) {
-      console.error("Failed to toggle mute:", err?.response?.data || err);
-    }
-  };
-
   // ─── Block / Unblock ──────────────────────────────────────────────────────
   const handleToggleBlock = async () => {
     if (!chatId || isGroup) return;
 
+    const isBlockedByCurrentUser = (blockedByList) =>
+      Array.isArray(blockedByList) &&
+      currentUserId &&
+      blockedByList.some((id) => String(id) === String(currentUserId));
+
     try {
       if (isBlocked) {
         // UNBLOCK
-        await unblockUser(chatId);
-        setIsBlocked(false);
+        const res = await unblockUser(chatId);
+        const blockedBy = res?.data?.blockedBy;
+        const nextBlocked = isBlockedByCurrentUser(blockedBy);
+        setIsBlocked(nextBlocked);
+        window.dispatchEvent(
+          new CustomEvent("vibe:conversation-block-changed", {
+            detail: { conversationId: chatId, blocked: nextBlocked },
+          }),
+        );
         showToast("User unblocked", "success");
       } else {
         // BLOCK
-        await blockUser(chatId);
-        setIsBlocked(true);
+        const res = await blockUser(chatId);
+        const blockedBy = res?.data?.blockedBy;
+        const nextBlocked = isBlockedByCurrentUser(blockedBy) || true;
+        setIsBlocked(nextBlocked);
+        window.dispatchEvent(
+          new CustomEvent("vibe:conversation-block-changed", {
+            detail: { conversationId: chatId, blocked: nextBlocked },
+          }),
+        );
         showToast("User blocked", "success");
 
         // Close the tab after blocking
@@ -780,22 +788,6 @@ export default function ChatWindow({
                 </button>
               </li>
             )}
-            <li>
-              <button className="dropdown-item" onClick={handleToggleMute}>
-                <span>{isMuted ? "Unmute" : "Mute"}</span>
-                <i className={`bi ${isMuted ? "bi-bell" : "bi-bell-slash"}`} />
-              </button>
-            </li>
-            <li>
-              <button className="dropdown-item" onClick={handleTogglePin}>
-                <span>{isPinned ? "Unpin" : "Pin"}</span>
-                <i
-                  className={`bi ${
-                    isPinned ? "bi-pin-angle" : "bi-pin-angle-fill"
-                  }`}
-                />
-              </button>
-            </li>
             {!isGroup && (
               <li>
                 <button
@@ -812,6 +804,18 @@ export default function ChatWindow({
       </div>
 
       {/* Messages Area */}
+      {!isGroup && isConversationBlocked && (
+        <div
+          className="px-3 py-2 border-bottom"
+          style={{ backgroundColor: "#fff4df", color: "#8a5a00" }}
+        >
+          <span className="small fw-semibold d-flex align-items-center gap-2">
+            <i className="bi bi-slash-circle" />
+            {blockedNotice}
+          </span>
+        </div>
+      )}
+
       <div
         ref={chatContainerRef}
         className="flex-grow-1 p-3 overflow-auto d-flex flex-column gap-3 position-relative"
@@ -1024,6 +1028,7 @@ export default function ChatWindow({
                         className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary reaction-picker-btn"
                         style={{ width: 28, height: 28, fontSize: "0.75rem" }}
                         title="React"
+                        disabled={isConversationBlocked}
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenPickerFor((prev) =>
@@ -1038,6 +1043,7 @@ export default function ChatWindow({
                         className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
                         style={{ width: 28, height: 28, fontSize: "0.75rem" }}
                         title="Reply"
+                        disabled={isConversationBlocked}
                         onClick={() => handleStartReply(msg)}
                       >
                         <i className="bi bi-reply" />
@@ -1157,7 +1163,9 @@ export default function ChatWindow({
           style={{ width: 38, height: 38 }}
           title="Attach file"
           onClick={() => fileInputRef.current?.click()}
-          disabled={uploading || Boolean(pendingAttachment) || isBlocked}
+          disabled={
+            uploading || Boolean(pendingAttachment) || isConversationBlocked
+          }
         >
           <i className="bi bi-plus-lg" />
         </button>
@@ -1169,11 +1177,15 @@ export default function ChatWindow({
             className="form-control border-0 bg-light rounded-pill px-3 py-2"
             style={{ fontSize: "0.95rem" }}
             placeholder={
-              isBlocked ? "You blocked this user" : `Message ${name || ""}...`
+              isBlocked
+                ? "You blocked this user"
+                : isBlockedByOther
+                  ? "This user blocked you"
+                  : `Message ${name || ""}...`
             }
             value={inputText}
             onChange={handleInputChange}
-            disabled={sending || isBlocked}
+            disabled={sending || isConversationBlocked}
           />
         </div>
 
@@ -1185,7 +1197,7 @@ export default function ChatWindow({
             (!inputText.trim() && !pendingAttachment) ||
             sending ||
             uploading ||
-            isBlocked
+            isConversationBlocked
           }
           title="Send message"
         >

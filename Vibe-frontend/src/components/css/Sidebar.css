@@ -207,6 +207,18 @@
   transition: background-color 0.15s ease-in-out;
 }
 
+.sidebar-chat-item.sidebar-chat-item-unread::before {
+  content: "";
+  position: absolute;
+  left: -2px;
+  top: 7px;
+  bottom: 7px;
+  width: 4px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #58de93 0%, #39b971 100%);
+  box-shadow: 0 0 10px rgba(82, 201, 138, 0.6);
+}
+
 .sidebar-chat-item:hover {
   background-color: rgba(
     255,
@@ -288,4 +300,30 @@
 
 .sidebar-context-menu .dropdown-item i {
   font-size: 1.1rem;
+}
+
+.sidebar-blocked-modal {
+  background-color: var(--sbd-panel);
+  border: 1px solid var(--sbd-border);
+  color: var(--sbd-text);
+}
+
+.sidebar-blocked-modal .modal-title {
+  color: var(--sbd-text);
+}
+
+.sidebar-blocked-row {
+  background-color: var(--sbd-hover);
+  border: 1px solid var(--sbd-border);
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.group-member-row {
+  border-radius: 12px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.group-member-row:hover {
+  background-color: rgba(255, 255, 255, 0.06);
 }

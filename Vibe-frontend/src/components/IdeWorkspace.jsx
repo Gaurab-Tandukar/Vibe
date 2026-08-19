@@ -47,10 +47,8 @@ const buildTabJson = (chat) => {
       recipientId: chat?.recipientId,
       recipientUsername: chat?.recipientUsername,
       isGroup: Boolean(chat?.isGroup),
-      // Seed values only — ChatWindow owns pin/mute/block state after mount
-      isPinned: Boolean(chat?.isPinned),
-      isMuted: Boolean(chat?.isMuted),
-      isBlocked: Boolean(chat?.isBlocked), // ← added
+      isBlocked: Boolean(chat?.isBlocked),
+      isBlockedByOther: Boolean(chat?.isBlockedByOther),
     },
   };
 };
@@ -141,9 +139,8 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
           recipientId={config.recipientId}
           recipientUsername={config.recipientUsername}
           isGroup={config.isGroup}
-          initialIsPinned={config.isPinned}
-          initialIsMuted={config.isMuted}
-          initialIsBlocked={config.isBlocked} // ← added
+          initialIsBlocked={config.isBlocked}
+          initialIsBlockedByOther={config.isBlockedByOther}
           onClose={() => {
             // Close this tab programmatically
             model.doAction(Actions.deleteTab(config.chatId));

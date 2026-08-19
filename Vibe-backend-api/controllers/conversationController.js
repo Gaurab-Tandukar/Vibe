@@ -757,6 +757,11 @@ const unblockUser = async (req, res) => {
       (id) => id.toString() !== userId.toString(),
     );
 
+    // If this conversation was auto-hidden during block, restore it on unblock
+    conversation.hiddenBy = conversation.hiddenBy.filter(
+      (id) => id.toString() !== userId.toString(),
+    );
+
     await conversation.save();
 
     return res.status(200).json({
@@ -777,6 +782,83 @@ const unblockUser = async (req, res) => {
   }
 };
 
+// @desc    Get users blocked by current user (1:1 conversations)
+// @route   GET /api/chat/blocked/users
+// @access  Private
+const getBlockedUsers = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+
+    const blockedConversations = await Conversation.find({
+      isGroup: false,
+      participants: userId,
+      blockedBy: userId,
+    }).populate("participants", "username firstName lastName avatarUrl email");
+
+    const blockedUsers = blockedConversations
+      .map((conversation) => {
+        const blockedUser = conversation.participants.find(
+          (p) => p._id.toString() !== userId.toString(),
+        );
+
+        if (!blockedUser) return null;
+
+        return {
+          conversationId: conversation._id,
+          user: blockedUser,
+          blockedAt: conversation.updatedAt,
+        };
+      })
+      .filter(Boolean);
+
+    return res.status(200).json({
+      success: true,
+      count: blockedUsers.length,
+      users: blockedUsers,
+    });
+  } catch (error) {
+    console.error("getBlockedUsers error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching blocked users",
+      error: error.message,
+    });
+  }
+};
+
+// @desc   Get all members of a group with roles + user info
+// @route  GET /api/chat/:id/members
+const getGroupMembers = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const currentUserId = req.user._id || req.user.id;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid conversation id" });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation || !conversation.isGroup) {
+      return res.status(400).json({ message: "Not a group conversation" });
+    }
+
+    const isMember = conversation.participants.some(
+      (p) => p.toString() === currentUserId.toString(),
+    );
+    if (!isMember) {
+      return res.status(403).json({ message: "Not a member of this group" });
+    }
+
+    const members = await ConversationMember.find({ conversation: id })
+      .populate("user", "username firstName lastName avatarUrl email status")
+      .sort({ role: 1, joinedAt: 1 }); // admins first
+
+    res.status(200).json({ members });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   createConversation,
   getMyConversations,
@@ -793,4 +875,6 @@ module.exports = {
   markAsRead,
   blockUser,
   unblockUser,
+  getBlockedUsers,
+  getGroupMembers,
 };

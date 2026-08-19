@@ -68,3 +68,53 @@ export const markAsRead = async (conversationId) => {
   );
   return response.data;
 };
+
+export const getBlockedUsers = async () => {
+  const response = await axiosInstance.get(ENDPOINTS.chats + "/blocked/users");
+  return response.data;
+};
+
+export const getGroupMembers = async (conversationId) => {
+  const response = await axiosInstance.get(
+    `${ENDPOINTS.chats}/${conversationId}/members`,
+  );
+  return response.data;
+};
+
+export const addGroupMember = async (conversationId, userId) => {
+  const response = await axiosInstance.post(
+    `${ENDPOINTS.chats}/${conversationId}/members`,
+    { userId },
+  );
+  return response.data;
+};
+
+export const removeGroupMember = async (conversationId, userId) => {
+  const response = await axiosInstance.delete(
+    `${ENDPOINTS.chats}/${conversationId}/members/${userId}`,
+  );
+  return response.data;
+};
+
+export const leaveGroup = async (conversationId) => {
+  const response = await axiosInstance.delete(
+    `${ENDPOINTS.chats}/${conversationId}/leave`,
+  );
+  return response.data;
+};
+
+export const transferAdmin = async (conversationId, newAdminUserId) => {
+  const response = await axiosInstance.put(
+    `${ENDPOINTS.chats}/${conversationId}/transfer-admin`,
+    { newAdminUserId },
+  );
+  return response.data;
+};
+
+export const renameGroup = async (conversationId, name) => {
+  const response = await axiosInstance.put(
+    `${ENDPOINTS.chats}/${conversationId}`,
+    { name },
+  );
+  return response.data;
+};

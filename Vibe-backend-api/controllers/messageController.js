@@ -89,14 +89,25 @@ const createMessage = async (req, res) => {
       await Attachment.insertMany(attachmentDocs);
     }
 
-    // keep conversation list sorted by recent activity
-    conversation.lastMessageAt = Date.now();
-    await conversation.save();
-
     // notification
     const recipientIds = conversation.participants.filter(
       (p) => p.toString() !== currentUserId.toString(),
     );
+
+    // keep conversation list sorted by recent activity + mark recipients unread
+    conversation.lastMessageAt = Date.now();
+    conversation.unreadBy = (conversation.unreadBy || []).filter(
+      (id) => id.toString() !== currentUserId.toString(),
+    );
+    recipientIds.forEach((recipientId) => {
+      const alreadyUnread = conversation.unreadBy.some(
+        (id) => id.toString() === recipientId.toString(),
+      );
+      if (!alreadyUnread) {
+        conversation.unreadBy.push(recipientId);
+      }
+    });
+    await conversation.save();
 
     if (recipientIds.length > 0) {
       const notificationDocs = recipientIds.map((userId) => ({
