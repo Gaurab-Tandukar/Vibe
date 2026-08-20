@@ -644,6 +644,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
             onClick={() => {
               setActiveGroupId(null);
               setActiveChatId(null);
+              setIsCollapsed(false);
             }}
             title="Direct Messages"
           >

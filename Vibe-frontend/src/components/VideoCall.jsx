@@ -37,7 +37,7 @@ export default function VideoCall() {
       if (node && remoteStream) {
         if (node.srcObject !== remoteStream) {
           node.srcObject = remoteStream;
-          node.muted = true; // keep muted for autoplay; unmute later if you want sound
+          node.muted = false;
           node.play().catch((e) => console.warn("remote play failed", e));
         }
       }
