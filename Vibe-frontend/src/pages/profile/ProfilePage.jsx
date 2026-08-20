@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { fetchProfile, getUserByUsername } from "../../api/profileService";
+import { createConversation } from "../../api/conversationService";
 import Loader from "../../components/Loader";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 import doodlePattern from "../../assets/doodle-pattern.svg";
@@ -16,6 +17,7 @@ export default function ProfilePage() {
 
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [startingChat, setStartingChat] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -52,6 +54,59 @@ export default function ProfilePage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOwnProfile, username]);
 
+  const taskBadges = useMemo(() => {
+    const list = [];
+
+    // Early Adopter badge
+    list.push({
+      id: "early-adopter",
+      label: "Early Adopter",
+      desc: "Joined Vibe in the pioneer era",
+      icon: "bi-stars",
+      color: "#d97706",
+      bg: "rgba(245, 158, 11, 0.12)",
+    });
+
+    // Profile Pioneer badge
+    if (profile?.bio || profile?.aboutMe || profile?.avatarUrl) {
+      list.push({
+        id: "profile-pioneer",
+        label: "Profile Pioneer",
+        desc: "Customized full bio & avatar",
+        icon: "bi-person-check-fill",
+        color: "#2563eb",
+        bg: "rgba(37, 99, 235, 0.12)",
+      });
+    }
+
+    // Social Connector badge
+    if (
+      (profile?.connections && profile.connections.length > 0) ||
+      (profile?.tags && profile.tags.length > 0)
+    ) {
+      list.push({
+        id: "social-connector",
+        label: "Social Connector",
+        desc: "Linked social profiles and interests",
+        icon: "bi-link-45deg",
+        color: "#059669",
+        bg: "rgba(5, 150, 105, 0.12)",
+      });
+    }
+
+    // Vibe Verified badge
+    list.push({
+      id: "vibe-verified",
+      label: "Vibe Verified",
+      desc: "Authenticated active community member",
+      icon: "bi-patch-check-fill",
+      color: "#0891b2",
+      bg: "rgba(8, 145, 178, 0.12)",
+    });
+
+    return list;
+  }, [profile]);
+
   if (loading)
     return <Loader useIcon={false} messages={["Loading profile..."]} />;
   if (error)
@@ -75,6 +130,33 @@ export default function ProfilePage() {
   const connections = profile?.connections || [];
   const tags = profile?.tags || [];
   const activity = profile?.activity;
+
+  const handleStartChat = async () => {
+    if (!profile?._id) return;
+    setStartingChat(true);
+    try {
+      const conv = await createConversation({
+        isGroup: false,
+        members: [profile._id],
+      });
+      navigate("/chat", {
+        state: {
+          openChat: {
+            id: conv._id,
+            name: fullName || profile.username,
+            avatarUrl: profile.avatarUrl,
+            recipientId: profile._id,
+            isGroup: false,
+          },
+        },
+      });
+    } catch (err) {
+      console.error("Failed to start chat from profile:", err);
+      navigate("/chat");
+    } finally {
+      setStartingChat(false);
+    }
+  };
 
   return (
     <div
@@ -170,8 +252,8 @@ export default function ProfilePage() {
               <StatusDot status={profile?.status} />
             </div>
 
-            {/* Settings gear – own profile only */}
-            {isOwnProfile && (
+            {/* Action buttons (Settings gear for own profile / Send Message button for other users) */}
+            {isOwnProfile ? (
               <button
                 className="btn btn-sm btn-light border position-absolute"
                 style={{ top: "16px", right: "16px", borderRadius: "50%" }}
@@ -180,13 +262,34 @@ export default function ProfilePage() {
               >
                 <i className="bi bi-gear-fill"></i>
               </button>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-sm btn-success position-absolute d-inline-flex align-items-center gap-1.5 px-3 py-1.5 rounded-pill shadow-sm"
+                style={{ top: "16px", right: "16px" }}
+                onClick={handleStartChat}
+                disabled={startingChat}
+              >
+                {startingChat ? (
+                  <span className="spinner-border spinner-border-sm" role="status" />
+                ) : (
+                  <>
+                    <i className="bi bi-chat-dots-fill me-1" />
+                    <span>Message</span>
+                  </>
+                )}
+              </button>
             )}
 
             {/* Header info: Name & Username */}
             <div className="mt-2">
-              <h4 className="mb-0 fw-semibold">
-                {fullName || profile?.username}
-              </h4>
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <h4 className="mb-0 fw-semibold">
+                  {fullName || profile?.username}
+                </h4>
+                {/* Vibe verified inline badge */}
+                <i className="bi bi-patch-check-fill text-primary" title="Verified User" style={{ fontSize: "1.1rem" }} />
+              </div>
               <p className="text-secondary mb-2">@{profile?.username}</p>
 
               {/* Active Activity Banner */}
@@ -210,36 +313,42 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* Badges */}
-              {badges.length > 0 && (
-                <div className="d-flex gap-2 mb-3 flex-wrap">
-                  {badges.map((badge, i) => (
+              {/* Task & Achievement Badges */}
+              <div className="mb-3">
+                <div className="d-flex gap-2 flex-wrap">
+                  {taskBadges.map((badge) => (
                     <span
-                      key={i}
-                      className="d-inline-flex align-items-center justify-content-center"
-                      title={badge.label}
+                      key={badge.id}
+                      className="d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-pill small fw-medium shadow-2xs"
+                      title={badge.desc}
                       style={{
-                        width: "30px",
-                        height: "30px",
-                        borderRadius: "50%",
-                        background: "rgba(64, 145, 108, 0.12)",
-                        color: "#1b4332",
+                        backgroundColor: badge.bg,
+                        color: badge.color,
+                        fontSize: "0.78rem",
+                        border: `1px solid ${badge.color}33`,
                       }}
                     >
-                      {badge.icon ? (
-                        <i
-                          className={badge.icon}
-                          style={{ fontSize: "0.85rem" }}
-                        ></i>
-                      ) : (
-                        <span style={{ fontSize: "0.75rem", fontWeight: 600 }}>
-                          {badge.label?.[0]}
-                        </span>
-                      )}
+                      <i className={`bi ${badge.icon}`} style={{ fontSize: "0.85rem" }} />
+                      <span>{badge.label}</span>
+                    </span>
+                  ))}
+                  {badges.map((badge, i) => (
+                    <span
+                      key={`custom-${i}`}
+                      className="d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-pill small fw-medium"
+                      title={badge.label}
+                      style={{
+                        backgroundColor: "rgba(64, 145, 108, 0.12)",
+                        color: "#1b4332",
+                        fontSize: "0.78rem",
+                      }}
+                    >
+                      {badge.icon && <i className={`bi ${badge.icon}`} />}
+                      <span>{badge.label}</span>
                     </span>
                   ))}
                 </div>
-              )}
+              </div>
 
               {/* Bio */}
               {profile?.bio && <p className="mb-3 text-dark">{profile.bio}</p>}

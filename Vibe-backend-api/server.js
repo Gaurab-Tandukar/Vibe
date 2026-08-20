@@ -15,9 +15,24 @@ dotenv.config();
 
 const app = express();
 
+const allowedOrigins = process.env.CLIENT_URL
+  ? [process.env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"]
+  : ["http://localhost:5173", "http://localhost:3000"];
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: (origin, callback) => {
+      // allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      if (
+        allowedOrigins.includes(origin) ||
+        process.env.NODE_ENV !== "production" ||
+        allowedOrigins.includes("*")
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   }),
 );

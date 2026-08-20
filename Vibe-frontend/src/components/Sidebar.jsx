@@ -713,6 +713,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
                     onSelectChat({
                       id: group._id,
                       name: group.name,
+                      avatarUrl: group.avatarUrl,
                       isGroup: true,
                     });
                   }

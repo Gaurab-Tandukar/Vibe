@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
-  faUserPlus,
-  faMagnifyingGlass,
+  faPhone,
+  faLock,
   faUserGroup,
   faCircle,
   faImage,
@@ -17,46 +17,46 @@ const ICON_COLORS = {
 
 const FEATURES = [
   {
-    icon: <FontAwesomeIcon icon={faUserPlus} />,
+    icon: <FontAwesomeIcon icon={faPhone} />,
     iconBg: ICON_COLORS.orange,
-    title: "Add Friends",
+    title: "HD Audio & Video Calls",
     description:
-      "Quickly expand your network. Search by username or email and connect instantly.",
+      "Crystal clear WebRTC peer-to-peer audio and video calls with instant calling timer and controls.",
   },
   {
-    icon: <FontAwesomeIcon icon={faMagnifyingGlass} />,
+    icon: <FontAwesomeIcon icon={faLock} />,
     iconBg: ICON_COLORS.mint,
-    title: "Search Friends",
+    title: "End-to-End Chat Privacy",
     description:
-      "A powerful global search interface to find colleagues and teammates effortlessly.",
+      "Modern encrypted messaging pipeline ensuring your personal and group discussions remain private.",
   },
   {
     icon: <FontAwesomeIcon icon={faUserGroup} />,
     iconBg: ICON_COLORS.peach,
-    title: "Create Groups",
+    title: "Dynamic Groups",
     description:
-      "Collaborate on projects or keep up with your inner circle with advanced group management.",
+      "Collaborate in dynamic group spaces with custom avatars, role permissions, and member profiles.",
   },
   {
     icon: <FontAwesomeIcon icon={faCircle} />,
     iconBg: ICON_COLORS.mint,
-    title: "Status Indicators",
+    title: "Live Presence & Status",
     description:
-      "See who's online, away, or busy with ultra-fast real-time presence tracking.",
+      "Real-time online, away, and offline indicators with live typing notifications and activity badges.",
   },
   {
     icon: <FontAwesomeIcon icon={faImage} />,
     iconBg: ICON_COLORS.orange,
-    title: "Image Sharing",
+    title: "Rich Media & File Sharing",
     description:
-      "Drag and drop high-quality images directly into chats with instant cloud processing.",
+      "Share high-res images, videos, and documents seamlessly with instant in-chat media previews.",
   },
   {
     icon: <FontAwesomeIcon icon={faBolt} />,
     iconBg: ICON_COLORS.mint,
-    title: "Real-Time Messaging",
+    title: "Tabbed IDE Workspace",
     description:
-      "Zero latency delivery. Messages reach their destination as fast as you hit enter.",
+      "Multi-tab docking chat layout inspired by modern IDEs to manage multiple conversations effortlessly.",
   },
 ];
 
@@ -69,14 +69,14 @@ export default function FeatureSection() {
             className="fw-bold"
             style={{ fontSize: "2.25rem", color: "#111827" }}
           >
-            Message with Vibe
+            Experience the Vibe
           </h2>
           <p
             className="mt-3 mb-0"
             style={{ color: "#6B7280", fontSize: "1rem" }}
           >
-            Built with performance in mind. Loopline leverages the MERN stack
-            for a lag-free, scalable experience.
+            Built with modern performance in mind. Vibe leverages a powerful real-time
+            stack for an instant, responsive, and secure communication experience.
           </p>
         </div>
 

@@ -130,3 +130,28 @@
     opacity: 1;
   }
 }
+
+/* Custom chat dropdown */
+.custom-chat-dropdown {
+  animation: popIn 0.15s ease-out;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid rgba(0, 0, 0, 0.08) !important;
+}
+
+.custom-chat-dropdown .dropdown-item {
+  transition: background-color 0.12s ease;
+  cursor: pointer;
+}
+
+.custom-chat-dropdown .dropdown-item:hover {
+  background-color: #f1f5f9;
+}
+
+/* Call system pill */
+.call-system-pill {
+  transition: transform 0.15s ease;
+}
+
+.call-system-pill:hover {
+  transform: translateY(-1px);
+}

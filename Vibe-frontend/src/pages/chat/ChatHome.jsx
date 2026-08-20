@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 import Sidebar from "../../components/Sidebar";
 import IdeWorkspace from "../../components/IdeWorkspace";
 
@@ -7,6 +8,15 @@ const normalizeChatId = (chat) => String(chat?._id ?? chat?.id ?? "");
 export default function ChatHome() {
   const [openChats, setOpenChats] = useState([]);
   const ideWorkspaceRef = useRef(null);
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.openChat) {
+      // eslint-disable-next-line react-hooks/immutability
+      handleSelectChat(location.state.openChat);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
 
   useEffect(() => {
     const handleBlockChanged = (event) => {
