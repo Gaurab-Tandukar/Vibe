@@ -49,7 +49,7 @@ export default function LoginPage() {
       }}
     >
       <div
-        className="card border-0 shadow-lg rounded-4 position-relative overflow-hidden"
+        className="card border-0 shadow-lg rounded-4 position-relative"
         style={{ width: "100%", maxWidth: "440px", backgroundColor: "#ffffff" }}
       >
         <CloseBtn />
@@ -84,7 +84,7 @@ export default function LoginPage() {
               label="Username or Email"
               name="username"
               value={form.username}
-              placeholder="e.g. billiejean"
+              placeholder="e.g. BillieJeanNotMyLover"
               onChange={handleChange}
               autoComplete="username"
               required

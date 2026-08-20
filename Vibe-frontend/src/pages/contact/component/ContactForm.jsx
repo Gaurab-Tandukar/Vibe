@@ -2,7 +2,12 @@ import { useState } from "react";
 import FormField from "../../../components/FormField";
 import Button from "../../../components/Button";
 
-const INITIAL_FORM = { name: "", email: "", subject: "General Inquiry", message: "" };
+const INITIAL_FORM = {
+  name: "",
+  email: "",
+  subject: "General Inquiry",
+  message: "",
+};
 
 export default function ContactForm() {
   const [form, setForm] = useState(INITIAL_FORM);
@@ -44,11 +49,14 @@ export default function ContactForm() {
             color: "#16a34a",
           }}
         >
-          <i className="bi bi-check2-circle fs-1" />
+          <i className="bi bi-controller fs-2" />
         </div>
-        <h3 className="fw-bold text-dark mb-2">Message Dispatched!</h3>
-        <p className="text-secondary mb-4 small" style={{ maxWidth: 300 }}>
-          Thank you for reaching out to the Vibe team. We&apos;ve received your note and will get back to you shortly.
+        <h3 className="fw-bold text-dark mb-2">Form submitted!</h3>
+        <p className="text-secondary mb-4 small" style={{ maxWidth: 360 }}>
+          Just so you know, there is literally no backend behind this button.
+          Your message went straight into the digital abyss because our founder
+          is busy chatting with Elon Musk, and as for the rest of the team...
+          well, there is no rest of the team.
         </p>
         <Button onClick={() => setSent(false)} className="px-4 rounded-pill">
           Send Another Message
@@ -62,7 +70,9 @@ export default function ContactForm() {
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
           <h3 className="fw-bold text-dark mb-1">Send a Message</h3>
-          <p className="text-secondary small mb-0">Fill out the form below and we&apos;ll be in touch.</p>
+          <p className="text-secondary small mb-0">
+            Fill out the form below and we&apos;ll be in touch.
+          </p>
         </div>
         <span
           className="rounded-circle d-flex align-items-center justify-content-center shadow-xs"
@@ -78,7 +88,10 @@ export default function ContactForm() {
       </div>
 
       {formError && (
-        <div className="alert alert-danger py-2 px-3 small rounded-3 mb-3" role="alert">
+        <div
+          className="alert alert-danger py-2 px-3 small rounded-3 mb-3"
+          role="alert"
+        >
           <i className="bi bi-exclamation-circle-fill me-2" />
           {formError}
         </div>
@@ -91,7 +104,7 @@ export default function ContactForm() {
               label="Your Name"
               name="name"
               value={form.name}
-              placeholder="e.g. Alex Carter"
+              placeholder="e.g. Shah Rukh Khan"
               onChange={handleChange}
               autoComplete="name"
               required
@@ -112,7 +125,10 @@ export default function ContactForm() {
         </div>
 
         <div className="mb-3">
-          <label htmlFor="subject" className="form-label small fw-semibold text-secondary mb-1">
+          <label
+            htmlFor="subject"
+            className="form-label small fw-semibold text-secondary mb-1"
+          >
             Topic / Subject
           </label>
           <select
@@ -123,14 +139,21 @@ export default function ContactForm() {
             onChange={handleChange}
           >
             <option value="General Inquiry">General Inquiry</option>
-            <option value="Feedback & Feature Request">Feedback &amp; Feature Request</option>
+            <option value="Feedback & Feature Request">
+              Feedback &amp; Feature Request
+            </option>
             <option value="Bug Report">Bug Report</option>
-            <option value="Collaboration & Partnership">Collaboration &amp; Partnership</option>
+            <option value="Collaboration & Partnership">
+              Collaboration &amp; Partnership
+            </option>
           </select>
         </div>
 
         <div className="mb-4">
-          <label htmlFor="message" className="form-label small fw-semibold text-secondary mb-1">
+          <label
+            htmlFor="message"
+            className="form-label small fw-semibold text-secondary mb-1"
+          >
             Message
           </label>
           <textarea
@@ -145,9 +168,16 @@ export default function ContactForm() {
           />
         </div>
 
-        <Button type="submit" className="w-100 py-2.5 rounded-pill shadow-sm" disabled={submitting}>
+        <Button
+          type="submit"
+          className="w-100 py-2.5 rounded-pill shadow-sm"
+          disabled={submitting}
+        >
           {submitting ? (
-            <span className="spinner-border spinner-border-sm me-2" role="status" />
+            <span
+              className="spinner-border spinner-border-sm me-2"
+              role="status"
+            />
           ) : (
             <i className="bi bi-send me-2" />
           )}

@@ -13,6 +13,7 @@ const INITIAL_FORM = {
   email: "",
   password: "",
   confirmPassword: "",
+  agreeToTerms: false,
 };
 
 export default function RegisterPage() {
@@ -24,7 +25,11 @@ export default function RegisterPage() {
   const [formError, setFormError] = useState("");
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setForm({
+      ...form,
+      [name]: type === "checkbox" ? checked : value,
+    });
   }
 
   async function handleSubmit(e) {
@@ -39,7 +44,9 @@ export default function RegisterPage() {
       email,
       password,
       confirmPassword,
+      agreeToTerms,
     } = form;
+
     if (
       !firstName.trim() ||
       !lastName.trim() ||
@@ -59,9 +66,14 @@ export default function RegisterPage() {
       setFormError("Password must be at least 6 characters long.");
       return;
     }
+    if (!agreeToTerms) {
+      setFormError("You must agree to the Terms and Conditions to register.");
+      return;
+    }
 
     const payload = { ...form };
     delete payload.confirmPassword;
+    delete payload.agreeToTerms;
 
     setSubmitting(true);
     const result = await register(payload);
@@ -85,7 +97,7 @@ export default function RegisterPage() {
       }}
     >
       <div
-        className="card border-0 shadow-lg rounded-4 position-relative overflow-hidden"
+        className="card border-0 shadow-lg rounded-4 position-relative"
         style={{ width: "100%", maxWidth: "520px", backgroundColor: "#ffffff" }}
       >
         <CloseBtn />
@@ -105,11 +117,16 @@ export default function RegisterPage() {
             <h2 className="card-title fw-bold text-dark mb-1">
               Create your Vibe account
             </h2>
-            <p className="text-secondary small mb-0">Join the real-time conversation today</p>
+            <p className="text-secondary small mb-0">
+              Join the real-time conversation today
+            </p>
           </div>
 
           {formError && (
-            <div className="alert alert-danger py-2 px-3 small rounded-3 mb-3" role="alert">
+            <div
+              className="alert alert-danger py-2 px-3 small rounded-3 mb-3"
+              role="alert"
+            >
               <i className="bi bi-exclamation-circle-fill me-2" />
               {formError}
             </div>
@@ -145,7 +162,7 @@ export default function RegisterPage() {
                   label="Username"
                   name="username"
                   value={form.username}
-                  placeholder="billiejean"
+                  placeholder="BillieJeanNotMyLover"
                   onChange={handleChange}
                   required
                 />
@@ -213,13 +230,50 @@ export default function RegisterPage() {
               </div>
             )}
 
+            {/* Terms and Conditions Checkbox */}
+            <div className="form-check mt-3 mb-2">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="agreeToTerms"
+                name="agreeToTerms"
+                checked={form.agreeToTerms}
+                onChange={handleChange}
+              />
+              <label
+                className="form-check-label text-secondary small"
+                htmlFor="agreeToTerms"
+              >
+                I agree to the{" "}
+                <Link
+                  to="/terms"
+                  target="_blank"
+                  className="text-success fw-semibold text-decoration-none"
+                >
+                  Terms & Conditions
+                </Link>{" "}
+                and{" "}
+                <Link
+                  to="/privacy"
+                  target="_blank"
+                  className="text-success fw-semibold text-decoration-none"
+                >
+                  Privacy Policy
+                </Link>
+                .
+              </label>
+            </div>
+
             <button
               type="submit"
-              className="btn btn-success w-100 py-2.5 rounded-pill shadow-sm mt-3"
+              className="btn btn-success w-100 py-2.5 rounded-pill shadow-sm mt-2"
               disabled={submitting}
             >
               {submitting ? (
-                <span className="spinner-border spinner-border-sm me-2" role="status" />
+                <span
+                  className="spinner-border spinner-border-sm me-2"
+                  role="status"
+                />
               ) : null}
               {submitting ? "Creating account..." : "Sign Up"}
             </button>
@@ -227,7 +281,10 @@ export default function RegisterPage() {
 
           <p className="text-center text-secondary small mt-4 mb-0">
             Already have an account?{" "}
-            <Link to="/login" className="text-success fw-semibold text-decoration-none">
+            <Link
+              to="/login"
+              className="text-success fw-semibold text-decoration-none"
+            >
               Log in
             </Link>
           </p>
