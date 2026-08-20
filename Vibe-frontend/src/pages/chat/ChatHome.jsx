@@ -58,6 +58,17 @@ export default function ChatHome() {
     setOpenChats((prev) => prev.filter((c) => String(c.id) !== String(chatId)));
   };
 
+  // Called when a group's name/avatar is edited (from GroupMembersPanel,
+  // via Sidebar) so any already-open chat tab for it stays in sync instead
+  // of showing stale data until the tab is reopened.
+  const handleChatUpdated = (chatId, updates) => {
+    setOpenChats((prev) =>
+      prev.map((c) =>
+        String(c.id) === String(chatId) ? { ...c, ...updates } : c,
+      ),
+    );
+  };
+
   const handleChatDragStart = (event, chat) => {
     ideWorkspaceRef.current?.startChatDrag(event, chat, (droppedChat) => {
       setOpenChats((prev) =>
@@ -76,6 +87,7 @@ export default function ChatHome() {
       <Sidebar
         onSelectChat={handleSelectChat}
         onChatDragStart={handleChatDragStart}
+        onChatUpdated={handleChatUpdated}
       />
 
       <div

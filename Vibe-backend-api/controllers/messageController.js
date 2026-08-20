@@ -94,12 +94,22 @@ const createMessage = async (req, res) => {
       (p) => p.toString() !== currentUserId.toString(),
     );
 
+    // Recipients who have muted this conversation shouldn't get unread
+    // badges, Notification docs, or live toasts — but they still receive
+    // the "newMessage" broadcast below so the chat itself stays in sync.
+    const mutedSet = new Set(
+      (conversation.mutedBy || []).map((id) => id.toString()),
+    );
+    const notifyRecipientIds = recipientIds.filter(
+      (id) => !mutedSet.has(id.toString()),
+    );
+
     // keep conversation list sorted by recent activity + mark recipients unread
     conversation.lastMessageAt = Date.now();
     conversation.unreadBy = (conversation.unreadBy || []).filter(
       (id) => id.toString() !== currentUserId.toString(),
     );
-    recipientIds.forEach((recipientId) => {
+    notifyRecipientIds.forEach((recipientId) => {
       const alreadyUnread = conversation.unreadBy.some(
         (id) => id.toString() === recipientId.toString(),
       );
@@ -109,8 +119,8 @@ const createMessage = async (req, res) => {
     });
     await conversation.save();
 
-    if (recipientIds.length > 0) {
-      const notificationDocs = recipientIds.map((userId) => ({
+    if (notifyRecipientIds.length > 0) {
+      const notificationDocs = notifyRecipientIds.map((userId) => ({
         user: userId,
         message: message._id,
       }));
@@ -132,7 +142,8 @@ const createMessage = async (req, res) => {
     io.to(conversationId).emit("newMessage", fullMessage);
 
     // also push a notification directly to each recipient, if online
-    recipientIds.forEach((userId) => {
+    // (muted recipients are excluded — see notifyRecipientIds above)
+    notifyRecipientIds.forEach((userId) => {
       const socketId = io.onlineUsers.get(userId.toString());
       if (socketId) {
         io.to(socketId).emit("newNotification", {

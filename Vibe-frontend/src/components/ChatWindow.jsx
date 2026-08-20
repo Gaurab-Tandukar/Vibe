@@ -176,6 +176,10 @@ export default function ChatWindow({
 
     socket?.emit("joinConversation", chatId);
 
+    // Autofocus the chatbar once this chat's messages are loaded, so the
+    // user can start typing immediately after switching/opening a tab.
+    requestAnimationFrame(() => inputRef.current?.focus());
+
     return () => {
       isMounted = false;
       setReplyingTo(null);
@@ -489,6 +493,7 @@ export default function ChatWindow({
           setPendingAttachment(attachmentsPayload[0]);
       } finally {
         setSending(false);
+        requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
     [
@@ -532,6 +537,15 @@ export default function ChatWindow({
   const handleViewProfile = () => {
     if (isGroup || !recipientUsername) return;
     navigate(`/profile/${recipientUsername}`);
+  };
+
+  const handleOpenGroupInfo = () => {
+    if (!isGroup || !chatId) return;
+    window.dispatchEvent(
+      new CustomEvent("vibe:open-group-panel", {
+        detail: { conversationId: chatId },
+      }),
+    );
   };
 
   const handleToggleBlock = async () => {
@@ -770,29 +784,39 @@ export default function ChatWindow({
             </div>
           )}
 
-          {/* Info button + popup */}
-          <div className="dropdown">
+          {/* Info button + popup — DMs get a dropdown (profile/block),
+              groups get a direct "Group info" button since there's
+              nothing to show in a dropdown for them. */}
+          {isGroup ? (
             <button
               type="button"
               className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
               style={{ width: 34, height: 34 }}
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-              title="Conversation info"
+              title="Group info"
+              onClick={handleOpenGroupInfo}
             >
-              <i className="bi bi-info-circle" style={{ fontSize: "1rem" }} />
+              <i className="bi bi-people" style={{ fontSize: "1rem" }} />
             </button>
+          ) : (
+            <div className="dropdown">
+              <button
+                type="button"
+                className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+                style={{ width: 34, height: 34 }}
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                title="Conversation info"
+              >
+                <i className="bi bi-info-circle" style={{ fontSize: "1rem" }} />
+              </button>
 
-            <ul className="dropdown-menu dropdown-menu-end shadow">
-              {!isGroup && (
+              <ul className="dropdown-menu dropdown-menu-end shadow">
                 <li>
                   <button className="dropdown-item" onClick={handleViewProfile}>
                     <span>View profile</span>
                     <i className="bi bi-person ms-auto" />
                   </button>
                 </li>
-              )}
-              {!isGroup && (
                 <li>
                   <button
                     className={`dropdown-item ${isBlocked ? "" : "text-danger"}`}
@@ -802,9 +826,9 @@ export default function ChatWindow({
                     <i className="bi bi-slash-circle ms-auto" />
                   </button>
                 </li>
-              )}
-            </ul>
-          </div>
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 

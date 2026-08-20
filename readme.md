@@ -1,21 +1,54 @@
 # Vibe
 
-A real-time chat application backend + frontend supporting private and group conversations, message reactions, attachments, and live notifications.
+A full-stack real-time chat application with private & group messaging, reactions, file attachments, live notifications, typing indicators, online presence, and **WebRTC audio/video calling**.
+
+---
+
+## ✨ Core Functionality
+
+| Feature                 | Description                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| **Authentication**      | Register / Login with JWT (`x-auth-token`)                                     |
+| **Private Chat**        | 1-on-1 conversations (duplicate prevention)                                    |
+| **Group Chat**          | Named groups with admin roles, add/remove members, leave group, admin transfer |
+| **Messaging**           | Real-time text messages, edit, soft-delete, reply context preserved            |
+| **Reactions**           | Emoji reactions on messages (toggle)                                           |
+| **Attachments**         | Image, PDF and other file uploads                                              |
+| **Notifications**       | Real-time + grouped unread notifications                                       |
+| **Presence**            | Online / offline status + typing indicators                                    |
+| **Read Receipts**       | `readBy` tracking on messages                                                  |
+| **Audio / Video Calls** | WebRTC 1-1 calls with mute, camera toggle, and TURN fallback                   |
 
 ---
 
 ## 🧰 Tech Stack
 
-**Backend**
-- Node.js + Express
-- MongoDB + Mongoose
-- Socket.io (real-time messaging & notifications)
-- JWT Authentication (`x-auth-token` header)
-- bcrypt (password hashing)
-- Multer (file uploads — avatars & attachments)
+### Backend
 
-**Frontend**
-- *(add your framework here, e.g. React + Vite)*
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB + Mongoose
+- **Real-time**: Socket.io
+- **Auth**: JWT + bcrypt
+- **File Uploads**: Multer (local storage → ready for Cloudinary)
+- **Encryption**: Custom message encryption utility
+
+### Frontend
+
+- **Framework**: React 18 + Vite
+- **Routing**: React Router
+- **State**: React Context + custom hooks
+- **Styling**: Custom CSS
+- **Real-time**: socket.io-client
+- **Media**: Native WebRTC (`RTCPeerConnection`, `getUserMedia`)
+
+### External Services
+
+| Service                      | Purpose             | Notes                                         |
+| ---------------------------- | ------------------- | --------------------------------------------- |
+| **MongoDB Atlas** (or local) | Database            | Connection string in `.env`                   |
+| **Metered.ca**               | STUN / TURN servers | Required for reliable WebRTC calls behind NAT |
+| **Google STUN**              | Free fallback STUN  | `stun:stun.l.google.com:19302`                |
 
 ---
 
@@ -23,63 +56,26 @@ A real-time chat application backend + frontend supporting private and group con
 
 ```
 Vibe/
-├── Vibe-backend-api/
-│   ├── config/
-│   │   └── dbConfig.js          # MongoDB connection
-│   ├── controllers/
-│   │   ├── userController.js
-│   │   ├── conversationController.js
-│   │   ├── messageController.js
-│   │   ├── reactionController.js
-│   │   ├── attachmentController.js
-│   │   └── notificationController.js
-│   ├── middleware/
-│   │   ├── authMiddleware.js     # protect + authorize
-│   │   └── uploadMiddleware.js   # reusable multer factory
-│   ├── model/
-│   │   ├── userModel.js
-│   │   ├── conversationModel.js
-│   │   ├── conversationMemberModel.js
-│   │   ├── messageModel.js
-│   │   ├── reactionModel.js
-│   │   ├── AttachmentModel.js
-│   │   └── notificationModel.js
-│   ├── routes/
-│   │   ├── userRoute.js
-│   │   ├── conversationRoute.js
-│   │   ├── messageRoute.js
-│   │   ├── reactionRoute.js
-│   │   ├── attachmentRoute.js
-│   │   └── notificationRoute.js
-│   ├── socket/
-│   │   └── socketHandler.js      # socket auth, rooms, live events
-│   ├── uploads/                  # gitignored — local file storage
-│   │   ├── avatars/
-│   │   └── attachments/
-│   ├── util/
-│   │   ├── password.js
-│   │   └── jwtToken.js
-│   ├── server.js
-│   ├── package.json
-│   └── .env                      # gitignored
-│
-├── Vibe-frontend/
-│   ├── src/
-│   ├── public/
-│   └── package.json
-│
+├── Vibe-backend-api/     # Express + Socket.io + MongoDB
+├── Vibe-frontend/        # React + Vite
 ├── .gitignore
-└── README.md
+└── README.md             # ← you are here
 ```
 
 ---
 
-## 🚀 Getting Started (Local Setup)
+## 🚀 Installation & Setup
 
-### 1. Clone the repo
+### Prerequisites
+
+- Node.js 18+
+- MongoDB (local or Atlas)
+- Git
+
+### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<your-username>/Vibe.git
+git clone https://github.com/Gaurab-Tandukar/Vibe.git
 cd Vibe
 ```
 
@@ -90,7 +86,7 @@ cd Vibe-backend-api
 npm install
 ```
 
-Create a `.env` file inside `Vibe-backend-api/`:
+Create `.env` inside `Vibe-backend-api/`:
 
 ```env
 PORT=3000
@@ -99,93 +95,115 @@ JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=30d
 ```
 
-Run the backend:
+Start the backend:
 
 ```bash
 npm run dev
 ```
 
-The API will be available at `http://localhost:3000`.
+API will be available at `http://localhost:3000`.
 
 ### 3. Frontend setup
 
 ```bash
 cd ../Vibe-frontend
 npm install
+```
+
+Create `.env` inside `Vibe-frontend/`:
+
+```env
+VITE_API_URL=http://localhost:3000
+VITE_TURN_USERNAME=your_metered_username
+VITE_TURN_CREDENTIAL=your_metered_credential
+```
+
+Start the frontend:
+
+```bash
 npm run dev
 ```
+
+App will be available at `http://localhost:5173`.
 
 ---
 
 ## 🔑 Authentication
 
-- All protected routes require an `x-auth-token` header containing a valid JWT.
-- Obtain a token via `POST /api/users/register` or `POST /api/users/login`.
-- Socket.io connections authenticate using the same JWT, passed via:
+- Protected HTTP routes require header: `x-auth-token: <jwt>`
+- Obtain token via:
+  - `POST /api/users/register`
+  - `POST /api/users/login`
+- Socket.io connections authenticate with the same JWT:
   ```js
-  io("http://localhost:3000", { auth: { token: "<jwt>" } })
+  io("http://localhost:3000", { auth: { token: "<jwt>" } });
   ```
 
 ---
 
 ## 📡 API Overview
 
-| Module | Base Route | Key Endpoints |
-|---|---|---|
-| Users | `/api/users` | register, login, profile, avatar upload, password update |
-| Conversations | `/api/chat` | create (private/group), get mine, get by id, add/remove member |
-| Messages | `/api/messages` | create, get (paginated), edit, delete (soft) |
-| Reactions | `/api/reactions` | add/toggle, get by message |
-| Attachments | `/api/attachments` | upload, get by message |
-| Notifications | `/api/notifications` | get (grouped), unread count, mark read |
+| Module        | Base Route           | Key Endpoints                                 |
+| ------------- | -------------------- | --------------------------------------------- |
+| Users         | `/api/users`         | register, login, profile, avatar, password    |
+| Conversations | `/api/chat`          | create private/group, list, add/remove member |
+| Messages      | `/api/messages`      | create, paginated get, edit, soft-delete      |
+| Reactions     | `/api/reactions`     | add/toggle, get by message                    |
+| Attachments   | `/api/attachments`   | upload, get by message                        |
+| Notifications | `/api/notifications` | list (grouped), unread count, mark read       |
 
-Static uploaded files (avatars/attachments) are served from:
+Static files are served from:
+
 ```
-http://localhost:3000/uploads/<avatars|attachments>/<filename>
+http://localhost:3000/uploads/<avatars|attachments|...>/<filename>
 ```
 
 ---
 
 ## 🔌 Real-Time Events (Socket.io)
 
-| Event | Direction | Description |
-|---|---|---|
-| `joinConversation` | client → server | Join a conversation's room |
-| `leaveConversation` | client → server | Leave a conversation's room |
-| `newMessage` | server → client | Broadcast when a message is sent |
-| `newNotification` | server → client | Pushed to a specific online recipient |
+| Event                                                                            | Direction       | Description                       |
+| -------------------------------------------------------------------------------- | --------------- | --------------------------------- |
+| `joinConversation`                                                               | client → server | Join a conversation room          |
+| `leaveConversation`                                                              | client → server | Leave a conversation room         |
+| `newMessage`                                                                     | server → client | New message broadcast             |
+| `newNotification`                                                                | server → client | Personal notification             |
+| `call:invite` / `call:offer` / `call:answer` / `call:ice-candidate` / `call:end` | both            | WebRTC signaling                  |
+| Typing & presence events                                                         | both            | Online status + typing indicators |
 
 ---
 
 ## 🗄️ Business Rules (Quick Reference)
 
 **Private Chat**
-- `isGroup: false`, exactly 1 other member
-- No admin role; duplicate private conversations are prevented
+
+- Exactly one other member, `isGroup: false`
+- Duplicate private conversations are prevented
 
 **Group Chat**
-- `isGroup: true`, requires a `name`
-- Creator becomes `admin`; others become `member`
+
+- Requires a name, creator becomes `admin`
 - Only admins can add/remove members
+- Members can leave; admin transfer supported
 
 **Messages**
-- Soft-deleted messages are masked (`"This message was deleted"`), not removed, to preserve conversation order and reply context
+
+- Soft-deleted messages are masked (`"This message was deleted"`)
 - Edited messages set `isEdited: true`
 
 **Notifications**
-- One notification is created per recipient per message
-- Grouped at read-time: conversations with more than 4 unread notifications collapse into a single "4+ messages from X" summary
+
+- One notification per recipient per message
+- Grouped at read-time (conversations with 4+ unread collapse)
+
+**Calls**
+
+- 1-1 audio or video via WebRTC
+- Signaling over existing Socket.io connection
+- TURN fallback via Metered.ca when direct P2P fails
 
 ---
 
-## 🛣️ Roadmap / Known Next Steps
+## 📄 License
 
-- [ ] Typing indicators & online presence via sockets -- done --
-- [ ] Read receipts (`readBy` tracking on messages) -- done --
-- [ ] Leave group (self-service, non-admin) -- done --
-- [ ] Admin transfer / adminless-group handling -- done --
-- [ ] Move file storage to Cloudinary before deployment
-- [ ] Rate limiting on auth & message endpoints
-- [ ] Lock CORS to production frontend URL
-
----
+This project is for educational / portfolio purposes.

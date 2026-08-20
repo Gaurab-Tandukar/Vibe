@@ -109,7 +109,7 @@ const buildChatDragPreview = (name, avatarUrl) => {
   return el;
 };
 
-const Sidebar = ({ onSelectChat, onChatDragStart }) => {
+const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { socket, getUserStatus, myStatus } = useSocket();
@@ -218,7 +218,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
       onSelectChat({
         id: conv._id,
         name,
-        avatarUrl: conv.isGroup ? undefined : recipient?.avatarUrl,
+        avatarUrl: conv.isGroup ? conv.avatarUrl : recipient?.avatarUrl,
         recipientId: conv.isGroup ? undefined : recipient?._id,
         isGroup: Boolean(conv.isGroup),
         isBlockedByOther: Boolean(isBlockedByOther),
@@ -243,7 +243,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
       onSelectChat({
         id: conv._id,
         name,
-        avatarUrl: conv.isGroup ? undefined : recipient?.avatarUrl,
+        avatarUrl: conv.isGroup ? conv.avatarUrl : recipient?.avatarUrl,
         recipientId: conv.isGroup ? undefined : recipient?._id,
         isGroup: Boolean(conv.isGroup),
       });
@@ -387,6 +387,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
         c._id === updatedGroup._id ? { ...c, ...updatedGroup } : c,
       ),
     );
+
+    // An open ChatWindow tab for this group caches its own name/avatarUrl
+    // at open-time — push the fresh values up so it can stay in sync.
+    if (onChatUpdated) {
+      onChatUpdated(updatedGroup._id, {
+        name: updatedGroup.name,
+        avatarUrl: updatedGroup.avatarUrl,
+      });
+    }
   };
 
   const handleGroupLeft = (groupId) => {
@@ -496,8 +505,13 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
         if (idx === -1) return prev;
 
         const current = prev[idx];
+        const isMutedByMe = current.mutedBy?.some(
+          (id) => String(id) === String(currentUserId),
+        );
         const shouldMarkUnread =
-          isIncoming && String(activeChatId) !== String(conversationId);
+          isIncoming &&
+          !isMutedByMe &&
+          String(activeChatId) !== String(conversationId);
 
         const nextUnreadBy = Array.isArray(current.unreadBy)
           ? [...current.unreadBy]
@@ -611,6 +625,24 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
       );
     };
   }, [activeChatId, currentUserId, onSelectChat]);
+
+  // Lets an open ChatWindow tab (which lives inside IdeWorkspace, outside
+  // the sidebar tree) ask the sidebar to surface a group's members panel —
+  // e.g. from the "Group info" header button.
+  useEffect(() => {
+    const handleOpenGroupPanel = (event) => {
+      const conversationId = event?.detail?.conversationId;
+      if (!conversationId) return;
+      setActiveGroupId(conversationId);
+      setActiveChatId(conversationId);
+      setIsCollapsed(false);
+    };
+
+    window.addEventListener("vibe:open-group-panel", handleOpenGroupPanel);
+    return () => {
+      window.removeEventListener("vibe:open-group-panel", handleOpenGroupPanel);
+    };
+  }, []);
 
   return (
     <div
