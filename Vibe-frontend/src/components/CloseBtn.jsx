@@ -15,6 +15,7 @@ export default function CloseBtn() {
         border: "1px solid rgba(0, 0, 0, 0.1)",
         backgroundColor: "rgb(255, 255, 255)",
         opacity: 1,
+        zIndex: 999,
       }}
       aria-label="Close"
       onClick={() => navigate("/")}

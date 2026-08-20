@@ -69,23 +69,23 @@ export default function Footer() {
               <h6 className="text-white fw-semibold mb-3">Product</h6>
               <ul className="list-unstyled d-flex flex-column gap-2">
                 <li>
-                  <a href="#features" className="footer-link">
+                  <a href="/#features" className="footer-link">
                     Features
                   </a>
                 </li>
                 <li>
-                  <a href="#how-it-works" className="footer-link">
+                  <a href="/#how-it-works" className="footer-link">
                     How it Works
                   </a>
                 </li>
                 <li>
-                  <a href="#testimonials" className="footer-link">
+                  <a href="/#testimonials" className="footer-link">
                     Reviews
                   </a>
                 </li>
                 <li>
-                  <Link to="/pricing" className="footer-link">
-                    Pricing
+                  <Link to="/chat" className="footer-link">
+                    Chat
                   </Link>
                 </li>
               </ul>
@@ -95,17 +95,12 @@ export default function Footer() {
               <h6 className="text-white fw-semibold mb-3">Company</h6>
               <ul className="list-unstyled d-flex flex-column gap-2">
                 <li>
-                  <Link to="/about" className="footer-link">
-                    Why Us
-                  </Link>
-                </li>
-                <li>
-                  <Link to="/approach" className="footer-link">
+                  <Link to="/about#top" className="footer-link">
                     Our Approach
                   </Link>
                 </li>
                 <li>
-                  <Link to="/contact" className="footer-link">
+                  <Link to="/contact#top" className="footer-link">
                     Contact
                   </Link>
                 </li>
@@ -116,12 +111,12 @@ export default function Footer() {
               <h6 className="text-white fw-semibold mb-3">Legal</h6>
               <ul className="list-unstyled d-flex flex-column gap-2">
                 <li>
-                  <Link to="/terms" className="footer-link">
+                  <Link to="/terms#top" className="footer-link">
                     Terms & Conditions
                   </Link>
                 </li>
                 <li>
-                  <Link to="/privacy" className="footer-link">
+                  <Link to="/privacy#top" className="footer-link">
                     Privacy Policy
                   </Link>
                 </li>

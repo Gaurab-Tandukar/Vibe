@@ -2,7 +2,12 @@ import { useState } from "react";
 import FormField from "../../../components/FormField";
 import Button from "../../../components/Button";
 
-const INITIAL_FORM = { name: "", email: "", message: "" };
+const INITIAL_FORM = {
+  name: "",
+  email: "",
+  subject: "General Inquiry",
+  message: "",
+};
 
 export default function ContactForm() {
   const [form, setForm] = useState(INITIAL_FORM);
@@ -18,16 +23,13 @@ export default function ContactForm() {
     e.preventDefault();
     setFormError("");
 
-    if (!form.name || !form.email || !form.message) {
-      setFormError("Please fill in all fields.");
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
+      setFormError("Please fill in your name, email, and message.");
       return;
     }
 
     setSubmitting(true);
-
-    // No backend /contact endpoint exists yet - simulating success for now.
-    // Once you add a real route, replace this with an actual API call,
-    // e.g. await axiosInstance.post("/contact", form);
+    // Simulate quick dispatch
     await new Promise((resolve) => setTimeout(resolve, 600));
 
     setSubmitting(false);
@@ -37,52 +39,121 @@ export default function ContactForm() {
 
   if (sent) {
     return (
-      <div className="contact-form-container text-center d-flex flex-column justify-content-center">
-        <h3 className="mb-2">Message sent!</h3>
-        <p className="text-muted mb-3">
-          Thanks for reaching out - we'll get back to you soon.
+      <div className="contact-form-container text-center d-flex flex-column justify-content-center align-items-center py-5">
+        <div
+          className="rounded-circle d-flex align-items-center justify-content-center mb-3 shadow-sm"
+          style={{
+            width: 64,
+            height: 64,
+            backgroundColor: "rgba(34, 197, 94, 0.15)",
+            color: "#16a34a",
+          }}
+        >
+          <i className="bi bi-controller fs-2" />
+        </div>
+        <h3 className="fw-bold text-dark mb-2">Form submitted!</h3>
+        <p className="text-secondary mb-4 small" style={{ maxWidth: 360 }}>
+          Just so you know, there is literally no backend behind this button.
+          Your message went straight into the digital abyss because our founder
+          is busy chatting with Elon Musk, and as for the rest of the team...
+          well, there is no rest of the team.
         </p>
-        <Button onClick={() => setSent(false)}>Send another message</Button>
+        <Button onClick={() => setSent(false)} className="px-4 rounded-pill">
+          Send Another Message
+        </Button>
       </div>
     );
   }
 
   return (
     <div className="contact-form-container">
-      <h2 className="mb-4">Get in touch</h2>
+      <div className="d-flex align-items-center justify-content-between mb-4">
+        <div>
+          <h3 className="fw-bold text-dark mb-1">Send a Message</h3>
+          <p className="text-secondary small mb-0">
+            Fill out the form below and we&apos;ll be in touch.
+          </p>
+        </div>
+        <span
+          className="rounded-circle d-flex align-items-center justify-content-center shadow-xs"
+          style={{
+            width: 40,
+            height: 40,
+            backgroundColor: "rgba(45, 106, 79, 0.1)",
+            color: "#2d6a4f",
+          }}
+        >
+          <i className="bi bi-send-fill fs-5" />
+        </span>
+      </div>
 
       {formError && (
-        <div className="alert alert-danger py-2" role="alert">
+        <div
+          className="alert alert-danger py-2 px-3 small rounded-3 mb-3"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-circle-fill me-2" />
           {formError}
         </div>
       )}
 
       <form onSubmit={handleSubmit} noValidate>
-        <FormField
-          label="Name"
-          name="name"
-          value={form.name}
-          placeholder="Your name"
-          onChange={handleChange}
-          autoComplete="name"
-          required
-        />
+        <div className="row g-3 mb-3">
+          <div className="col-12 col-sm-6">
+            <FormField
+              label="Your Name"
+              name="name"
+              value={form.name}
+              placeholder="e.g. Shah Rukh Khan"
+              onChange={handleChange}
+              autoComplete="name"
+              required
+            />
+          </div>
+          <div className="col-12 col-sm-6">
+            <FormField
+              label="Email Address"
+              type="email"
+              name="email"
+              value={form.email}
+              placeholder="you@example.com"
+              onChange={handleChange}
+              autoComplete="email"
+              required
+            />
+          </div>
+        </div>
 
-        <FormField
-          label="Email"
-          type="email"
-          name="email"
-          value={form.email}
-          placeholder="you@example.com"
-          onChange={handleChange}
-          autoComplete="email"
-          required
-        />
-
-        {/* FormField renders <input>, so the multi-line message field is
-            built directly here instead, matching the same label/spacing pattern. */}
         <div className="mb-3">
-          <label htmlFor="message" className="form-label">
+          <label
+            htmlFor="subject"
+            className="form-label small fw-semibold text-secondary mb-1"
+          >
+            Topic / Subject
+          </label>
+          <select
+            id="subject"
+            name="subject"
+            className="form-select"
+            value={form.subject}
+            onChange={handleChange}
+          >
+            <option value="General Inquiry">General Inquiry</option>
+            <option value="Feedback & Feature Request">
+              Feedback &amp; Feature Request
+            </option>
+            <option value="Bug Report">Bug Report</option>
+            <option value="Collaboration & Partnership">
+              Collaboration &amp; Partnership
+            </option>
+          </select>
+        </div>
+
+        <div className="mb-4">
+          <label
+            htmlFor="message"
+            className="form-label small fw-semibold text-secondary mb-1"
+          >
             Message
           </label>
           <textarea
@@ -90,35 +161,45 @@ export default function ContactForm() {
             name="message"
             className="form-control"
             rows="4"
-            placeholder="What's on your mind?"
+            placeholder="Tell us what you have in mind or describe your inquiry..."
             value={form.message}
             onChange={handleChange}
             required
           />
         </div>
 
-        <Button type="submit" className="w-100" disabled={submitting}>
-          {submitting ? "Sending..." : "Send message"}
+        <Button
+          type="submit"
+          className="w-100 py-2.5 rounded-pill shadow-sm"
+          disabled={submitting}
+        >
+          {submitting ? (
+            <span
+              className="spinner-border spinner-border-sm me-2"
+              role="status"
+            />
+          ) : (
+            <i className="bi bi-send me-2" />
+          )}
+          {submitting ? "Transmitting..." : "Send Message"}
         </Button>
       </form>
 
       <style>{`
         .contact-form-container {
           width: 100%;
-          max-width: 420px;
-          min-height: 520px;
+          max-width: 540px;
           background-color: #ffffff;
-          border: 1px solid #e2e2e2;
-          border-radius: 20px;
-          padding: 2.5rem;
-          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 24px;
+          padding: 2.25rem;
+          box-shadow: 0 14px 36px rgba(0, 0, 0, 0.06);
         }
 
         @media (max-width: 575px) {
           .contact-form-container {
-            padding: 1.75rem;
-            border-radius: 16px;
-            min-height: auto;
+            padding: 1.5rem;
+            border-radius: 18px;
           }
         }
       `}</style>

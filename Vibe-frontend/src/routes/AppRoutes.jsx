@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import ProtectedRoute from "../components/ProtectedRoute";
 import GuestRoute from "./GuestRoute";
 import HomePage from "../pages/home/HomePage";
@@ -9,6 +9,9 @@ import AboutPage from "../pages/about/AboutPage";
 import ContactPage from "../pages/contact/ContactPage";
 import EditProfilePage from "../pages/profile/EditProfilePage";
 import ChatHome from "../pages/chat/ChatHome";
+import PrivacyPage from "../pages/legal/PrivacyPage";
+import TermsPage from "../pages/legal/TermsPage";
+import ErrorPage from "../pages/error/ErrorPage";
 
 export default function AppRoutes() {
   return (
@@ -19,6 +22,8 @@ export default function AppRoutes() {
         <Route path="/register" element={<RegisterPage />} />
       </Route>
 
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       <Route path="/about" element={<AboutPage />} />
       <Route path="/contact" element={<ContactPage />} />
 
@@ -30,7 +35,7 @@ export default function AppRoutes() {
         <Route path="/profile/edit" element={<EditProfilePage />} />
       </Route>
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<ErrorPage />} />
     </Routes>
   );
 }

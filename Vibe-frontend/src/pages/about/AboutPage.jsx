@@ -9,7 +9,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useRef } from "react";
 import teamMember1 from "../../assets/team-gaurab.jpg";
-import teamMember2 from "../../assets/team-dilip.jpg";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 import "./css/About.css";
 import Footer from "../../components/Footer";
@@ -20,12 +19,6 @@ const team = [
     role: "Founder & Full Stack Engineer",
     image: teamMember1,
     color: "arch-yellow",
-  },
-  {
-    name: "Dilip Shrestha",
-    role: "Co-Founder & UI/UX Engineer",
-    image: teamMember2,
-    color: "arch-blue",
   },
 ];
 
@@ -69,27 +62,17 @@ export default function About() {
         style={{ backgroundImage: `url(${doodlePattern})` }}
       >
         <div className="container">
-          <div className="row align-items-center justify-content-center g-4">
-            <div className="col-6 col-md-3 order-1">
-              <div className={`arch-shape ${team[0].color}`}>
-                <img src={team[0].image} alt={team[0].name} />
-              </div>
-              <div className="team-caption">
-                <h6 className="mb-0">{team[0].name}</h6>
-                <span className="text-muted small">{team[0].role}</span>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-5 order-3 order-md-2 text-center">
+          <div className="row align-items-center justify-content-center g-5">
+            <div className="col-12 col-md-5 text-center text-md-start">
               <span className="about-eyebrow">About Us</span>
-              <h2 className="about-title">Meet the Team</h2>
+              <h2 className="about-title">Meet the Creator</h2>
               <p className="about-text">
-                Two builders, one obsession — making conversations feel
-                effortless. We design, ship, and sweat every detail so Vibe just
-                works.
+                One builder, one obsession — making conversations feel
+                effortless and expressive. Designed and crafted with precision so Vibe
+                just works seamlessly.
               </p>
               <button
-                className="scroll-down-btn"
+                className="scroll-down-btn mt-2"
                 onClick={scrollToNext}
                 aria-label="Scroll to learn more"
               >
@@ -97,13 +80,13 @@ export default function About() {
               </button>
             </div>
 
-            <div className="col-6 col-md-3 order-2 order-md-3">
-              <div className={`arch-shape ${team[1].color}`}>
-                <img src={team[1].image} alt={team[1].name} />
+            <div className="col-10 col-sm-8 col-md-4 col-lg-3 text-center">
+              <div className={`arch-shape ${team[0].color} mx-auto shadow-md`}>
+                <img src={team[0].image} alt={team[0].name} />
               </div>
-              <div className="team-caption">
-                <h6 className="mb-0">{team[1].name}</h6>
-                <span className="text-muted small">{team[1].role}</span>
+              <div className="team-caption mt-3">
+                <h5 className="mb-1 fw-bold text-dark">{team[0].name}</h5>
+                <span className="text-muted small fw-medium">{team[0].role}</span>
               </div>
             </div>
           </div>
@@ -117,15 +100,13 @@ export default function About() {
             <div className="col-lg-6">
               <h3 className="fw-bold mb-3">Our Story</h3>
               <p className="text-muted">
-                Vibe started as a weekend project between two friends frustrated
-                with clunky messaging apps. What began as a simple prototype
-                grew into a platform built around one idea: staying connected
-                should feel natural, fast, and fun — not like a chore.
+                Vibe was born from a desire to create a messaging platform that combines
+                the responsiveness of modern web architectures with intuitive, developer-grade
+                workspace experiences.
               </p>
               <p className="text-muted">
-                Today, we're focused on building features that actually matter
-                to you: real-time messaging, thoughtful design, and privacy you
-                can trust.
+                Today, Vibe focuses on real-time messaging, end-to-end encryption, HD audio/video
+                calling, and dynamic collaboration workspaces.
               </p>
             </div>
             <div className="col-lg-6">
@@ -144,8 +125,8 @@ export default function About() {
                 </div>
                 <div className="col-6">
                   <div className="stat-box">
-                    <h4 className="fw-bold mb-0">2</h4>
-                    <span className="text-muted small">Founders</span>
+                    <h4 className="fw-bold mb-0">1</h4>
+                    <span className="text-muted small">Founder</span>
                   </div>
                 </div>
                 <div className="col-6">

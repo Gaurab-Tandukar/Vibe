@@ -76,6 +76,23 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
         layoutRef.current?.addTabToActiveTabSet(buildTabJson(chat));
       } else {
         model.doAction(Actions.selectTab(chatId));
+
+        // Keep an already-open tab's cached name/avatar in sync — e.g.
+        // when a group's avatar or name is edited while its tab is open.
+        const nextConfig = buildTabJson(chat).config;
+        const currentConfig = existingNode.getConfig() || {};
+        const configChanged =
+          currentConfig.name !== nextConfig.name ||
+          currentConfig.avatarUrl !== nextConfig.avatarUrl;
+
+        if (configChanged) {
+          model.doAction(
+            Actions.updateNodeAttributes(chatId, {
+              name: nextConfig.name,
+              config: nextConfig,
+            }),
+          );
+        }
       }
     });
   }, [openChats, model]);

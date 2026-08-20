@@ -1,14 +1,17 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useRef } from "react";
 import { resolveMediaUrl } from "../utils/mediaUrl";
-import { createConversation } from "../api/conversationService";
+import { createConversation, updateGroup } from "../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
 
 const NewGroupModal = ({ show, onClose, allUsers, onCreated }) => {
   const [groupName, setGroupName] = useState("");
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [avatarFile, setAvatarFile] = useState(null);
+  const [avatarPreview, setAvatarPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const fileInputRef = useRef(null);
 
   const filteredUsers = useMemo(() => {
     const trimmed = query.trim().toLowerCase();
@@ -40,10 +43,19 @@ const NewGroupModal = ({ show, onClose, allUsers, onCreated }) => {
     });
   };
 
+  const handleAvatarSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+  };
+
   const resetAndClose = () => {
     setGroupName("");
     setQuery("");
     setSelectedIds(new Set());
+    setAvatarFile(null);
+    setAvatarPreview(null);
     setError("");
     onClose();
   };
@@ -62,11 +74,20 @@ const NewGroupModal = ({ show, onClose, allUsers, onCreated }) => {
 
     setSubmitting(true);
     try {
-      const conv = await createConversation({
+      let conv = await createConversation({
         isGroup: true,
         name: groupName.trim(),
         members: Array.from(selectedIds),
       });
+
+      if (avatarFile && conv?._id) {
+        try {
+          conv = await updateGroup(conv._id, { avatarFile });
+        } catch (avatarErr) {
+          console.warn("Avatar update on group create warning:", avatarErr);
+        }
+      }
+
       onCreated(conv);
       resetAndClose();
     } catch (err) {
@@ -114,13 +135,48 @@ const NewGroupModal = ({ show, onClose, allUsers, onCreated }) => {
 
           <div className="modal-body">
             <input
-              type="text"
-              className="form-control form-control-sm mb-2"
-              placeholder="Group name"
-              value={groupName}
-              onChange={(e) => setGroupName(e.target.value)}
-              autoFocus
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="d-none"
+              onChange={handleAvatarSelect}
             />
+
+            <div className="d-flex align-items-center gap-2 mb-3">
+              <div
+                className="position-relative flex-shrink-0 rounded-circle overflow-hidden d-flex align-items-center justify-content-center border"
+                style={{
+                  width: 48,
+                  height: 48,
+                  backgroundColor: "var(--sbd-bg, #2b2d31)",
+                  cursor: "pointer",
+                }}
+                onClick={() => fileInputRef.current?.click()}
+                title="Add group avatar"
+              >
+                {avatarPreview ? (
+                  <img
+                    src={avatarPreview}
+                    alt="Group preview"
+                    className="w-100 h-100"
+                    style={{ objectFit: "cover" }}
+                  />
+                ) : (
+                  <i className="bi bi-camera-fill text-muted fs-5" />
+                )}
+              </div>
+
+              <div className="flex-grow-1">
+                <input
+                  type="text"
+                  className="form-control form-control-sm"
+                  placeholder="Group name"
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
 
             <div className="input-group input-group-sm sidebar-search mb-2">
               <span className="input-group-text border-end-0">

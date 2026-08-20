@@ -1,5 +1,6 @@
 import { createContext, useEffect, useRef, useState, useCallback } from "react";
-import { useSocket } from "./SocketContext"; // adjust path if needed
+import { useSocket } from "./SocketContext";
+import { sendMessage } from "../api/messageService";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const CallContext = createContext(null);
@@ -32,6 +33,27 @@ const ICE_SERVERS = {
   ],
 };
 
+const formatSeconds = (sec) => {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  const h = Math.floor(m / 60);
+  if (h > 0) {
+    const remM = m % 60;
+    return `${String(h).padStart(2, "0")}:${String(remM).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
+  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+};
+
+const dispatchToast = (message, type = "info") => {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent("vibe:toast", {
+        detail: { message, type },
+      }),
+    );
+  }
+};
+
 // call.status: "idle" | "outgoing" | "incoming" | "connected" | "ended"
 export function CallProvider({ children }) {
   const { socket } = useSocket();
@@ -41,14 +63,20 @@ export function CallProvider({ children }) {
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [callSeconds, setCallSeconds] = useState(0);
 
   const pcRef = useRef(null);
   const pendingCandidatesRef = useRef([]);
-  const callMetaRef = useRef(null); // { peerId, conversationId, callType, isCaller }
+  const callMetaRef = useRef(null); // { peerId, conversationId, callType, isCaller, connectedAt }
   const localStreamRef = useRef(null);
+  const timerIntervalRef = useRef(null);
 
   // ---------- cleanup ----------
   const cleanup = useCallback(() => {
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
     if (pcRef.current) {
       pcRef.current.close();
       pcRef.current = null;
@@ -60,33 +88,86 @@ export function CallProvider({ children }) {
     setLocalStream(null);
     setRemoteStream(null);
     pendingCandidatesRef.current = [];
-    callMetaRef.current = null;
+    setCallSeconds(0);
     setIsMuted(false);
     setIsCameraOff(false);
   }, []);
 
+  // Record call message into conversation
+  const recordCallMessage = useCallback(
+    async (finalDurationSec = 0, isMissed = false, reason = "") => {
+      const meta = callMetaRef.current;
+      if (!meta || !meta.conversationId) return;
+
+      // Only the caller logs missed/declined calls, or the terminating party logs ended calls
+      if (isMissed && !meta.isCaller) return;
+
+      try {
+        let content = "";
+        const icon = meta.callType === "video" ? "📹 Video call" : "📞 Audio call";
+
+        if (isMissed) {
+          if (reason === "declined") {
+            content = `${icon} declined`;
+          } else if (reason === "busy") {
+            content = `${icon} missed (busy)`;
+          } else {
+            content = `Missed ${meta.callType === "video" ? "video" : "audio"} call`;
+          }
+        } else {
+          const durationStr = formatSeconds(finalDurationSec);
+          content = `${icon} ended • ${durationStr}`;
+        }
+
+        await sendMessage({
+          conversationId: meta.conversationId,
+          content,
+          type: "system",
+        });
+      } catch (err) {
+        console.error("Failed to record call log message:", err);
+      }
+    },
+    [],
+  );
+
   // ---------- endCall ----------
   const endCall = useCallback(
     (notifyPeer = true) => {
-      if (notifyPeer && callMetaRef.current) {
-        socket.emit("call:end", {
-          toUserId: callMetaRef.current.peerId,
-          conversationId: callMetaRef.current.conversationId,
-        });
+      const meta = callMetaRef.current;
+      if (meta) {
+        if (notifyPeer) {
+          socket.emit("call:end", {
+            toUserId: meta.peerId,
+            conversationId: meta.conversationId,
+          });
+        }
+
+        if (meta.connectedAt) {
+          const dur = Math.max(
+            1,
+            Math.round((Date.now() - meta.connectedAt) / 1000),
+          );
+          if (meta.isCaller) {
+            recordCallMessage(dur, false);
+          }
+        } else if (meta.isCaller) {
+          recordCallMessage(0, true, "cancelled");
+        }
       }
+
       cleanup();
+      callMetaRef.current = null;
       setCall({ status: "ended" });
       setTimeout(() => setCall({ status: "idle" }), 1500);
     },
-    [socket, cleanup],
+    [socket, cleanup, recordCallMessage],
   );
 
   // ---------- createPeerConnection ----------
   const createPeerConnection = useCallback(
     (peerId) => {
       const pc = new RTCPeerConnection(ICE_SERVERS);
-
-      // temporary debug helper
       window.pc = pc;
 
       pc.onicecandidate = (e) => {
@@ -99,7 +180,6 @@ export function CallProvider({ children }) {
       };
 
       pc.ontrack = (e) => {
-        // Prefer the stream from the event; fallback to creating one
         const stream = e.streams[0] || new MediaStream([e.track]);
         setRemoteStream(stream);
       };
@@ -136,7 +216,9 @@ export function CallProvider({ children }) {
           conversationId,
           callType,
           isCaller: true,
+          connectedAt: null,
         };
+        setCallSeconds(0);
         setCall({ status: "outgoing", peerId, conversationId, callType });
 
         const stream = await getMedia(callType);
@@ -156,6 +238,7 @@ export function CallProvider({ children }) {
         console.error("startCall failed:", err);
         cleanup();
         setCall({ status: "idle" });
+        dispatchToast("Could not access microphone/camera for call", "error");
       }
     },
     [socket, createPeerConnection, cleanup],
@@ -171,11 +254,13 @@ export function CallProvider({ children }) {
     }
 
     try {
+      const now = Date.now();
       callMetaRef.current = {
         peerId,
         conversationId,
         callType,
         isCaller: false,
+        connectedAt: now,
       };
 
       const stream = await getMedia(callType);
@@ -184,7 +269,6 @@ export function CallProvider({ children }) {
 
       await pc.setRemoteDescription(new RTCSessionDescription(offer));
 
-      // Flush any ICE candidates that arrived early
       for (const c of pendingCandidatesRef.current) {
         try {
           await pc.addIceCandidate(new RTCIceCandidate(c));
@@ -200,6 +284,7 @@ export function CallProvider({ children }) {
       socket.emit("call:answer", { toUserId: peerId, answer });
       socket.emit("call:accept", { toUserId: peerId, conversationId });
 
+      setCallSeconds(0);
       setCall({ status: "connected", peerId, conversationId, callType });
     } catch (err) {
       console.error("acceptCall failed:", err);
@@ -225,7 +310,7 @@ export function CallProvider({ children }) {
   const toggleMute = () => {
     if (!localStreamRef.current) return;
     localStreamRef.current.getAudioTracks().forEach((t) => {
-      t.enabled = isMuted; // will be flipped below
+      t.enabled = isMuted;
     });
     setIsMuted((m) => !m);
   };
@@ -238,7 +323,36 @@ export function CallProvider({ children }) {
     setIsCameraOff((c) => !c);
   };
 
-  // ---------- Socket listeners (stable – do NOT depend on call.status) ----------
+  // Timer interval for connected calls
+  useEffect(() => {
+    if (call.status === "connected") {
+      const startTime = Date.now();
+      if (callMetaRef.current && !callMetaRef.current.connectedAt) {
+        callMetaRef.current.connectedAt = startTime;
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setCallSeconds(0);
+
+      timerIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setCallSeconds(elapsed);
+      }, 1000);
+    } else {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
+    };
+  }, [call.status]);
+
+  // ---------- Socket listeners ----------
   useEffect(() => {
     if (!socket) return;
 
@@ -267,15 +381,11 @@ export function CallProvider({ children }) {
 
     const onAnswer = async ({ answer }) => {
       const pc = pcRef.current;
-      if (!pc) {
-        console.warn("onAnswer: no peer connection");
-        return;
-      }
+      if (!pc) return;
 
       try {
         await pc.setRemoteDescription(new RTCSessionDescription(answer));
 
-        // Flush candidates that arrived before the answer
         for (const c of pendingCandidatesRef.current) {
           try {
             await pc.addIceCandidate(new RTCIceCandidate(c));
@@ -285,7 +395,9 @@ export function CallProvider({ children }) {
         }
         pendingCandidatesRef.current = [];
 
-        // Ensure caller also moves to connected
+        if (callMetaRef.current) {
+          callMetaRef.current.connectedAt = Date.now();
+        }
         setCall((prev) => ({ ...prev, status: "connected" }));
       } catch (err) {
         console.error("Failed to set remote answer", err);
@@ -293,15 +405,24 @@ export function CallProvider({ children }) {
     };
 
     const onAccepted = () => {
+      if (callMetaRef.current) {
+        callMetaRef.current.connectedAt = Date.now();
+      }
       setCall((prev) => ({ ...prev, status: "connected" }));
     };
 
     const onRejected = ({ reason }) => {
+      if (callMetaRef.current?.isCaller) {
+        recordCallMessage(0, true, reason);
+      }
       cleanup();
       setCall({ status: "idle" });
-      console.log(
-        `Call ended: ${reason === "busy" ? "user is busy" : "call declined"}`,
-      );
+
+      if (reason === "busy") {
+        dispatchToast("User is busy in another call", "info");
+      } else {
+        dispatchToast("Call was declined", "info");
+      }
     };
 
     const onIceCandidate = async ({ candidate }) => {
@@ -318,14 +439,28 @@ export function CallProvider({ children }) {
     };
 
     const onCallEnd = () => {
+      const meta = callMetaRef.current;
+      if (meta?.connectedAt && meta.isCaller) {
+        const dur = Math.max(
+          1,
+          Math.round((Date.now() - meta.connectedAt) / 1000),
+        );
+        recordCallMessage(dur, false);
+      }
       cleanup();
+      callMetaRef.current = null;
       setCall({ status: "ended" });
       setTimeout(() => setCall({ status: "idle" }), 1500);
     };
 
     const onUnavailable = () => {
+      if (callMetaRef.current?.isCaller) {
+        recordCallMessage(0, true, "offline");
+      }
       cleanup();
+      callMetaRef.current = null;
       setCall({ status: "idle" });
+      dispatchToast("User is currently offline and unavailable for calls", "error");
     };
 
     socket.on("call:incoming", onIncoming);
@@ -347,7 +482,9 @@ export function CallProvider({ children }) {
       socket.off("call:end", onCallEnd);
       socket.off("call:unavailable", onUnavailable);
     };
-  }, [socket, cleanup]); // only socket + cleanup
+  }, [socket, cleanup, recordCallMessage]);
+
+  const formattedDuration = formatSeconds(callSeconds);
 
   return (
     <CallContext.Provider
@@ -357,6 +494,8 @@ export function CallProvider({ children }) {
         remoteStream,
         isMuted,
         isCameraOff,
+        callSeconds,
+        formattedDuration,
         startCall,
         acceptCall,
         rejectCall,

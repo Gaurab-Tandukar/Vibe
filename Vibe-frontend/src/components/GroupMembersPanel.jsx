@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import {
   getGroupMembers,
@@ -18,6 +19,7 @@ const GroupMembersPanel = ({
   onGroupUpdated,
   onGroupLeft,
 }) => {
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -170,7 +172,12 @@ const GroupMembersPanel = ({
     return (
       <div
         key={m._id || u?._id}
-        className="d-flex align-items-center mb-1 group-member-row"
+        className="d-flex align-items-center mb-1 group-member-row p-1 rounded-3"
+        style={{ cursor: u?.username ? "pointer" : "default" }}
+        onClick={() => {
+          if (u?.username) navigate(`/profile/${u.username}`);
+        }}
+        title={u?.username ? `View @${u.username}'s profile` : undefined}
       >
         <span
           className="position-relative flex-shrink-0 me-2 d-inline-block"
@@ -237,16 +244,36 @@ const GroupMembersPanel = ({
           </span>
         </div>
 
-        {isAdmin && !isSelf && (
-          <button
-            type="button"
-            className="group-member-remove-btn flex-shrink-0"
-            title={`Remove ${realName}`}
-            onClick={() => handleKick(u?._id, realName)}
-          >
-            <i className="bi bi-x-lg" style={{ fontSize: "0.75rem" }}></i>
-          </button>
-        )}
+        <div className="d-flex align-items-center gap-1 flex-shrink-0">
+          {u?.username && (
+            <button
+              type="button"
+              className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center"
+              style={{ width: "26px", height: "26px" }}
+              title={`View ${name}'s profile`}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(`/profile/${u.username}`);
+              }}
+            >
+              <i className="bi bi-person text-secondary" style={{ fontSize: "0.85rem" }}></i>
+            </button>
+          )}
+
+          {isAdmin && !isSelf && (
+            <button
+              type="button"
+              className="group-member-remove-btn flex-shrink-0"
+              title={`Remove ${realName}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleKick(u?._id, realName);
+              }}
+            >
+              <i className="bi bi-x-lg" style={{ fontSize: "0.75rem" }}></i>
+            </button>
+          )}
+        </div>
       </div>
     );
   };

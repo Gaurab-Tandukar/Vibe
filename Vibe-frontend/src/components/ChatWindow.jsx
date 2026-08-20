@@ -25,11 +25,7 @@ import "./css/Call.css";
 
 const QUICK_EMOJIS = ["❤️", "😂", "😮", "😢", "🔥", "👍"];
 
-// How long we wait after the last keystroke before telling the room
-// the user stopped typing.
 const TYPING_DEBOUNCE_MS = 1500;
-// Defensive auto-expiry for a remote user's typing state, in case their
-// "stopTyping" event is lost (tab closed, network blip, etc).
 const TYPING_EXPIRY_MS = 4000;
 
 const formatFileSize = (bytes) => {
@@ -102,7 +98,7 @@ export default function ChatWindow({
   isGroup,
   initialIsBlocked = false,
   initialIsBlockedByOther = false,
-  onClose, // parent can pass a function to close this tab
+  onClose,
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -119,20 +115,15 @@ export default function ChatWindow({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
 
-  // Conversation-level state
   const [isBlocked, setIsBlocked] = useState(Boolean(initialIsBlocked));
   const [isBlockedByOther, setIsBlockedByOther] = useState(
     Boolean(initialIsBlockedByOther),
   );
 
-  // Simple toast
   const [toast, setToast] = useState(null);
-
-  // Modal State for Deleting
   const [messageToDelete, setMessageToDelete] = useState(null);
-
-  // userId -> { username, avatarUrl }
   const [typingUsers, setTypingUsers] = useState(new Map());
+  const [showInfoDropdown, setShowInfoDropdown] = useState(false);
 
   const isConversationBlocked = isBlocked || isBlockedByOther;
   const blockedNotice = isBlocked
@@ -149,10 +140,22 @@ export default function ChatWindow({
   const typingTimeoutRef = useRef(null);
   const typingExpiryTimeoutsRef = useRef(new Map());
 
-  const showToast = (message, type = "success") => {
+  const showToast = useCallback((message, type = "success") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
-  };
+  }, []);
+
+  useEffect(() => {
+    const handleGlobalToast = (e) => {
+      if (e.detail?.message) {
+        showToast(e.detail.message, e.detail.type || "info");
+      }
+    };
+    window.addEventListener("vibe:toast", handleGlobalToast);
+    return () => {
+      window.removeEventListener("vibe:toast", handleGlobalToast);
+    };
+  }, [showToast]);
 
   const clearAllTypingExpiryTimers = () => {
     typingExpiryTimeoutsRef.current.forEach((timeoutId) =>
@@ -161,7 +164,6 @@ export default function ChatWindow({
     typingExpiryTimeoutsRef.current.clear();
   };
 
-  // ─── Fetch messages + join room ───────────────────────────────────────────
   useEffect(() => {
     if (!chatId) return;
 
@@ -187,6 +189,10 @@ export default function ChatWindow({
 
     socket?.emit("joinConversation", chatId);
 
+    // Autofocus the chatbar once this chat's messages are loaded, so the
+    // user can start typing immediately after switching/opening a tab.
+    requestAnimationFrame(() => inputRef.current?.focus());
+
     return () => {
       isMounted = false;
       setReplyingTo(null);
@@ -207,7 +213,6 @@ export default function ChatWindow({
     };
   }, [chatId, socket]);
 
-  // ─── Scroll to Bottom on Initial Load & Chat Switch ───────────────────────
   useLayoutEffect(() => {
     if (!loading && messages.length > 0 && isInitialLoadRef.current) {
       if (chatContainerRef.current) {
@@ -218,7 +223,6 @@ export default function ChatWindow({
     }
   }, [loading, chatId, messages.length]);
 
-  // ─── Auto-scroll for incoming/sent messages ──────────────────────────────
   useEffect(() => {
     if (loading || isInitialLoadRef.current || !chatContainerRef.current)
       return;
@@ -231,7 +235,6 @@ export default function ChatWindow({
     }
   }, [messages.length, loading]);
 
-  // ─── Auto-scroll when the typing indicator appears ───────────────────────
   useEffect(() => {
     if (loading || isInitialLoadRef.current || !chatContainerRef.current)
       return;
@@ -245,7 +248,6 @@ export default function ChatWindow({
     }
   }, [typingUsers, loading]);
 
-  // ─── Live socket updates ──────────────────────────────────────────────────
   useEffect(() => {
     if (!socket || !chatId) return;
 
@@ -349,7 +351,6 @@ export default function ChatWindow({
     };
   }, [socket, chatId, currentUserId]);
 
-  // ─── Dismiss Reaction Picker on Click Outside or Scroll ──────────────────
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (
@@ -359,10 +360,18 @@ export default function ChatWindow({
       ) {
         setOpenPickerFor(null);
       }
+      if (
+        showInfoDropdown &&
+        !e.target.closest(".custom-chat-dropdown") &&
+        !e.target.closest(".custom-chat-dropdown-btn")
+      ) {
+        setShowInfoDropdown(false);
+      }
     };
 
     const handleContainerScroll = () => {
       if (openPickerFor) setOpenPickerFor(null);
+      if (showInfoDropdown) setShowInfoDropdown(false);
     };
 
     document.addEventListener("mousedown", handleClickOutside);
@@ -380,9 +389,8 @@ export default function ChatWindow({
         container.removeEventListener("scroll", handleContainerScroll);
       }
     };
-  }, [openPickerFor]);
+  }, [openPickerFor, showInfoDropdown]);
 
-  // ─── Scroll to Replied Message ────────────────────────────────────────────
   const scrollToMessage = (messageId) => {
     if (!messageId || !chatContainerRef.current) return;
 
@@ -400,7 +408,6 @@ export default function ChatWindow({
     }
   };
 
-  // ─── Trigger Reply Action ────────────────────────────────────────────────
   const handleStartReply = (msg) => {
     if (isConversationBlocked) return;
     setReplyingTo(msg);
@@ -409,7 +416,6 @@ export default function ChatWindow({
     }, 50);
   };
 
-  // ─── Typing signal (debounced) ────────────────────────────────────────────
   const handleInputChange = (e) => {
     if (isConversationBlocked) return;
     const value = e.target.value;
@@ -429,7 +435,6 @@ export default function ChatWindow({
     }, TYPING_DEBOUNCE_MS);
   };
 
-  // ─── File upload ──────────────────────────────────────────────────────────
   const handleFileChange = async (e) => {
     if (isConversationBlocked) return;
     const file = e.target.files?.[0];
@@ -453,7 +458,6 @@ export default function ChatWindow({
     }
   };
 
-  // ─── Send message ─────────────────────────────────────────────────────────
   const handleSend = useCallback(
     async (e) => {
       e.preventDefault();
@@ -510,6 +514,7 @@ export default function ChatWindow({
           setPendingAttachment(attachmentsPayload[0]);
       } finally {
         setSending(false);
+        requestAnimationFrame(() => inputRef.current?.focus());
       }
     },
     [
@@ -524,7 +529,6 @@ export default function ChatWindow({
     ],
   );
 
-  // ─── Delete / React ───────────────────────────────────────────────────────
   const confirmDelete = async () => {
     if (!messageToDelete) return;
     try {
@@ -546,18 +550,34 @@ export default function ChatWindow({
     }
   };
 
+  const handleStartCall = (callType) => {
+    if (!recipientId || isConversationBlocked) return;
+    if (!isRecipientOnline) {
+      showToast(`${name || "User"} is currently offline`, "error");
+      return;
+    }
+    startCall(recipientId, chatId, callType);
+  };
+
   const handleDoubleClickMessage = (msg) => {
     if (msg.isDeleted || isConversationBlocked) return;
     handleReact(msg._id, "❤️");
   };
 
-  // ─── Info popup actions ───────────────────────────────────────────────────
   const handleViewProfile = () => {
     if (isGroup || !recipientUsername) return;
     navigate(`/profile/${recipientUsername}`);
   };
 
-  // ─── Block / Unblock ──────────────────────────────────────────────────────
+  const handleOpenGroupInfo = () => {
+    if (!isGroup || !chatId) return;
+    window.dispatchEvent(
+      new CustomEvent("vibe:open-group-panel", {
+        detail: { conversationId: chatId },
+      }),
+    );
+  };
+
   const handleToggleBlock = async () => {
     if (!chatId || isGroup) return;
 
@@ -568,7 +588,6 @@ export default function ChatWindow({
 
     try {
       if (isBlocked) {
-        // UNBLOCK
         const res = await unblockUser(chatId);
         const blockedBy = res?.data?.blockedBy;
         const nextBlocked = isBlockedByCurrentUser(blockedBy);
@@ -580,7 +599,6 @@ export default function ChatWindow({
         );
         showToast("User unblocked", "success");
       } else {
-        // BLOCK
         const res = await blockUser(chatId);
         const blockedBy = res?.data?.blockedBy;
         const nextBlocked = isBlockedByCurrentUser(blockedBy) || true;
@@ -592,9 +610,7 @@ export default function ChatWindow({
         );
         showToast("User blocked", "success");
 
-        // Close the tab after blocking
         if (typeof onClose === "function") {
-          // small delay so user can see the toast
           setTimeout(() => {
             onClose();
           }, 800);
@@ -609,7 +625,6 @@ export default function ChatWindow({
     }
   };
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
   const summarizeReactions = (reactions = []) => {
     if (!reactions.length) return [];
 
@@ -718,7 +733,6 @@ export default function ChatWindow({
         ? `Offline · last seen ${formatRelativeTime(recipientLastSeen)}`
         : "Offline";
 
-  // ─── Render ───────────────────────────────────────────────────────────────
   return (
     <div className="d-flex flex-column h-100 w-100 bg-white overflow-hidden shadow-sm position-relative">
       {/* Header */}
@@ -729,10 +743,11 @@ export default function ChatWindow({
           onClick={handleViewProfile}
           title={isGroup ? undefined : "View profile"}
         >
+          {/* Dynamic Avatar for both Individual and Group chats */}
           <Avatar
             sender={{ username: name, avatarUrl }}
             size={40}
-            fallbackBg="bg-success"
+            fallbackBg={isGroup ? "bg-primary" : "bg-success"}
           />
           <div className="d-flex flex-column overflow-hidden">
             <span
@@ -761,78 +776,107 @@ export default function ChatWindow({
                   />
                   {statusText}
                 </>
-              ) : (
-                `ID: ${chatId}`
-              )}
+              ) : null}
             </span>
           </div>
         </div>
 
-        {/* call buttons */}
-        {!isGroup && recipientId && (
-          <div className="chat-header-actions d-flex gap-1 flex-shrink-0">
-            <button
-              type="button"
-              className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
-              style={{ width: 32, height: 32 }}
-              title="Audio call"
-              disabled={call.status !== "idle" || isConversationBlocked}
-              onClick={() => startCall(recipientId, chatId, "audio")}
-            >
-              <i
-                className="bi bi-telephone-fill"
-                style={{ fontSize: "0.9rem" }}
-              />
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
-              style={{ width: 32, height: 32 }}
-              title="Video call"
-              disabled={call.status !== "idle" || isConversationBlocked}
-              onClick={() => startCall(recipientId, chatId, "video")}
-            >
-              <i
-                className="bi bi-camera-video-fill"
-                style={{ fontSize: "0.9rem" }}
-              />
-            </button>
-          </div>
-        )}
-        {/* Info button + popup */}
-        <div className="dropdown flex-shrink-0">
-          <button
-            type="button"
-            className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
-            style={{ width: 32, height: 32 }}
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
-            title="Conversation info"
-          >
-            <i className="bi bi-info-circle" style={{ fontSize: "1rem" }} />
-          </button>
+        <div className="d-flex align-items-center gap-2 flex-shrink-0">
+          {/* Aligned call buttons */}
+          {!isGroup && recipientId && (
+            <div className="chat-header-actions d-flex align-items-center gap-1">
+              <button
+                type="button"
+                className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary shadow-sm"
+                style={{ width: 34, height: 34 }}
+                title={isRecipientOnline ? "Audio call" : "User is offline"}
+                disabled={call.status !== "idle" || isConversationBlocked}
+                onClick={() => handleStartCall("audio")}
+              >
+                <i
+                  className="bi bi-telephone-fill d-flex align-items-center justify-content-center"
+                  style={{ fontSize: "0.85rem", lineHeight: 1 }}
+                />
+              </button>
+              <button
+                type="button"
+                className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary shadow-sm"
+                style={{ width: 34, height: 34 }}
+                title={isRecipientOnline ? "Video call" : "User is offline"}
+                disabled={call.status !== "idle" || isConversationBlocked}
+                onClick={() => handleStartCall("video")}
+              >
+                <i
+                  className="bi bi-camera-video-fill d-flex align-items-center justify-content-center"
+                  style={{ fontSize: "0.85rem", lineHeight: 1 }}
+                />
+              </button>
+            </div>
+          )}
 
-          <ul className="dropdown-menu dropdown-menu-end shadow">
-            {!isGroup && (
-              <li>
-                <button className="dropdown-item" onClick={handleViewProfile}>
-                  <span>View profile</span>
-                  <i className="bi bi-person" />
-                </button>
-              </li>
-            )}
-            {!isGroup && (
-              <li>
-                <button
-                  className={`dropdown-item ${isBlocked ? "" : "text-danger"}`}
-                  onClick={handleToggleBlock}
+          {/* Group details button vs DM options custom popup */}
+          {isGroup ? (
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary shadow-sm"
+              style={{ width: 34, height: 34 }}
+              title="Group members & info"
+              onClick={handleOpenGroupInfo}
+            >
+              <i className="bi bi-people-fill" style={{ fontSize: "0.95rem" }} />
+            </button>
+          ) : (
+            <div className="position-relative">
+              <button
+                type="button"
+                className={`btn btn-sm ${
+                  showInfoDropdown ? "btn-secondary text-white" : "btn-light text-secondary"
+                } border rounded-circle p-0 d-flex align-items-center justify-content-center shadow-sm custom-chat-dropdown-btn`}
+                style={{ width: 34, height: 34 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowInfoDropdown((prev) => !prev);
+                }}
+                title="Conversation options"
+              >
+                <i className="bi bi-three-dots-vertical" style={{ fontSize: "0.95rem" }} />
+              </button>
+
+              {showInfoDropdown && (
+                <div
+                  className="custom-chat-dropdown shadow-lg rounded-4 p-1 position-absolute end-0 mt-2 bg-white border"
+                  style={{ minWidth: 180, zIndex: 1000 }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <span>{isBlocked ? "Unblock" : "Block"}</span>
-                  <i className="bi bi-slash-circle" />
-                </button>
-              </li>
-            )}
-          </ul>
+                  <button
+                    type="button"
+                    className="dropdown-item d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-dark small"
+                    onClick={() => {
+                      setShowInfoDropdown(false);
+                      handleViewProfile();
+                    }}
+                  >
+                    <span>View profile</span>
+                    <i className="bi bi-person text-muted ms-2" />
+                  </button>
+                  <div className="dropdown-divider my-1" />
+                  <button
+                    type="button"
+                    className={`dropdown-item d-flex align-items-center justify-content-between px-3 py-2 rounded-3 small ${
+                      isBlocked ? "text-success" : "text-danger"
+                    }`}
+                    onClick={() => {
+                      setShowInfoDropdown(false);
+                      handleToggleBlock();
+                    }}
+                  >
+                    <span>{isBlocked ? "Unblock user" : "Block user"}</span>
+                    <i className="bi bi-slash-circle ms-2" />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -883,6 +927,66 @@ export default function ChatWindow({
             const reactionSummary = summarizeReactions(msg.reactions);
             const showAvatar = !isMe && isLastInSenderGroup(index);
 
+            // Handle system & call log messages with centered pill style
+            const isSystemOrCall =
+              msg.type === "system" ||
+              (typeof msg.content === "string" &&
+                (msg.content.includes("📞") ||
+                  msg.content.includes("📹") ||
+                  msg.content.toLowerCase().includes("call")));
+
+            if (isSystemOrCall && !msg.isDeleted) {
+              const isVideo =
+                msg.content?.includes("📹") ||
+                msg.content?.toLowerCase().includes("video");
+              const isMissed =
+                msg.content?.toLowerCase().includes("missed") ||
+                msg.content?.toLowerCase().includes("declined");
+
+              return (
+                <div
+                  key={msg._id}
+                  id={`msg-${msg._id}`}
+                  className="d-flex justify-content-center my-1"
+                >
+                  <div
+                    className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill shadow-sm border"
+                    style={{
+                      backgroundColor: "rgba(255, 255, 255, 0.9)",
+                      backdropFilter: "blur(4px)",
+                      fontSize: "0.82rem",
+                    }}
+                  >
+                    <span
+                      className={`rounded-circle d-flex align-items-center justify-content-center ${
+                        isMissed
+                          ? "bg-danger bg-opacity-15 text-danger"
+                          : "bg-success bg-opacity-15 text-success"
+                      }`}
+                      style={{ width: 22, height: 22 }}
+                    >
+                      <i
+                        className={`bi ${
+                          isVideo
+                            ? isMissed
+                              ? "bi-camera-video-off"
+                              : "bi-camera-video-fill"
+                            : isMissed
+                              ? "bi-telephone-x-fill"
+                              : "bi-telephone-fill"
+                        }`}
+                        style={{ fontSize: "0.75rem" }}
+                      />
+                    </span>
+                    <span className="fw-medium text-dark">{msg.content}</span>
+                    <span className="text-muted small ms-1" style={{ fontSize: "0.7rem" }}>
+                      {time}
+                    </span>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <div
                 key={msg._id}
@@ -895,7 +999,6 @@ export default function ChatWindow({
                   className="d-flex align-items-end gap-2 position-relative"
                   style={{ maxWidth: "70%" }}
                 >
-                  {/* Delete (own messages) */}
                   {isMe && !msg.isDeleted && (
                     <div className="chat-bubble-actions d-flex gap-1 order-0 mb-2">
                       <button
@@ -910,14 +1013,12 @@ export default function ChatWindow({
                     </div>
                   )}
 
-                  {/* Avatar (other users only) */}
                   {!isMe && (
                     <div className="order-first mb-0">
                       <Avatar sender={msg.sender} show={showAvatar} />
                     </div>
                   )}
 
-                  {/* Bubble */}
                   <div
                     onDoubleClick={() => handleDoubleClickMessage(msg)}
                     className={`position-relative px-3 py-2 rounded-4 shadow-sm chat-bubble-animated ${
@@ -937,7 +1038,6 @@ export default function ChatWindow({
                       cursor: msg.isDeleted ? "default" : "pointer",
                     }}
                   >
-                    {/* Floating Reaction Picker */}
                     {openPickerFor === msg._id && (
                       <div
                         className={`reaction-picker ${
@@ -961,7 +1061,6 @@ export default function ChatWindow({
                       </div>
                     )}
 
-                    {/* Reply Preview */}
                     {!msg.isDeleted && msg.replyTo && (
                       <div
                         onClick={(e) => {
@@ -993,7 +1092,6 @@ export default function ChatWindow({
                       </div>
                     )}
 
-                    {/* Attachments */}
                     {!msg.isDeleted &&
                       msg.attachments?.map((att) => (
                         <div key={att._id || att.fileUrl}>
@@ -1001,7 +1099,6 @@ export default function ChatWindow({
                         </div>
                       ))}
 
-                    {/* Content */}
                     <p
                       className="mb-0"
                       style={{
@@ -1019,7 +1116,6 @@ export default function ChatWindow({
                       )}
                     </p>
 
-                    {/* Reaction Badge */}
                     {reactionSummary.length > 0 && !msg.isDeleted && (
                       <div
                         className="instagram-reaction-badge reaction-picker-btn"
@@ -1049,7 +1145,6 @@ export default function ChatWindow({
                     )}
                   </div>
 
-                  {/* React + Reply Quick Actions */}
                   {!msg.isDeleted && (
                     <div
                       className={`chat-bubble-actions d-flex gap-1 mb-2 ${
@@ -1085,7 +1180,6 @@ export default function ChatWindow({
                   )}
                 </div>
 
-                {/* Timestamp */}
                 <span
                   className="mt-1 text-muted"
                   style={{
@@ -1102,7 +1196,6 @@ export default function ChatWindow({
           })
         )}
 
-        {/* Typing indicator */}
         {typingUsers.size > 0 && (
           <div className="d-flex flex-column align-items-start chat-bubble-row">
             <div
@@ -1127,7 +1220,6 @@ export default function ChatWindow({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Reply Preview Bar */}
       {replyingTo && (
         <div className="px-3 py-2 border-top bg-light d-flex align-items-center justify-content-between">
           <div className="overflow-hidden">
@@ -1149,7 +1241,6 @@ export default function ChatWindow({
         </div>
       )}
 
-      {/* Pending Attachment Bar */}
       {(pendingAttachment || uploading || uploadError) && (
         <div className="px-3 py-2 border-top bg-light d-flex align-items-center justify-content-between">
           <div className="overflow-hidden small">
@@ -1177,7 +1268,6 @@ export default function ChatWindow({
         </div>
       )}
 
-      {/* Input Bar */}
       <form
         onSubmit={handleSend}
         className="p-2 border-top bg-white d-flex align-items-center gap-2 flex-shrink-0"
@@ -1241,7 +1331,6 @@ export default function ChatWindow({
         </button>
       </form>
 
-      {/* Delete Confirmation Modal */}
       {messageToDelete && (
         <div className="modal-backdrop-custom">
           <div
@@ -1276,7 +1365,6 @@ export default function ChatWindow({
         </div>
       )}
 
-      {/* Toast Notification */}
       {toast && (
         <div
           className={`position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 rounded-pill shadow text-white ${
