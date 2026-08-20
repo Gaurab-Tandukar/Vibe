@@ -327,3 +327,166 @@
 .group-member-row:hover {
   background-color: rgba(255, 255, 255, 0.06);
 }
+
+/* ===== Group panel action buttons ===== */
+.group-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--sbd-border);
+  background-color: transparent;
+  color: var(--sbd-muted);
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.group-action-btn i {
+  font-size: 0.95rem;
+}
+
+.group-action-btn:hover {
+  background-color: var(--sbd-hover);
+  color: var(--sbd-text);
+  border-color: #3a3b42;
+}
+
+/* Active / selected state for Remove */
+.group-action-btn.active,
+.group-action-btn.group-action-btn--danger.active {
+  background-color: rgba(255, 77, 79, 0.15);
+  border-color: rgba(255, 77, 79, 0.45);
+  color: #ff8a8a;
+}
+
+.group-action-btn.active:hover {
+  background-color: rgba(255, 77, 79, 0.22);
+  color: #ffb0b0;
+}
+
+/* Leave button – always slightly more visible as destructive */
+.group-action-btn--leave {
+  color: #ff8a8a;
+  border-color: rgba(255, 77, 79, 0.3);
+}
+
+.group-action-btn--leave:hover {
+  background-color: rgba(255, 77, 79, 0.12);
+  color: #ffb0b0;
+  border-color: rgba(255, 77, 79, 0.5);
+}
+
+/* Make the kick icon on member rows a bit larger and clearer */
+.group-member-row .btn i.bi-person-dash-fill {
+  font-size: 1.1rem;
+}
+
+/* ===== Group Action Buttons & Panel Layout ===== */
+
+.group-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: var(--sbd-text);
+  background-color: var(--sbd-hover);
+  border: 1px solid var(--sbd-border);
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1;
+}
+
+.group-action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.group-action-btn:focus-visible {
+  outline: 2px solid var(--sbd-accent);
+  outline-offset: 1px;
+}
+
+/* Primary Accent Action (e.g. Add Member) */
+.group-action-btn--primary {
+  background-color: rgba(82, 201, 138, 0.12);
+  color: var(--sbd-accent);
+  border-color: rgba(82, 201, 138, 0.25);
+}
+
+.group-action-btn--primary:hover {
+  background-color: var(--sbd-accent);
+  color: #16171a;
+  border-color: var(--sbd-accent);
+}
+
+/* Destructive Actions (Leave / Remove) */
+.group-action-btn--leave {
+  color: #ff6b6b;
+  border-color: rgba(255, 107, 107, 0.2);
+  background-color: rgba(255, 107, 107, 0.08);
+}
+
+.group-action-btn--leave:hover {
+  background-color: #ff4d4f;
+  color: #ffffff;
+  border-color: #ff4d4f;
+}
+
+/* Member Rows & Interactive Hover Effects */
+.group-member-row {
+  border-radius: 10px;
+  padding: 6px 8px;
+  transition: background-color 0.15s ease;
+  position: relative;
+}
+
+.group-member-row:hover {
+  background-color: var(--sbd-hover);
+}
+
+/* Inline action button for member removal */
+.group-member-remove-btn {
+  opacity: 0;
+  visibility: hidden;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 77, 79, 0.12);
+  color: #ff4d4f;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.group-member-row:hover .group-member-remove-btn {
+  opacity: 1;
+  visibility: visible;
+}
+
+.group-member-remove-btn:hover {
+  background-color: #ff4d4f;
+  color: #ffffff;
+}
+
+/* Section Header Badges */
+.group-section-title {
+  font-size: 0.725rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sbd-muted);
+}

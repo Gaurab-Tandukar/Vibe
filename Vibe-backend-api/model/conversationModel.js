@@ -13,6 +13,11 @@ const conversationSchema = new mongoose.Schema(
       maxlength: 100,
     },
 
+    avatarUrl: {
+      type: String,
+      default: null,
+    },
+
     isGroup: {
       type: Boolean,
       default: false,

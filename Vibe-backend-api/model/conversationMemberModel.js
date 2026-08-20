@@ -27,6 +27,13 @@ const conversationMemberSchema = new mongoose.Schema(
       required: true,
     },
 
+    nickname: {
+      type: String,
+      default: null,
+      trim: true,
+      maxlength: 32,
+    },
+
     joinedAt: {
       type: Date,
       default: Date.now,
