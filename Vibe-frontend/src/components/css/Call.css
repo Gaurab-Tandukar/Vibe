@@ -1,0 +1,211 @@
+/* ===== Full-screen call overlay (VideoCall.jsx) ===== */
+
+.call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050; /* above bootstrap modals (1050) — bump to 1060 if it still layers wrong */
+  background: #0b0f14;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #f5f5f5;
+}
+
+.call-status-label {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.95rem;
+  color: #b7c0cc;
+  letter-spacing: 0.02em;
+}
+
+/* --- Video call layout --- */
+
+.call-video-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #000;
+}
+
+.call-remote-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.call-local-video {
+  position: absolute;
+  bottom: 100px;
+  right: 24px;
+  width: 160px;
+  height: 120px;
+  border-radius: 12px;
+  object-fit: cover;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  background: #1a1f26;
+}
+
+/* --- Audio-only layout --- */
+
+.call-audio-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.call-audio-avatar {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: #1e2733;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+}
+
+/* --- Controls (shared) --- */
+
+.call-controls {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+}
+
+.call-btn {
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition:
+    background 0.15s ease,
+    transform 0.1s ease;
+}
+
+.call-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.call-btn:active {
+  transform: scale(0.96);
+}
+
+.call-btn.active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.call-btn-end {
+  background: #e03e3e;
+}
+
+.call-btn-end:hover {
+  background: #c73333;
+}
+
+.call-btn-accept {
+  background: #2fb872;
+}
+
+.call-btn-accept:hover {
+  background: #26a163;
+}
+
+/* ===== Incoming call modal (IncomingCallModal.jsx) ===== */
+
+.incoming-call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1060; /* sits above call-overlay in case both somehow render */
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.incoming-call-card {
+  background: #161b22;
+  color: #f5f5f5;
+  border-radius: 16px;
+  padding: 32px 28px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: incoming-call-pop 0.2s ease-out;
+}
+
+@keyframes incoming-call-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.incoming-call-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 4px;
+}
+
+.incoming-call-name {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.incoming-call-type {
+  font-size: 0.85rem;
+  color: #9aa4b2;
+  margin-bottom: 12px;
+}
+
+.incoming-call-actions {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+}
+
+.incoming-call-actions .call-btn {
+  flex: 1;
+  padding: 10px 0;
+}
+
+/* ===== Mobile ===== */
+
+@media (max-width: 480px) {
+  .call-local-video {
+    width: 110px;
+    height: 84px;
+    bottom: 90px;
+    right: 16px;
+  }
+
+  .incoming-call-card {
+    width: 88%;
+  }
+}

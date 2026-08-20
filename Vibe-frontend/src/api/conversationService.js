@@ -111,10 +111,25 @@ export const transferAdmin = async (conversationId, newAdminUserId) => {
   return response.data;
 };
 
-export const renameGroup = async (conversationId, name) => {
+export const updateGroup = async (
+  conversationId,
+  { name, avatarFile } = {},
+) => {
+  const formData = new FormData();
+  if (name !== undefined) formData.append("name", name);
+  if (avatarFile) formData.append("avatar", avatarFile);
+
   const response = await axiosInstance.put(
     `${ENDPOINTS.chats}/${conversationId}`,
-    { name },
+    formData,
+  );
+  return response.data;
+};
+
+export const setMemberNickname = async (conversationId, userId, nickname) => {
+  const response = await axiosInstance.patch(
+    `${ENDPOINTS.chats}/${conversationId}/members/${userId}/nickname`,
+    { nickname },
   );
   return response.data;
 };

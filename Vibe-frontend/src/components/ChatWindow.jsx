@@ -7,6 +7,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import { useCall } from "../hooks/useCall";
 import { useSocket } from "../context/SocketContext";
 import {
   getMessages,
@@ -20,6 +21,7 @@ import { blockUser, unblockUser } from "../api/conversationService";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import doodlePattern from "../assets/doodle-pattern.svg";
 import "./css/ChatWindow.css";
+import "./css/Call.css";
 
 const QUICK_EMOJIS = ["❤️", "😂", "😮", "😢", "🔥", "👍"];
 
@@ -106,7 +108,7 @@ export default function ChatWindow({
   const { user } = useAuth();
   const currentUserId = user?._id || user?.id;
   const { socket, onlineUsers, lastSeenMap } = useSocket();
-
+  const { call, startCall } = useCall();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [inputText, setInputText] = useState("");
@@ -766,6 +768,37 @@ export default function ChatWindow({
           </div>
         </div>
 
+        {/* call buttons */}
+        {!isGroup && recipientId && (
+          <div className="chat-header-actions d-flex gap-1 flex-shrink-0">
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+              style={{ width: 32, height: 32 }}
+              title="Audio call"
+              disabled={call.status !== "idle" || isConversationBlocked}
+              onClick={() => startCall(recipientId, chatId, "audio")}
+            >
+              <i
+                className="bi bi-telephone-fill"
+                style={{ fontSize: "0.9rem" }}
+              />
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+              style={{ width: 32, height: 32 }}
+              title="Video call"
+              disabled={call.status !== "idle" || isConversationBlocked}
+              onClick={() => startCall(recipientId, chatId, "video")}
+            >
+              <i
+                className="bi bi-camera-video-fill"
+                style={{ fontSize: "0.9rem" }}
+              />
+            </button>
+          </div>
+        )}
         {/* Info button + popup */}
         <div className="dropdown flex-shrink-0">
           <button

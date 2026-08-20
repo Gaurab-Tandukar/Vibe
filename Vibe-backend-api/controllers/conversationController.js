@@ -437,7 +437,63 @@ const transferAdmin = async (req, res) => {
   }
 };
 
-// @desc   rename a group conversation (admin only)
+// @desc   set or clear a member's nickname for this group (admin only)
+// @route  PATCH /api/chat/:id/members/:userId/nickname
+const setMemberNickname = async (req, res) => {
+  try {
+    const { id, userId } = req.params;
+    const { nickname } = req.body;
+    const currentUserId = req.user._id;
+
+    if (
+      !mongoose.Types.ObjectId.isValid(id) ||
+      !mongoose.Types.ObjectId.isValid(userId)
+    ) {
+      return res.status(400).json({ message: "Invalid id(s)" });
+    }
+
+    const conversation = await Conversation.findById(id);
+    if (!conversation || !conversation.isGroup) {
+      return res
+        .status(400)
+        .json({ message: "Only group conversations support nicknames" });
+    }
+
+    const requester = await ConversationMember.findOne({
+      conversation: id,
+      user: currentUserId,
+    });
+    if (!requester || requester.role !== "admin") {
+      return res
+        .status(403)
+        .json({ message: "Only admins can set member nicknames" });
+    }
+
+    const target = await ConversationMember.findOne({
+      conversation: id,
+      user: userId,
+    });
+    if (!target) {
+      return res
+        .status(404)
+        .json({ message: "User is not a member of this group" });
+    }
+
+    const trimmed = typeof nickname === "string" ? nickname.trim() : "";
+    target.nickname = trimmed.length > 0 ? trimmed : null;
+    await target.save();
+
+    res.status(200).json({
+      message: "Nickname updated",
+      userId: target.user,
+      nickname: target.nickname,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc   update a group's name and/or avatar (admin only)
 // @route  PUT /api/chat/:id
 const renameConversation = async (req, res) => {
   try {
@@ -448,15 +504,12 @@ const renameConversation = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "Invalid conversation id" });
     }
-    if (!name || !name.trim()) {
-      return res.status(400).json({ message: "Name is required" });
-    }
 
     const conversation = await Conversation.findById(id);
     if (!conversation || !conversation.isGroup) {
       return res
         .status(400)
-        .json({ message: "Only group conversations can be renamed" });
+        .json({ message: "Only group conversations can be updated" });
     }
 
     const membership = await ConversationMember.findOne({
@@ -466,10 +519,20 @@ const renameConversation = async (req, res) => {
     if (!membership || membership.role !== "admin") {
       return res
         .status(403)
-        .json({ message: "Only admins can rename the group" });
+        .json({ message: "Only admins can update the group" });
     }
 
-    conversation.name = name.trim();
+    if (name !== undefined) {
+      if (!name.trim()) {
+        return res.status(400).json({ message: "Name cannot be empty" });
+      }
+      conversation.name = name.trim();
+    }
+
+    if (req.file) {
+      conversation.avatarUrl = `/uploads/groupAvatars/${req.file.filename}`;
+    }
+
     await conversation.save();
 
     res.status(200).json(conversation);
@@ -867,6 +930,7 @@ module.exports = {
   removeMember,
   leaveConversation,
   transferAdmin,
+  setMemberNickname,
   renameConversation,
   hideConversation,
   togglePinConversation,

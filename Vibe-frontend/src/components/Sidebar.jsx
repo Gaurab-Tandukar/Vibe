@@ -664,28 +664,43 @@ const Sidebar = ({ onSelectChat, onChatDragStart }) => {
           className="sidebar-rail-list flex-grow-1 w-100 d-flex flex-column align-items-center gap-2"
           style={{ overflowY: "auto", overflowX: "hidden", minHeight: 0 }}
         >
-          {groupChats.map((group) => (
-            <button
-              key={group._id}
-              className={`sidebar-rail-icon btn rounded-circle p-0 fw-bold d-flex align-items-center justify-content-center flex-shrink-0 ${
-                activeGroupId === group._id ? "active" : ""
-              }`}
-              onClick={() => {
-                setActiveGroupId(group._id);
-                setActiveChatId(group._id);
-                if (onSelectChat) {
-                  onSelectChat({
-                    id: group._id,
-                    name: group.name,
-                    isGroup: true,
-                  });
-                }
-              }}
-              title={group.name}
-            >
-              {group.name ? group.name.charAt(0).toUpperCase() : "#"}
-            </button>
-          ))}
+          {groupChats.map((group) => {
+            const groupAvatar = resolveMediaUrl(group?.avatarUrl);
+
+            return (
+              <button
+                key={group._id}
+                className={`sidebar-rail-icon btn rounded-circle p-0 fw-bold d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden ${
+                  activeGroupId === group._id ? "active" : ""
+                }`}
+                onClick={() => {
+                  setActiveGroupId(group._id);
+                  setActiveChatId(group._id);
+                  if (onSelectChat) {
+                    onSelectChat({
+                      id: group._id,
+                      name: group.name,
+                      isGroup: true,
+                    });
+                  }
+                }}
+                title={group.name}
+              >
+                {groupAvatar ? (
+                  <img
+                    src={groupAvatar}
+                    alt={group.name}
+                    className="w-100 h-100"
+                    style={{ objectFit: "cover" }}
+                  />
+                ) : group.name ? (
+                  group.name.charAt(0).toUpperCase()
+                ) : (
+                  "#"
+                )}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex-shrink-0 py-3">
