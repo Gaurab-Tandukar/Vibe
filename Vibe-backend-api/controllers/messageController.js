@@ -3,6 +3,7 @@ const Message = require("../model/messageModel");
 const Conversation = require("../model/conversationModel");
 const Attachment = require("../model/AttachmentModel");
 const Notification = require("../model/notificationModel");
+const User = require("../model/userModel");
 
 // @desc   create Message
 // @route  POST /api/messages
@@ -56,8 +57,8 @@ const createMessage = async (req, res) => {
 
       const isBlockedByOther = otherParticipant
         ? conversation.blockedBy?.some(
-            (id) => id.toString() === otherParticipant.toString(),
-          )
+          (id) => id.toString() === otherParticipant.toString(),
+        )
         : false;
 
       if (isBlockedByMe || isBlockedByOther) {
@@ -75,6 +76,10 @@ const createMessage = async (req, res) => {
       type: type || "text",
       replyTo: replyTo || undefined,
       readBy: [currentUserId], // sender has implicitly "read" their own message
+    });
+
+    await User.findByIdAndUpdate(currentUserId, {
+      $inc: { "stats.messagesSent": 1 },
     });
 
     // if attachments were provided, create them as real Attachment docs

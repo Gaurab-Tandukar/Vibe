@@ -4,20 +4,22 @@ A full-stack real-time chat application with private & group messaging, reaction
 
 ---
 
-## ✨ Core Functionality
+## ✨ Features
 
-| Feature                 | Description                                                                    |
-| ----------------------- | ------------------------------------------------------------------------------ |
-| **Authentication**      | Register / Login with JWT (`x-auth-token`)                                     |
-| **Private Chat**        | 1-on-1 conversations (duplicate prevention)                                    |
-| **Group Chat**          | Named groups with admin roles, add/remove members, leave group, admin transfer |
-| **Messaging**           | Real-time text messages, edit, soft-delete, reply context preserved            |
-| **Reactions**           | Emoji reactions on messages (toggle)                                           |
-| **Attachments**         | Image, PDF and other file uploads                                              |
-| **Notifications**       | Real-time + grouped unread notifications                                       |
-| **Presence**            | Online / offline status + typing indicators                                    |
-| **Read Receipts**       | `readBy` tracking on messages                                                  |
-| **Audio / Video Calls** | WebRTC 1-1 calls with mute, camera toggle, and TURN fallback                   |
+| Feature                 | Description                                                                         |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| **Authentication**      | Register / Login with JWT (`x-auth-token`); guest routes redirect logged-in users   |
+| **Private Chat**        | 1-on-1 conversations with duplicate prevention                                      |
+| **Group Chat**          | Named groups with admin roles, add/remove members, leave group, admin transfer      |
+| **Messaging**           | Real-time text messages, edit, soft-delete, reply context preserved                 |
+| **Reactions**           | Emoji reactions on messages (toggle)                                                |
+| **Attachments**         | Image, PDF and other file uploads                                                   |
+| **Notifications**       | Real-time + grouped unread notifications                                            |
+| **Presence**            | Online / offline status + typing indicators                                         |
+| **Read Receipts**       | `readBy` tracking on messages                                                       |
+| **Audio / Video Calls** | WebRTC 1-1 calls with mute, camera toggle, and TURN fallback                        |
+| **Profiles**            | Avatar, banner, bio — view and edit your own or others' profiles                    |
+| **Legal Pages**         | Privacy Policy and Terms of Service pages                                           |
 
 ---
 
@@ -25,22 +27,30 @@ A full-stack real-time chat application with private & group messaging, reaction
 
 ### Backend
 
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: MongoDB + Mongoose
-- **Real-time**: Socket.io
-- **Auth**: JWT + bcrypt
-- **File Uploads**: Multer (local storage → ready for Cloudinary)
-- **Encryption**: Custom message encryption utility
+| Technology         | Version | Purpose                                       |
+| ------------------ | ------- | --------------------------------------------- |
+| Node.js            | 18+     | Runtime                                       |
+| Express.js         | ^5.2    | HTTP API framework                            |
+| MongoDB + Mongoose | ^9.8    | Database & ODM                                |
+| Socket.io          | ^4.8    | Real-time messaging, presence, call signaling |
+| JWT + bcrypt       | —       | Authentication & password hashing             |
+| Multer             | ^2.2    | File uploads (local storage)                  |
+| dotenv             | ^17.4   | Environment variable management               |
 
 ### Frontend
 
-- **Framework**: React 18 + Vite
-- **Routing**: React Router
-- **State**: React Context + custom hooks
-- **Styling**: Custom CSS
-- **Real-time**: socket.io-client
-- **Media**: Native WebRTC (`RTCPeerConnection`, `getUserMedia`)
+| Technology              | Version | Purpose                            |
+| ----------------------- | ------- | ---------------------------------- |
+| React                   | ^19.2   | UI library                         |
+| Vite                    | ^8.2    | Build tool & dev server            |
+| React Router DOM        | ^7.18   | Client-side routing                |
+| socket.io-client        | ^4.8    | Real-time events                   |
+| Axios                   | ^1.19   | HTTP requests                      |
+| Bootstrap 5             | ^5.3    | UI component base & layout         |
+| Bootstrap Icons         | ^1.13   | Icon set                           |
+| Font Awesome            | ^7.3    | Additional icons                   |
+| Native WebRTC           | —       | Audio / video peer-to-peer calls   |
+| Context API             | —       | Global state (auth, socket, calls) |
 
 ### External Services
 
@@ -93,15 +103,18 @@ PORT=3000
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=30d
+# Optional – lock CORS to your deployed frontend URL
+CLIENT_URL=https://your-frontend-domain.com
 ```
 
 Start the backend:
 
 ```bash
-npm run dev
+npm run dev    # development (nodemon)
+npm start      # production
 ```
 
-API will be available at `http://localhost:3000`.
+API available at `http://localhost:3000`.
 
 ### 3. Frontend setup
 
@@ -143,33 +156,47 @@ App will be available at `http://localhost:5173`.
 
 ## 📡 API Overview
 
-| Module        | Base Route           | Key Endpoints                                 |
-| ------------- | -------------------- | --------------------------------------------- |
-| Users         | `/api/users`         | register, login, profile, avatar, password    |
-| Conversations | `/api/chat`          | create private/group, list, add/remove member |
-| Messages      | `/api/messages`      | create, paginated get, edit, soft-delete      |
-| Reactions     | `/api/reactions`     | add/toggle, get by message                    |
-| Attachments   | `/api/attachments`   | upload, get by message                        |
-| Notifications | `/api/notifications` | list (grouped), unread count, mark read       |
+| Module        | Base Route           | Key Endpoints                                    |
+| ------------- | -------------------- | ------------------------------------------------ |
+| Users         | `/api/users`         | register, login, profile, avatar, password       |
+| Conversations | `/api/chats`         | create private/group, list, add/remove member    |
+| Messages      | `/api/messages`      | create, paginated get, edit, soft-delete         |
+| Reactions     | `/api/reactions`     | add/toggle, get by message                       |
+| Attachments   | `/api/attachments`   | upload, get by message                           |
+| Notifications | `/api/notifications` | list (grouped), unread count, mark read          |
 
 Static files are served from:
 
 ```
-http://localhost:3000/uploads/<avatars|attachments|...>/<filename>
+http://localhost:3000/uploads/<avatars|attachments|banners|groupAvatars>/<filename>
 ```
 
 ---
 
 ## 🔌 Real-Time Events (Socket.io)
 
-| Event                                                                            | Direction       | Description                       |
-| -------------------------------------------------------------------------------- | --------------- | --------------------------------- |
-| `joinConversation`                                                               | client → server | Join a conversation room          |
-| `leaveConversation`                                                              | client → server | Leave a conversation room         |
-| `newMessage`                                                                     | server → client | New message broadcast             |
-| `newNotification`                                                                | server → client | Personal notification             |
-| `call:invite` / `call:offer` / `call:answer` / `call:ice-candidate` / `call:end` | both            | WebRTC signaling                  |
-| Typing & presence events                                                         | both            | Online status + typing indicators |
+### Messaging & Presence
+
+| Event                    | Direction | Description                       |
+| ------------------------ | --------- | --------------------------------- |
+| `joinConversation`       | C → S     | Join a conversation room          |
+| `leaveConversation`      | C → S     | Leave a conversation room         |
+| `newMessage`             | S → C     | New message broadcast             |
+| `newNotification`        | S → C     | Personal notification push        |
+| Typing / presence events | both      | Online status + typing indicators |
+
+### WebRTC Call Signaling
+
+| Event                           | Direction | Description                    |
+| ------------------------------- | --------- | ------------------------------ |
+| `call:invite`                   | C → S → C | Notify callee of incoming call |
+| `call:offer`                    | C → S → C | SDP offer                      |
+| `call:answer`                   | C → S → C | SDP answer                     |
+| `call:ice-candidate`            | C → S → C | ICE candidate exchange         |
+| `call:accept` / `call:accepted` | both      | Call accepted                  |
+| `call:reject` / `call:rejected` | both      | Call rejected / busy           |
+| `call:end`                      | both      | Hang up                        |
+| `call:unavailable`              | S → C     | Callee offline                 |
 
 ---
 

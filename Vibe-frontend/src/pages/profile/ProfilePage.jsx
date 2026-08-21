@@ -51,21 +51,11 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOwnProfile, username]);
 
   const taskBadges = useMemo(() => {
-    const list = [];
-
-    // Early Adopter badge
-    list.push({
-      id: "early-adopter",
-      label: "Early Adopter",
-      desc: "Joined Vibe in the pioneer era",
-      icon: "bi-stars",
-      color: "#d97706",
-      bg: "rgba(245, 158, 11, 0.12)",
-    });
+    const list = [];;
 
     // Profile Pioneer badge
     if (profile?.bio || profile?.aboutMe || profile?.avatarUrl) {
@@ -94,15 +84,41 @@ export default function ProfilePage() {
       });
     }
 
-    // Vibe Verified badge
-    list.push({
-      id: "vibe-verified",
-      label: "Vibe Verified",
-      desc: "Authenticated active community member",
-      icon: "bi-patch-check-fill",
-      color: "#0891b2",
-      bg: "rgba(8, 145, 178, 0.12)",
-    });
+    // Power Chatter badge
+    if ((profile?.stats?.messagesSent || 0) >= 50) {
+      list.push({
+        id: "power-chatter",
+        label: "Power Chatter",
+        desc: "Sent 50+ messages",
+        icon: "bi-chat-dots-fill",
+        color: "#9333ea",
+        bg: "rgba(147, 51, 234, 0.12)",
+      });
+    }
+
+    // Community Builder badge
+    if ((profile?.stats?.totalChats || 0) >= 10) {
+      list.push({
+        id: "community-builder",
+        label: "Community Builder",
+        desc: "Active in 10+ chats",
+        icon: "bi-people-fill",
+        color: "#ea580c",
+        bg: "rgba(234, 88, 12, 0.12)",
+      });
+    }
+
+    // Group Enthusiast badge
+    if ((profile?.stats?.groupsJoined || 0) >= 5) {
+      list.push({
+        id: "group-enthusiast",
+        label: "Group Enthusiast",
+        desc: "Joined 5+ groups",
+        icon: "bi-collection-fill",
+        color: "#0d9488",
+        bg: "rgba(13, 148, 136, 0.12)",
+      });
+    }
 
     return list;
   }, [profile]);
@@ -120,13 +136,42 @@ export default function ProfilePage() {
     `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim();
   const memberSince = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      })
+      month: "long",
+      year: "numeric",
+    })
     : "";
 
   const aboutMe = profile?.aboutMe;
-  const badges = profile?.badges || [];
+  const allBadges = profile?.badges || [];
+  const selectedBadgeLabels = profile?.selectedBadges || [];
+
+  // Combine the two auto-earned achievement badges with the backend-issued
+  // badges into a single pool — all of them compete for the same 3 slots.
+  const badgePool = [
+    ...taskBadges.map((b) => ({
+      label: b.label,
+      icon: b.icon,
+      desc: b.desc,
+      color: b.color,
+      bg: b.bg,
+      isTaskBadge: true,
+    })),
+    ...allBadges.map((b) => ({
+      label: b.label,
+      icon: b.icon,
+      isTaskBadge: false,
+    })),
+  ];
+
+  // Only ever show up to 3 badges, and only the ones the user picked in Edit Profile
+  const normalizedSelected = selectedBadgeLabels.map((l) =>
+    (l || "").trim().toLowerCase(),
+  );
+  const displayedBadges = badgePool
+    .filter((badge) =>
+      normalizedSelected.includes((badge.label || "").trim().toLowerCase()),
+    )
+    .slice(0, 3);
   const connections = profile?.connections || [];
   const tags = profile?.tags || [];
   const activity = profile?.activity;
@@ -249,7 +294,7 @@ export default function ProfilePage() {
               </div>
 
               {/* Status indicator */}
-              <StatusDot status={profile?.status} />
+              <StatusDot status={profile?.status} bottom="5" right="13" />
             </div>
 
             {/* Action buttons (Settings gear for own profile / Send Message button for other users) */}
@@ -287,8 +332,14 @@ export default function ProfilePage() {
                 <h4 className="mb-0 fw-semibold">
                   {fullName || profile?.username}
                 </h4>
-                {/* Vibe verified inline badge */}
-                <i className="bi bi-patch-check-fill text-primary" title="Verified User" style={{ fontSize: "1.1rem" }} />
+                {/* Verified badge — only shown when the account is actually verified */}
+                {profile?.isVerified && (
+                  <i
+                    className="bi bi-patch-check-fill text-primary"
+                    title="Verified User"
+                    style={{ fontSize: "1.1rem" }}
+                  />
+                )}
               </div>
               <p className="text-secondary mb-2">@{profile?.username}</p>
 
@@ -313,42 +364,65 @@ export default function ProfilePage() {
                 </div>
               )}
 
-              {/* Task & Achievement Badges */}
-              <div className="mb-3">
-                <div className="d-flex gap-2 flex-wrap">
-                  {taskBadges.map((badge) => (
-                    <span
-                      key={badge.id}
-                      className="d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-pill small fw-medium shadow-2xs"
-                      title={badge.desc}
-                      style={{
-                        backgroundColor: badge.bg,
-                        color: badge.color,
-                        fontSize: "0.78rem",
-                        border: `1px solid ${badge.color}33`,
-                      }}
-                    >
-                      <i className={`bi ${badge.icon}`} style={{ fontSize: "0.85rem" }} />
-                      <span>{badge.label}</span>
-                    </span>
-                  ))}
-                  {badges.map((badge, i) => (
-                    <span
-                      key={`custom-${i}`}
-                      className="d-inline-flex align-items-center gap-1.5 px-2.5 py-1 rounded-pill small fw-medium"
-                      title={badge.label}
-                      style={{
-                        backgroundColor: "rgba(64, 145, 108, 0.12)",
-                        color: "#1b4332",
-                        fontSize: "0.78rem",
-                      }}
-                    >
-                      {badge.icon && <i className={`bi ${badge.icon}`} />}
-                      <span>{badge.label}</span>
-                    </span>
-                  ))}
+              {/* Badges Section — up to 3 badges (achievement or earned) the user has chosen to showcase */}
+              {(displayedBadges.length > 0 || isOwnProfile) && (
+                <div className="mb-3">
+                  <div className="d-flex align-items-center justify-content-between mb-2">
+                    <p className="text-secondary small text-uppercase fw-bold mb-0 tracking-wide">
+                      Badges
+                    </p>
+                    {isOwnProfile && badgePool.length > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-link btn-sm p-0 text-decoration-none"
+                        style={{ fontSize: "0.78rem" }}
+                        onClick={() => navigate("/profile/edit")}
+                      >
+                        <i className="bi bi-pencil-fill me-1" style={{ fontSize: "0.7rem" }} />
+                        Edit badges
+                      </button>
+                    )}
+                  </div>
+
+                  {displayedBadges.length > 0 ? (
+                    <div className="d-flex gap-2 flex-wrap">
+                      {displayedBadges.map((badge, i) => (
+                        <span
+                          key={`badge-${i}`}
+                          className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill fw-medium shadow-sm transition-all"
+                          title={badge.desc || badge.label}
+                          style={{
+                            backgroundColor: badge.isTaskBadge
+                              ? badge.bg
+                              : "rgba(64, 145, 108, 0.08)",
+                            color: badge.isTaskBadge ? badge.color : "#1b4332",
+                            fontSize: "0.8rem",
+                            letterSpacing: "0.2px",
+                            border: badge.isTaskBadge
+                              ? `1px solid ${badge.color}44`
+                              : "1px solid rgba(27, 67, 50, 0.18)",
+                            backdropFilter: "blur(4px)",
+                          }}
+                        >
+                          {badge.icon && (
+                            <i
+                              className={`bi ${badge.icon}`}
+                              style={{ fontSize: "0.9rem", opacity: 0.9 }}
+                            />
+                          )}
+                          <span>{badge.label}</span>
+                        </span>
+                      ))}
+                    </div>
+                  ) : isOwnProfile ? (
+                    <p className="text-secondary fst-italic mb-0 small">
+                      {badgePool.length > 0
+                        ? "Pick up to 3 badges to show off here."
+                        : "You haven't earned any badges yet."}
+                    </p>
+                  ) : null}
                 </div>
-              </div>
+              )}
 
               {/* Bio */}
               {profile?.bio && <p className="mb-3 text-dark">{profile.bio}</p>}

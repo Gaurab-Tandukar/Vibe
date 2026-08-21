@@ -122,8 +122,16 @@ const getAllUsers = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   try {
     const currentUserId = req.user._id;
-    const { firstName, lastName, email, bio, aboutMe, connections, tags } =
-      req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      bio,
+      aboutMe,
+      connections,
+      tags,
+      selectedBadges,
+    } = req.body;
 
     const updates = {};
     if (firstName !== undefined) updates.firstName = firstName;
@@ -154,6 +162,34 @@ const updateUserProfile = async (req, res) => {
       } catch (err) {
         return res.status(400).json({ message: "tags must be valid JSON" });
       }
+    }
+
+    if (selectedBadges !== undefined) {
+      let parsedSelectedBadges;
+      try {
+        parsedSelectedBadges =
+          typeof selectedBadges === "string"
+            ? JSON.parse(selectedBadges)
+            : selectedBadges;
+      } catch (err) {
+        return res
+          .status(400)
+          .json({ message: "selectedBadges must be valid JSON" });
+      }
+
+      if (!Array.isArray(parsedSelectedBadges)) {
+        return res
+          .status(400)
+          .json({ message: "selectedBadges must be an array" });
+      }
+
+      if (parsedSelectedBadges.length > 3) {
+        return res
+          .status(400)
+          .json({ message: "You can only select up to 3 badges" });
+      }
+
+      updates.selectedBadges = parsedSelectedBadges;
     }
 
     // req.files instead of req.file since we now accept multiple file fields
@@ -211,6 +247,24 @@ const updateUserPassword = async (req, res) => {
   }
 };
 
+// @desc   Verify/unverify a user (admin only)
+// @route  PATCH /api/users/:id/verify
+const setUserVerified = async (req, res) => {
+  try {
+    const { isVerified } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isVerified: !!isVerified },
+      { new: true, runValidators: true },
+    ).select("-passwordHash");
+
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -219,4 +273,5 @@ module.exports = {
   getUserByUsername,
   updateUserProfile,
   updateUserPassword,
+  setUserVerified,
 };

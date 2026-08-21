@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { fetchProfile, updateProfile } from "../../api/profileService";
@@ -29,6 +29,15 @@ export default function EditProfilePage() {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
 
+  const [badges, setBadges] = useState([]); // all badges the user has obtained (read-only, from backend)
+  const [selectedBadges, setSelectedBadges] = useState([]); // labels of the badges chosen for display (max 3)
+  const [stats, setStats] = useState({
+    messagesSent: 0,
+    totalChats: 0,
+    groupsJoined: 0,
+  }); // read-only usage stats, used to compute stat-based achievement badges
+  const MAX_DISPLAYED_BADGES = 3;
+
   const [avatarFile, setAvatarFile] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -50,6 +59,13 @@ export default function EditProfilePage() {
         });
         setConnections(data.connections || []);
         setTags(data.tags || []);
+        setBadges(data.badges || []);
+        setSelectedBadges(data.selectedBadges || []);
+        setStats({
+          messagesSent: data.stats?.messagesSent || 0,
+          totalChats: data.stats?.totalChats || 0,
+          groupsJoined: data.stats?.groupsJoined || 0,
+        });
         setAvatarPreview(resolveMediaUrl(data.avatarUrl) || null);
         setBannerPreview(resolveMediaUrl(data.bannerUrl) || null);
       } catch (err) {
@@ -123,6 +139,83 @@ export default function EditProfilePage() {
     setTags((t) => t.filter((tag) => tag !== value));
   }
 
+  function toggleBadge(label) {
+    setSelectedBadges((prev) => {
+      if (prev.includes(label)) {
+        return prev.filter((l) => l !== label);
+      }
+      if (prev.length >= MAX_DISPLAYED_BADGES) {
+        // Already at the cap — ignore the click instead of exceeding the limit
+        return prev;
+      }
+      return [...prev, label];
+    });
+  }
+
+  // The auto-earned achievement badges, computed live from the current
+  // (possibly unsaved) form state — same rules as on the profile page.
+  const taskBadges = useMemo(() => {
+    const list = [];
+
+    if (form.bio || form.aboutMe || avatarPreview) {
+      list.push({
+        label: "Profile Pioneer",
+        desc: "Customized full bio & avatar",
+        icon: "bi-person-check-fill",
+      });
+    }
+
+    if (connections.length > 0 || tags.length > 0) {
+      list.push({
+        label: "Social Connector",
+        desc: "Linked social profiles and interests",
+        icon: "bi-link-45deg",
+      });
+    }
+
+    if (stats.messagesSent >= 50) {
+      list.push({
+        label: "Power Chatter",
+        desc: "Sent 50+ messages",
+        icon: "bi-chat-dots-fill",
+      });
+    }
+
+    if (stats.totalChats >= 10) {
+      list.push({
+        label: "Community Builder",
+        desc: "Active in 10+ chats",
+        icon: "bi-people-fill",
+      });
+    }
+
+    if (stats.groupsJoined >= 5) {
+      list.push({
+        label: "Group Enthusiast",
+        desc: "Joined 5+ groups",
+        icon: "bi-collection-fill",
+      });
+    }
+
+    return list;
+  }, [form.bio, form.aboutMe, avatarPreview, connections, tags, stats]);
+
+  // Achievement badges + backend-issued badges share the same 3 slots
+  const badgePool = useMemo(
+    () => [...taskBadges, ...badges],
+    [taskBadges, badges],
+  );
+
+  // If an achievement badge that was selected is no longer earned (e.g. the
+  // user just cleared their bio), drop it from the selection automatically.
+  useEffect(() => {
+    const eligibleLabels = new Set(badgePool.map((b) => b.label));
+    setSelectedBadges((prev) => {
+      const next = prev.filter((label) => eligibleLabels.has(label));
+      return next.length === prev.length ? prev : next;
+    });
+  }, [badgePool]);
+
   function handleLogout() {
     logout();
     navigate("/login");
@@ -145,6 +238,7 @@ export default function EditProfilePage() {
         JSON.stringify(connections.filter((c) => c.name && c.url)),
       );
       formData.append("tags", JSON.stringify(tags));
+      formData.append("selectedBadges", JSON.stringify(selectedBadges));
 
       if (avatarFile) formData.append("avatar", avatarFile);
       if (bannerFile) formData.append("banner", bannerFile);
@@ -387,6 +481,76 @@ export default function EditProfilePage() {
                 onKeyDown={handleTagKeyDown}
                 onBlur={addTag}
               />
+            </div>
+
+            {/* Edit Badges */}
+            <div className="mb-4">
+              <label className="form-label d-flex justify-content-between align-items-center">
+                <span>Badges</span>
+                <span className="text-secondary small">
+                  {selectedBadges.length}/{MAX_DISPLAYED_BADGES} selected
+                </span>
+              </label>
+
+              {badgePool.length > 0 ? (
+                <>
+                  <p className="text-secondary small mb-2">
+                    Choose up to {MAX_DISPLAYED_BADGES} badges to show on your
+                    profile.
+                  </p>
+                  <div className="d-flex flex-wrap gap-2">
+                    {badgePool.map((badge, i) => {
+                      const isSelected = selectedBadges
+                        .map((l) => (l || "").trim().toLowerCase())
+                        .includes((badge.label || "").trim().toLowerCase());
+                      const isDisabled =
+                        !isSelected &&
+                        selectedBadges.length >= MAX_DISPLAYED_BADGES;
+                      return (
+                        <button
+                          key={`edit-badge-${i}`}
+                          type="button"
+                          onClick={() => toggleBadge(badge.label)}
+                          disabled={isDisabled}
+                          title={
+                            isDisabled
+                              ? `You can only display up to ${MAX_DISPLAYED_BADGES} badges`
+                              : badge.desc || badge.label
+                          }
+                          className="d-inline-flex align-items-center gap-2 px-2.5 py-1 rounded-pill small fw-medium border"
+                          style={{
+                            fontSize: "0.8rem",
+                            cursor: isDisabled ? "not-allowed" : "pointer",
+                            backgroundColor: isSelected
+                              ? "rgba(64, 145, 108, 0.15)"
+                              : "#f8f9fa",
+                            color: isSelected ? "#1b4332" : "#495057",
+                            borderColor: isSelected
+                              ? "rgba(27, 67, 50, 0.3)"
+                              : "#dee2e6",
+                            opacity: isDisabled ? 0.5 : 1,
+                            transition: "all 0.15s ease",
+                          }}
+                        >
+                          {badge.icon && <i className={`bi ${badge.icon}`} />}
+                          <span>{badge.label}</span>
+                          {isSelected && (
+                            <i
+                              className="bi bi-check-circle-fill"
+                              style={{ fontSize: "0.75rem" }}
+                            ></i>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <p className="text-secondary fst-italic mb-0 small">
+                  You haven't earned any badges yet. Keep using the app to
+                  unlock some!
+                </p>
+              )}
             </div>
 
             {/* Connections */}

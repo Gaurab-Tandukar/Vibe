@@ -12,6 +12,7 @@ import { useSocket } from "../context/SocketContext";
 import {
   getMessages,
   sendMessage as sendMessageApi,
+  editMessage as editMessageApi,
   deleteMessage as deleteMessageApi,
   markMessagesRead,
 } from "../api/messageService";
@@ -122,6 +123,8 @@ export default function ChatWindow({
 
   const [toast, setToast] = useState(null);
   const [messageToDelete, setMessageToDelete] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editText, setEditText] = useState("");
   const [typingUsers, setTypingUsers] = useState(new Map());
   const [showInfoDropdown, setShowInfoDropdown] = useState(false);
 
@@ -537,6 +540,33 @@ export default function ChatWindow({
       console.error("Failed to delete message:", err?.response?.data || err);
     } finally {
       setMessageToDelete(null);
+    }
+  };
+
+  const handleStartEdit = (msg) => {
+    setEditingMessageId(msg._id);
+    setEditText(msg.content || "");
+    // close any open pickers
+    setOpenPickerFor(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditText("");
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!editingMessageId) return;
+    const trimmed = editText.trim();
+    if (!trimmed) return;
+    try {
+      await editMessageApi(editingMessageId, trimmed);
+    } catch (err) {
+      console.error("Failed to edit message:", err?.response?.data || err);
+      showToast(err?.response?.data?.message || "Edit failed", "error");
+    } finally {
+      setEditingMessageId(null);
+      setEditText("");
     }
   };
 
@@ -999,8 +1029,18 @@ export default function ChatWindow({
                   className="d-flex align-items-end gap-2 position-relative"
                   style={{ maxWidth: "70%" }}
                 >
+                  {/* Sender-side action buttons: on the LEFT of the bubble (order-0) */}
                   {isMe && !msg.isDeleted && (
                     <div className="chat-bubble-actions d-flex gap-1 order-0 mb-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+                        style={{ width: 28, height: 28, fontSize: "0.75rem" }}
+                        title="Edit"
+                        onClick={() => handleStartEdit(msg)}
+                      >
+                        <i className="bi bi-pencil" />
+                      </button>
                       <button
                         type="button"
                         className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
@@ -1023,6 +1063,8 @@ export default function ChatWindow({
                     onDoubleClick={() => handleDoubleClickMessage(msg)}
                     className={`position-relative px-3 py-2 rounded-4 shadow-sm chat-bubble-animated ${
                       isLatest ? "chat-bubble-latest" : ""
+                    } ${
+                      editingMessageId === msg._id ? "chat-bubble-editing" : ""
                     } ${
                       msg.isDeleted
                         ? "bg-light text-secondary border border-dashed"
@@ -1145,11 +1187,9 @@ export default function ChatWindow({
                     )}
                   </div>
 
-                  {!msg.isDeleted && (
+                  {!msg.isDeleted && !isMe && (
                     <div
-                      className={`chat-bubble-actions d-flex gap-1 mb-2 ${
-                        isMe ? "order-0" : "order-1"
-                      }`}
+                      className={`chat-bubble-actions d-flex gap-1 mb-2 order-1`}
                     >
                       <button
                         type="button"
@@ -1184,8 +1224,10 @@ export default function ChatWindow({
                   className="mt-1 text-muted"
                   style={{
                     fontSize: "0.68rem",
-                    paddingLeft: !isMe ? "40px" : "4px",
-                    paddingRight: "4px",
+                    paddingLeft: !isMe ? "40px" : undefined,
+                    paddingRight: !isMe ? undefined : "4px",
+                    textAlign: isMe ? "right" : "left",
+                    alignSelf: isMe ? "flex-end" : "flex-start",
                   }}
                 >
                   {time}
@@ -1238,6 +1280,49 @@ export default function ChatWindow({
           >
             <i className="bi bi-x" />
           </button>
+        </div>
+      )}
+      {editingMessageId && (
+        <div className="px-3 py-2 border-top bg-light d-flex align-items-center gap-2 chat-edit-bar">
+          <div className="flex-grow-1 d-flex flex-column overflow-hidden">
+            <div className="small fw-semibold text-success mb-1 d-flex align-items-center gap-1">
+              <i className="bi bi-pencil-fill" />
+              Editing message
+            </div>
+            <input
+              autoFocus
+              type="text"
+              className="form-control form-control-sm border-0 bg-white rounded-pill px-3"
+              style={{ fontSize: "0.92rem" }}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleConfirmEdit(); }
+                if (e.key === "Escape") handleCancelEdit();
+              }}
+            />
+          </div>
+          <div className="d-flex gap-1 flex-shrink-0">
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+              style={{ width: 30, height: 30 }}
+              title="Cancel edit (Esc)"
+              onClick={handleCancelEdit}
+            >
+              <i className="bi bi-x" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-success rounded-circle p-0 d-flex align-items-center justify-content-center"
+              style={{ width: 30, height: 30 }}
+              title="Save edit (Enter)"
+              disabled={!editText.trim()}
+              onClick={handleConfirmEdit}
+            >
+              <i className="bi bi-check" />
+            </button>
+          </div>
         </div>
       )}
 
