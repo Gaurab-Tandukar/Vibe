@@ -130,6 +130,20 @@ const createConversation = async (req, res) => {
     ).populate("participants", "username email avatarUrl");
 
     res.status(201).json(fullConversation);
+    
+    if (isGroup) {
+      // Increment 'groupsJoined' for all members who joined this group
+      await User.updateMany(
+        { _id: { $in: allMembers } },
+        { $inc: { "stats.groupsJoined": 1 } }
+      );
+    } else {
+      // For private chats, increment 'totalChats' for the participants involved
+      await User.updateMany(
+        { _id: { $in: allMembers } },
+        { $inc: { "stats.totalChats": 1 } }
+      );
+    }
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

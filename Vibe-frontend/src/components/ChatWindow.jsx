@@ -9,9 +9,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useCall } from "../hooks/useCall";
 import { useSocket } from "../context/SocketContext";
+import { useToast } from "../context/ToastContext";
 import {
   getMessages,
   sendMessage as sendMessageApi,
+  editMessage as editMessageApi,
   deleteMessage as deleteMessageApi,
   markMessagesRead,
 } from "../api/messageService";
@@ -19,6 +21,7 @@ import { toggleReaction } from "../api/reactionService";
 import { uploadAttachment } from "../api/attachmentService";
 import { blockUser, unblockUser } from "../api/conversationService";
 import { resolveMediaUrl } from "../utils/mediaUrl";
+import ConfirmModal from "./ConfirmModal";
 import doodlePattern from "../assets/doodle-pattern.svg";
 import "./css/ChatWindow.css";
 import "./css/Call.css";
@@ -120,8 +123,10 @@ export default function ChatWindow({
     Boolean(initialIsBlockedByOther),
   );
 
-  const [toast, setToast] = useState(null);
+  const { showToast } = useToast();
   const [messageToDelete, setMessageToDelete] = useState(null);
+  const [editingMessageId, setEditingMessageId] = useState(null);
+  const [editText, setEditText] = useState("");
   const [typingUsers, setTypingUsers] = useState(new Map());
   const [showInfoDropdown, setShowInfoDropdown] = useState(false);
 
@@ -139,23 +144,6 @@ export default function ChatWindow({
   const isTypingRef = useRef(false);
   const typingTimeoutRef = useRef(null);
   const typingExpiryTimeoutsRef = useRef(new Map());
-
-  const showToast = useCallback((message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
-
-  useEffect(() => {
-    const handleGlobalToast = (e) => {
-      if (e.detail?.message) {
-        showToast(e.detail.message, e.detail.type || "info");
-      }
-    };
-    window.addEventListener("vibe:toast", handleGlobalToast);
-    return () => {
-      window.removeEventListener("vibe:toast", handleGlobalToast);
-    };
-  }, [showToast]);
 
   const clearAllTypingExpiryTimers = () => {
     typingExpiryTimeoutsRef.current.forEach((timeoutId) =>
@@ -540,6 +528,33 @@ export default function ChatWindow({
     }
   };
 
+  const handleStartEdit = (msg) => {
+    setEditingMessageId(msg._id);
+    setEditText(msg.content || "");
+    // close any open pickers
+    setOpenPickerFor(null);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingMessageId(null);
+    setEditText("");
+  };
+
+  const handleConfirmEdit = async () => {
+    if (!editingMessageId) return;
+    const trimmed = editText.trim();
+    if (!trimmed) return;
+    try {
+      await editMessageApi(editingMessageId, trimmed);
+    } catch (err) {
+      console.error("Failed to edit message:", err?.response?.data || err);
+      showToast(err?.response?.data?.message || "Edit failed", { type: "error" });
+    } finally {
+      setEditingMessageId(null);
+      setEditText("");
+    }
+  };
+
   const handleReact = async (messageId, emoji) => {
     if (isConversationBlocked) return;
     setOpenPickerFor(null);
@@ -553,7 +568,7 @@ export default function ChatWindow({
   const handleStartCall = (callType) => {
     if (!recipientId || isConversationBlocked) return;
     if (!isRecipientOnline) {
-      showToast(`${name || "User"} is currently offline`, "error");
+      showToast(`${name || "User"} is currently offline`, { type: "error" });
       return;
     }
     startCall(recipientId, chatId, callType);
@@ -597,7 +612,7 @@ export default function ChatWindow({
             detail: { conversationId: chatId, blocked: nextBlocked },
           }),
         );
-        showToast("User unblocked", "success");
+        showToast("User unblocked", { type: "success" });
       } else {
         const res = await blockUser(chatId);
         const blockedBy = res?.data?.blockedBy;
@@ -608,7 +623,7 @@ export default function ChatWindow({
             detail: { conversationId: chatId, blocked: nextBlocked },
           }),
         );
-        showToast("User blocked", "success");
+        showToast("User blocked", { type: "success" });
 
         if (typeof onClose === "function") {
           setTimeout(() => {
@@ -620,7 +635,7 @@ export default function ChatWindow({
       console.error("Failed to toggle block:", err?.response?.data || err);
       showToast(
         err?.response?.data?.message || "Something went wrong",
-        "error",
+        { type: "error" },
       );
     }
   };
@@ -999,8 +1014,18 @@ export default function ChatWindow({
                   className="d-flex align-items-end gap-2 position-relative"
                   style={{ maxWidth: "70%" }}
                 >
+                  {/* Sender-side action buttons: on the LEFT of the bubble (order-0) */}
                   {isMe && !msg.isDeleted && (
                     <div className="chat-bubble-actions d-flex gap-1 order-0 mb-2">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+                        style={{ width: 28, height: 28, fontSize: "0.75rem" }}
+                        title="Edit"
+                        onClick={() => handleStartEdit(msg)}
+                      >
+                        <i className="bi bi-pencil" />
+                      </button>
                       <button
                         type="button"
                         className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
@@ -1023,6 +1048,8 @@ export default function ChatWindow({
                     onDoubleClick={() => handleDoubleClickMessage(msg)}
                     className={`position-relative px-3 py-2 rounded-4 shadow-sm chat-bubble-animated ${
                       isLatest ? "chat-bubble-latest" : ""
+                    } ${
+                      editingMessageId === msg._id ? "chat-bubble-editing" : ""
                     } ${
                       msg.isDeleted
                         ? "bg-light text-secondary border border-dashed"
@@ -1145,11 +1172,9 @@ export default function ChatWindow({
                     )}
                   </div>
 
-                  {!msg.isDeleted && (
+                  {!msg.isDeleted && !isMe && (
                     <div
-                      className={`chat-bubble-actions d-flex gap-1 mb-2 ${
-                        isMe ? "order-0" : "order-1"
-                      }`}
+                      className={`chat-bubble-actions d-flex gap-1 mb-2 order-1`}
                     >
                       <button
                         type="button"
@@ -1184,8 +1209,10 @@ export default function ChatWindow({
                   className="mt-1 text-muted"
                   style={{
                     fontSize: "0.68rem",
-                    paddingLeft: !isMe ? "40px" : "4px",
-                    paddingRight: "4px",
+                    paddingLeft: !isMe ? "40px" : undefined,
+                    paddingRight: !isMe ? undefined : "4px",
+                    textAlign: isMe ? "right" : "left",
+                    alignSelf: isMe ? "flex-end" : "flex-start",
                   }}
                 >
                   {time}
@@ -1238,6 +1265,49 @@ export default function ChatWindow({
           >
             <i className="bi bi-x" />
           </button>
+        </div>
+      )}
+      {editingMessageId && (
+        <div className="px-3 py-2 border-top bg-light d-flex align-items-center gap-2 chat-edit-bar">
+          <div className="flex-grow-1 d-flex flex-column overflow-hidden">
+            <div className="small fw-semibold text-success mb-1 d-flex align-items-center gap-1">
+              <i className="bi bi-pencil-fill" />
+              Editing message
+            </div>
+            <input
+              autoFocus
+              type="text"
+              className="form-control form-control-sm border-0 bg-white rounded-pill px-3"
+              style={{ fontSize: "0.92rem" }}
+              value={editText}
+              onChange={(e) => setEditText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") { e.preventDefault(); handleConfirmEdit(); }
+                if (e.key === "Escape") handleCancelEdit();
+              }}
+            />
+          </div>
+          <div className="d-flex gap-1 flex-shrink-0">
+            <button
+              type="button"
+              className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary"
+              style={{ width: 30, height: 30 }}
+              title="Cancel edit (Esc)"
+              onClick={handleCancelEdit}
+            >
+              <i className="bi bi-x" />
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-success rounded-circle p-0 d-flex align-items-center justify-content-center"
+              style={{ width: 30, height: 30 }}
+              title="Save edit (Enter)"
+              disabled={!editText.trim()}
+              onClick={handleConfirmEdit}
+            >
+              <i className="bi bi-check" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -1331,50 +1401,15 @@ export default function ChatWindow({
         </button>
       </form>
 
-      {messageToDelete && (
-        <div className="modal-backdrop-custom">
-          <div
-            className="card shadow-sm border-0 rounded-4 p-3"
-            style={{ maxWidth: 320, width: "90%" }}
-          >
-            <div className="card-body p-1 text-center">
-              <i className="bi bi-exclamation-circle text-danger fs-1 mb-2 d-block" />
-              <h6 className="fw-bold mb-1">Delete Message?</h6>
-              <p className="text-muted small mb-3">
-                Are you sure you want to delete this message? This action cannot
-                be undone.
-              </p>
-              <div className="d-flex gap-2 justify-content-center">
-                <button
-                  type="button"
-                  className="btn btn-light rounded-pill px-3 btn-sm text-secondary fw-semibold"
-                  onClick={() => setMessageToDelete(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger rounded-pill px-3 btn-sm fw-semibold"
-                  onClick={confirmDelete}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {toast && (
-        <div
-          className={`position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 rounded-pill shadow text-white ${
-            toast.type === "error" ? "bg-danger" : "bg-success"
-          }`}
-          style={{ zIndex: 9999, fontSize: "0.9rem" }}
-        >
-          {toast.message}
-        </div>
-      )}
+      <ConfirmModal
+        open={!!messageToDelete}
+        title="Delete Message?"
+        message="Are you sure you want to delete this message? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setMessageToDelete(null)}
+      />
     </div>
   );
 }

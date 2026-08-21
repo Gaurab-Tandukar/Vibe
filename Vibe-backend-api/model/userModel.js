@@ -147,6 +147,24 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    stats: {
+      messagesSent: { type: Number, default: 0 },
+      totalChats: { type: Number, default: 0 },
+      groupsJoined: { type: Number, default: 0 },
+    },
+
+    selectedBadges: {
+      type: [String],
+      default: [],
+      validate: [val => val.length <= 3, "A maximum of 3 badges can be selected."]
+    },
+
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+
   },
   {
     timestamps: true,

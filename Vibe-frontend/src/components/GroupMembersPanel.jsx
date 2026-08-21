@@ -9,6 +9,8 @@ import {
 import { getUserDisplayName } from "./Sidebarhelpers";
 import AddMemberModal from "./AddMemberModel";
 import EditGroupModal from "./EditGroupModal";
+import ConfirmModal from "./ConfirmModal";
+import { useToast } from "../context/ToastContext";
 import "./css/Sidebar.css";
 
 const GroupMembersPanel = ({
@@ -19,6 +21,7 @@ const GroupMembersPanel = ({
   onGroupUpdated,
   onGroupLeft,
 }) => {
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -26,6 +29,7 @@ const GroupMembersPanel = ({
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [actionError, setActionError] = useState("");
+  const [confirmAction, setConfirmAction] = useState(null); // { type, title, message, payload }
 
   const groupId = group?._id;
 
@@ -116,38 +120,62 @@ const GroupMembersPanel = ({
   );
 
   const handleKick = async (userId, memberName) => {
-    if (!window.confirm(`Remove ${memberName} from this group?`)) return;
-    setActionError("");
-    try {
-      await removeGroupMember(groupId, userId);
-      setMembers((prev) =>
-        prev.filter((m) => String(m.user?._id) !== String(userId)),
-      );
-      if (onGroupUpdated) {
-        onGroupUpdated({
-          ...group,
-          participants: (group.participants || []).filter(
-            (p) => String(p._id || p) !== String(userId),
-          ),
-        });
-      }
-    } catch (err) {
-      console.error("Failed to remove member:", err?.response?.data || err);
-      setActionError(err?.response?.data?.message || "Couldn't remove member.");
-    }
+    setConfirmAction({
+      type: "kick",
+      title: "Remove Member?",
+      message: `Remove ${memberName} from this group?`,
+      payload: { userId },
+    });
   };
 
   const handleLeave = async () => {
-    if (!window.confirm(`Are you sure you want to leave "${group?.name}"?`))
-      return;
+    setConfirmAction({
+      type: "leave",
+      title: "Leave Group?",
+      message: `Are you sure you want to leave "${group?.name}"?`,
+    });
+  };
+
+  const executeConfirmAction = async () => {
+    if (!confirmAction) return;
     setActionError("");
-    try {
-      await leaveGroup(groupId);
-      if (onGroupLeft) onGroupLeft(groupId);
-    } catch (err) {
-      console.error("Failed to leave group:", err?.response?.data || err);
-      setActionError(err?.response?.data?.message || "Couldn't leave group.");
+
+    if (confirmAction.type === "kick") {
+      const { userId } = confirmAction.payload;
+      try {
+        await removeGroupMember(groupId, userId);
+        setMembers((prev) =>
+          prev.filter((m) => String(m.user?._id) !== String(userId)),
+        );
+        if (onGroupUpdated) {
+          onGroupUpdated({
+            ...group,
+            participants: (group.participants || []).filter(
+              (p) => String(p._id || p) !== String(userId),
+            ),
+          });
+        }
+        showToast("Member removed from group", { type: "success" });
+      } catch (err) {
+        console.error("Failed to remove member:", err?.response?.data || err);
+        const msg = err?.response?.data?.message || "Couldn't remove member.";
+        setActionError(msg);
+        showToast("Failed to remove member", { description: msg, type: "error" });
+      }
+    } else if (confirmAction.type === "leave") {
+      try {
+        await leaveGroup(groupId);
+        showToast(`Left group "${group?.name || ""}"`, { type: "info" });
+        if (onGroupLeft) onGroupLeft(groupId);
+      } catch (err) {
+        console.error("Failed to leave group:", err?.response?.data || err);
+        const msg = err?.response?.data?.message || "Couldn't leave group.";
+        setActionError(msg);
+        showToast("Failed to leave group", { description: msg, type: "error" });
+      }
     }
+
+    setConfirmAction(null);
   };
 
   const handleMembersAdded = async () => {
@@ -398,6 +426,16 @@ const GroupMembersPanel = ({
         onGroupUpdated={handleGroupProfileUpdated}
         onMembersRefresh={loadMembers}
         onAdminTransferred={loadMembers}
+      />
+
+      <ConfirmModal
+        open={!!confirmAction}
+        title={confirmAction?.title || "Are you sure?"}
+        message={confirmAction?.message || ""}
+        confirmLabel={confirmAction?.type === "kick" ? "Remove" : "Leave"}
+        confirmVariant="danger"
+        onConfirm={executeConfirmAction}
+        onCancel={() => setConfirmAction(null)}
       />
     </div>
   );

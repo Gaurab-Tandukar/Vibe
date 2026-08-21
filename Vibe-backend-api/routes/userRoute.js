@@ -9,6 +9,7 @@ const {
   getUserByUsername,
   updateUserProfile,
   updateUserPassword,
+  setUserVerified,
 } = require("../controllers/userController");
 const { protect, authorize } = require("../middleware/authMiddleware");
 const createUploadMiddleware = require("../middleware/uploadMiddleware");
@@ -39,8 +40,7 @@ router.put(
 );
 
 router.put("/profile/password", protect, updateUserPassword);
+router.patch("/users/:id/verify", protect, authorize("ADMIN"), setUserVerified);
 
-// Admin only route
-router.get("/all", protect, authorize("ADMIN"), getAllUsers);
 
 module.exports = router;

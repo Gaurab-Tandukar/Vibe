@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { SocketProvider } from "./context/SocketContext";
 import { CallProvider } from "./context/CallContext";
+import { ToastProvider } from "./context/ToastContext";
 import VideoCall from "./components/VideoCall";
 import IncomingCallModal from "./components/IncommingCallModel";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -16,15 +17,17 @@ import App from "./App";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <BrowserRouter>
-      <AuthProvider>
-        <SocketProvider>
-          <CallProvider>
-            <App />
-            <VideoCall />
-            <IncomingCallModal />
-          </CallProvider>
-        </SocketProvider>
-      </AuthProvider>
+      <ToastProvider>
+        <AuthProvider>
+          <SocketProvider>
+            <CallProvider>
+              <App />
+              <VideoCall />
+              <IncomingCallModal />
+            </CallProvider>
+          </SocketProvider>
+        </AuthProvider>
+      </ToastProvider>
     </BrowserRouter>
   </StrictMode>,
 );

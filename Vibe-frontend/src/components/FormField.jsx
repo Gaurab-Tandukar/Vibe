@@ -7,14 +7,23 @@ export default function FormInput({
   value,
   placeholder,
   onChange,
+  onBlur,
   autoComplete,
   required = false,
+  error,       // validation error string (empty / undefined = valid)
+  touched,     // has the user interacted with this field?
   ...rest
 }) {
   const [showPassword, setShowPassword] = useState(false);
 
   const isPassword = type === "password";
   const inputType = isPassword ? (showPassword ? "text" : "password") : type;
+
+  // Derive validation class only when a `touched` prop is provided
+  let validationClass = "";
+  if (touched !== undefined && touched) {
+    validationClass = error ? "is-invalid-custom" : "is-valid-custom";
+  }
 
   return (
     <div className="mb-3">
@@ -25,12 +34,13 @@ export default function FormInput({
       <div className="position-relative">
         <input
           type={inputType}
-          className="form-control"
+          className={`form-control ${validationClass}`}
           id={name}
           name={name}
           value={value}
           placeholder={placeholder}
           onChange={onChange}
+          onBlur={onBlur}
           autoComplete={autoComplete}
           required={required}
           style={isPassword ? { paddingRight: "2.5rem" } : undefined}
@@ -54,6 +64,15 @@ export default function FormInput({
           </button>
         )}
       </div>
+
+      {/* Inline validation feedback */}
+      {touched && error && (
+        <div className="field-error-msg">
+          <i className="bi bi-exclamation-circle-fill" style={{ fontSize: "0.72rem" }} />
+          {error}
+        </div>
+      )}
     </div>
   );
 }
+

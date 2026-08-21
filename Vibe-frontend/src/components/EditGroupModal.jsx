@@ -6,6 +6,8 @@ import {
   setMemberNickname,
 } from "../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
+import ConfirmModal from "./ConfirmModal";
+import { useToast } from "../context/ToastContext";
 import "./css/EditGroup.css";
 
 const EditGroupModal = ({
@@ -19,6 +21,7 @@ const EditGroupModal = ({
   onMembersRefresh,
   onAdminTransferred,
 }) => {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState("general");
 
   const [nameDraft, setNameDraft] = useState(group?.name || "");
@@ -33,6 +36,7 @@ const EditGroupModal = ({
   const [newAdminId, setNewAdminId] = useState("");
   const [transferring, setTransferring] = useState(false);
   const [transferError, setTransferError] = useState("");
+  const [showTransferConfirm, setShowTransferConfirm] = useState(false);
 
   const [nicknameDrafts, setNicknameDrafts] = useState({});
   const [savingNicknameFor, setSavingNicknameFor] = useState(null);
@@ -43,21 +47,23 @@ const EditGroupModal = ({
     setPrevKey({ show, groupId: group?._id });
 
     if (show) {
-      setActiveTab("general");
       setNameDraft(group?.name || "");
-      setAvatarFile(null);
       setAvatarPreview(resolveMediaUrl(group?.avatarUrl) || "");
-      setProfileError("");
+      setAvatarFile(null);
       setProfileSaved(false);
-      setNewAdminId("");
+      setProfileError("");
       setTransferError("");
+      setNewAdminId("");
       setNicknameError("");
+      setShowTransferConfirm(false);
 
-      const drafts = {};
+      const initialDrafts = {};
       (members || []).forEach((m) => {
-        drafts[m.user?._id] = m.nickname || "";
+        if (m.user?._id) {
+          initialDrafts[m.user._id] = m.nickname || "";
+        }
       });
-      setNicknameDrafts(drafts);
+      setNicknameDrafts(initialDrafts);
     }
   }
 
@@ -87,11 +93,13 @@ const EditGroupModal = ({
       if (onGroupUpdated) onGroupUpdated(updated);
       setAvatarFile(null);
       setProfileSaved(true);
+      showToast("Group profile updated", { type: "success" });
     } catch (err) {
       console.error("Failed to update group:", err?.response?.data || err);
       setProfileError(
         err?.response?.data?.message || "Couldn't update group profile.",
       );
+      showToast("Failed to update group profile", { type: "error" });
     } finally {
       setSavingProfile(false);
     }
@@ -101,36 +109,30 @@ const EditGroupModal = ({
     (m) => String(m.user?._id) !== String(currentUserId),
   );
 
-  const handleTransfer = async () => {
+  const handleTransferClick = () => {
     if (!newAdminId) {
       setTransferError("Please pick a member to transfer ownership to.");
       return;
     }
-    const target = otherMembers.find(
-      (m) => String(m.user?._id) === String(newAdminId),
-    );
-    const targetName = target ? getUserDisplayName(target.user) : "this member";
+    setShowTransferConfirm(true);
+  };
 
-    if (
-      !window.confirm(
-        `Make ${targetName} the admin? You will become a regular member.`,
-      )
-    ) {
-      return;
-    }
-
+  const executeTransfer = async () => {
+    setShowTransferConfirm(false);
     setTransferring(true);
     setTransferError("");
     try {
       await transferAdmin(group._id, newAdminId);
       if (onAdminTransferred) onAdminTransferred();
       if (onMembersRefresh) await onMembersRefresh();
+      showToast("Admin ownership transferred", { type: "success" });
       onClose();
     } catch (err) {
       console.error("Failed to transfer admin:", err?.response?.data || err);
       setTransferError(
         err?.response?.data?.message || "Couldn't transfer admin role.",
       );
+      showToast("Failed to transfer admin role", { type: "error" });
     } finally {
       setTransferring(false);
     }
@@ -457,7 +459,7 @@ const EditGroupModal = ({
                       <button
                         type="button"
                         className="btn btn-sbd-danger w-100"
-                        onClick={handleTransfer}
+                        onClick={handleTransferClick}
                         disabled={transferring || !newAdminId}
                       >
                         {transferring
@@ -486,6 +488,20 @@ const EditGroupModal = ({
           </div>
         </div>
       </div>
+
+      <ConfirmModal
+        open={showTransferConfirm}
+        title="Transfer Ownership?"
+        message={`Make ${(() => {
+          const target = otherMembers.find((m) => String(m.user?._id) === String(newAdminId));
+          return target ? getUserDisplayName(target.user) : "this member";
+        })()} the admin? You will become a regular member.`}
+        confirmLabel="Transfer"
+        confirmVariant="danger"
+        loading={transferring}
+        onConfirm={executeTransfer}
+        onCancel={() => setShowTransferConfirm(false)}
+      />
     </div>
   );
 };
