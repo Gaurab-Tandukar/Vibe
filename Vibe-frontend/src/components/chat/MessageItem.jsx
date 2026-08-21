@@ -1,7 +1,7 @@
 import Avatar from "./Avatar";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 
-const QUICK_EMOJIS = ["❤️", "😂", "😮", "😢", "🔥", "👍"];
+const QUICK_EMOJIS = ["👍🏿", "🤣", "😮", "😢", "💀", "🤬"];
 
 const formatFileSize = (bytes) => {
   if (bytes == null) return "";
@@ -55,28 +55,46 @@ export default function MessageItem({
 
   if (isSystemOrCall && !msg.isDeleted) {
     const isVideo =
-      msg.content?.includes("📹") || msg.content?.toLowerCase().includes("video");
+      msg.content?.includes("📹") ||
+      msg.content?.toLowerCase().includes("video");
     const isMissed =
       msg.content?.toLowerCase().includes("missed") ||
       msg.content?.toLowerCase().includes("declined");
 
+    // Aggressively remove any emoji character to get rid of the duplicate icon
+    let cleanContent = msg.content
+      .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
+      .trim();
+
+    // Provide a clean fallback if removing emojis leaves it empty
+    if (!cleanContent) {
+      cleanContent = isVideo
+        ? isMissed
+          ? "Missed Video Call"
+          : "Video Call"
+        : isMissed
+          ? "Missed Voice Call"
+          : "Voice Call";
+    }
+
     return (
-      <div id={`msg-${msg._id}`} className="d-flex justify-content-center my-1">
+      <div id={`msg-${msg._id}`} className="d-flex justify-content-center my-2">
         <div
-          className="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill shadow-sm border"
+          className="d-inline-flex align-items-center gap-3 px-3 py-2 rounded-pill shadow-sm border"
           style={{
-            backgroundColor: "rgba(255, 255, 255, 0.9)",
-            backdropFilter: "blur(4px)",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            backdropFilter: "blur(6px)",
             fontSize: "0.82rem",
+            borderColor: "rgba(0, 0, 0, 0.08) !important",
           }}
         >
           <span
-            className={`rounded-circle d-flex align-items-center justify-content-center ${
+            className={`rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 ${
               isMissed
-                ? "bg-danger bg-opacity-15 text-danger"
-                : "bg-success bg-opacity-15 text-success"
+                ? "bg-danger bg-opacity-10 text-danger"
+                : "bg-success bg-opacity-10 text-success"
             }`}
-            style={{ width: 22, height: 22 }}
+            style={{ width: "20px", height: "20px" }}
           >
             <i
               className={`bi ${
@@ -88,11 +106,19 @@ export default function MessageItem({
                     ? "bi-telephone-x-fill"
                     : "bi-telephone-fill"
               }`}
-              style={{ fontSize: "0.75rem" }}
+              style={{ fontSize: "0.68rem" }}
             />
           </span>
-          <span className="fw-medium text-dark">{msg.content}</span>
-          <span className="text-muted small ms-1" style={{ fontSize: "0.7rem" }}>
+          <span
+            className="fw-semibold text-secondary"
+            style={{ letterSpacing: "-0.01em" }}
+          >
+            {cleanContent}
+          </span>
+          <span
+            className="text-muted ms-1"
+            style={{ fontSize: "0.68rem", opacity: 0.75 }}
+          >
             {time}
           </span>
         </div>
@@ -107,7 +133,12 @@ export default function MessageItem({
 
     if (isImage) {
       return (
-        <a href={fullUrl} target="_blank" rel="noopener noreferrer" className="d-block mb-1">
+        <a
+          href={fullUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="d-block mb-1"
+        >
           <img
             src={fullUrl}
             alt={att.fileName || "attachment"}
@@ -140,7 +171,10 @@ export default function MessageItem({
       >
         <i className="bi bi-file-earmark-arrow-down fs-5" />
         <div className="overflow-hidden">
-          <div className="text-truncate small fw-semibold" style={{ maxWidth: 180 }}>
+          <div
+            className="text-truncate small fw-semibold"
+            style={{ maxWidth: 180 }}
+          >
             {att.fileName}
           </div>
           <div className="small opacity-75">{formatFileSize(att.fileSize)}</div>
