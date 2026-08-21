@@ -10,7 +10,9 @@
   --sbd-text: #f2f3f5;
   --sbd-muted: #8b8d94;
   --sbd-accent: #52c98a; /* brightened sage-accent for legibility on dark */
-
+  --sbd-bg: #16171a;
+  --sbd-rail-w: 72px;
+  --sbd-total-w: 350px;
   font-family: "Itim", cursive;
 }
 
@@ -200,6 +202,15 @@
   height: 48px;
 }
 
+.sidebar-root {
+  transition: width 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: width;
+}
+
+.sidebar-collapsed .sidebar-content {
+  display: none !important;
+}
+
 /* Sidebar Row Hover */
 .sidebar-chat-item {
   position: relative;
@@ -232,11 +243,11 @@
   -webkit-user-drag: element;
 }
 
-/* Hide options button by default, reveal on row hover */
+/* Options button: clearly visible by default, full brightness on hover/active */
 .sidebar-chat-item .chat-options-btn {
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.15s ease-in-out;
+  opacity: 0.65;
+  visibility: visible;
+  transition: opacity 0.15s ease-in-out, color 0.15s ease-in-out;
   background: transparent;
   border: none;
   color: #a0a0a0;
@@ -246,10 +257,22 @@
 .sidebar-chat-item .chat-options-btn.show {
   opacity: 1;
   visibility: visible;
+  color: #ffffff;
 }
 
 .sidebar-chat-item .chat-options-btn:hover {
   color: #ffffff;
+}
+
+/* Unread Dot */
+.unread-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--sbd-accent, #52c98a);
+  box-shadow: 0 0 6px rgba(82, 201, 138, 0.6);
+  flex-shrink: 0;
 }
 
 /* Status Badges */
@@ -489,4 +512,134 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--sbd-muted);
+}
+
+/* ===== Rail buttons (matches the classes used in Sidebar.jsx) ===== */
+.sidebar-dark .sidebar-rail-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0 !important; /* remove Bootstrap btn padding */
+  border-radius: 50%;
+  border: none;
+  background-color: var(--sbd-panel);
+  color: var(--sbd-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* clips group avatars neatly to the shape */
+  position: relative;
+  transition:
+    border-radius 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.sidebar-dark .sidebar-rail-btn:hover,
+.sidebar-dark .sidebar-rail-btn.active {
+  border-radius: 16px;
+  background-color: var(--sbd-accent);
+  color: #16171a;
+}
+
+/* Icons (chat, plus) stay centered */
+.sidebar-dark .sidebar-rail-btn i {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: inherit;
+}
+
+/* Group Avatars: Fill the entire button cleanly */
+.sidebar-dark .sidebar-rail-btn img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  display: block;
+}
+
+/* Main Vibe Logo: Keep contained properly without stretching or clipping */
+.sidebar-dark .sidebar-rail-btn img[alt="Vibe"] {
+  width: 28px !important;
+  height: 28px !important;
+  object-fit: contain;
+}
+
+/* Optional: give the home/logo button a subtle ring on hover */
+.sidebar-dark .sidebar-rail-btn:first-child:hover {
+  background-color: transparent;
+  box-shadow: 0 0 0 2px var(--sbd-accent);
+  border-radius: 16px;
+}
+
+/* ===== Mobile & Tablet Optimizations (<= 991px) ===== */
+@media (max-width: 991px) {
+  /* When sidebar is expanded on mobile/tablet, it acts as a full overlay drawer (rail + chat panel) */
+  .sidebar-dark.sidebar-root {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh !important;
+    height: 100dvh !important;
+    z-index: 1050 !important;
+    width: var(--sbd-total-w) !important;
+    max-width: min(340px, 88vw) !important;
+    transform: translateX(0);
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.28s ease !important;
+    box-shadow: 12px 0 35px rgba(0, 0, 0, 0.65) !important;
+    visibility: visible;
+  }
+
+  /* When collapsed on mobile/tablet, completely hide and remove the entire sidebar from view */
+  .sidebar-dark.sidebar-root.sidebar-collapsed {
+    transform: translateX(-100%) !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+    box-shadow: none !important;
+  }
+
+  /* Sidebar content fits neatly beside the rail inside the drawer */
+  .sidebar-dark .sidebar-content {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    height: 100% !important;
+    max-width: none !important;
+    box-shadow: none !important;
+    display: flex !important;
+    flex-grow: 1 !important;
+    animation: none !important;
+  }
+
+  /* Full screen semi-transparent backdrop */
+  /* .sidebar-mobile-backdrop {
+    position: fixed;
+    inset: 0;
+    left: 0 !important;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    z-index: 1045;
+    animation: fadeInBackdrop 0.25s ease-out;
+  } */
+
+  /* Chat workspace takes 100% full width with zero left margin */
+  #main-content {
+    margin-left: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    /* overflow: hidden !important; */
+  }
+}
+
+@keyframes fadeInBackdrop {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }

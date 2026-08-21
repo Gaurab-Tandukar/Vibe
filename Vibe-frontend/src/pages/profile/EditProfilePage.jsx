@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import { fetchProfile, updateProfile } from "../../api/profileService";
-import Loader from "../../components/Loader";
+import Loader from "../../components/ui/Loader";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 

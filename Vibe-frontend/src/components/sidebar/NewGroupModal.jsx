@@ -1,8 +1,8 @@
 import { useMemo, useState, useRef } from "react";
-import { resolveMediaUrl } from "../utils/mediaUrl";
-import { createConversation, updateGroup } from "../api/conversationService";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { createConversation, updateGroup } from "../../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
-import { useToast } from "../context/ToastContext";
+import { useToast } from "../../context/ToastContext";
 
 const NewGroupModal = ({ show, onClose, allUsers, onCreated }) => {
   const { showToast } = useToast();

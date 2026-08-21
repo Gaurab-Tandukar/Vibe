@@ -1,4 +1,5 @@
 import axiosInstance from "./axiosInstance";
+import { STORAGE_KEYS } from "../constants/config";
 
 const ENDPOINTS = {
   login: "/users/login",
@@ -11,13 +12,12 @@ export async function loginUser(credentials) {
 }
 
 export async function registerUser(formData) {
-  console.log(formData);
   const { data } = await axiosInstance.post(ENDPOINTS.register, formData);
   return data;
 }
 
 export async function logoutUser() {
-  localStorage.removeItem("vibe_token");
-  localStorage.removeItem("vibe_user");
+  localStorage.removeItem(STORAGE_KEYS.TOKEN);
+  localStorage.removeItem(STORAGE_KEYS.USER);
   window.location.href = "/login";
 }

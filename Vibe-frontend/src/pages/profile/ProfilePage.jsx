@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { fetchProfile, getUserByUsername } from "../../api/profileService";
 import { createConversation } from "../../api/conversationService";
-import Loader from "../../components/Loader";
+import Loader from "../../components/ui/Loader";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 import StatusDot from "./component/StatusDot";

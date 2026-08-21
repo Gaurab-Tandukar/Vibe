@@ -1,0 +1,272 @@
+/* ===== Notification Bell Button & Popup Styles ===== */
+
+.notification-dropdown-wrapper {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+
+.notification-bell-btn {
+  width: 32px;
+  /* Reduced from 38px */
+  height: 32px;
+  /* Reduced from 38px */
+  border-radius: 50%;
+  border: none;
+  transition: all 0.18s ease;
+  position: relative;
+}
+
+.notification-bell-btn i {
+  font-size: 1rem !important;
+  /* Made the bell icon smaller (from 1.2rem) */
+}
+
+.notification-bell-dark {
+  background-color: var(--sbd-panel, #1c1d21);
+  color: var(--sbd-muted, #8b8d94);
+  border: 1px solid var(--sbd-border, #2c2d33);
+}
+
+.notification-bell-dark:hover,
+.notification-bell-dark.active {
+  background-color: var(--sbd-hover, #26272c);
+  color: var(--sbd-accent, #52c98a);
+  border-color: rgba(82, 201, 138, 0.4);
+}
+
+.notification-bell-light {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #edf5e8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.notification-bell-light:hover,
+.notification-bell-light.active {
+  background-color: rgba(255, 255, 255, 0.28);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.notification-badge {
+  background: linear-gradient(135deg, #ff4d4f 0%, #d9363e 100%) !important;
+  color: #ffffff !important;
+  font-size: 0.58rem !important;
+  font-weight: 700 !important;
+  padding: 0.15em 0.38em !important;
+  box-shadow: 0 2px 5px rgba(217, 54, 62, 0.45);
+  border: 2px solid #16171a;
+  transform: translate(-25%, -20%) !important;
+  animation: pulseBadge 2s infinite ease-in-out;
+}
+
+@keyframes pulseBadge {
+
+  0%,
+  100% {
+    transform: translate(-25%, -20%) scale(1);
+  }
+
+  50% {
+    transform: translate(-25%, -20%) scale(1.1);
+  }
+}
+
+/* ===== Notification Popup ===== */
+.notification-popup {
+  width: 380px;
+  max-width: calc(100vw - 24px);
+  background-color: #17181c !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+  z-index: 1100;
+
+  /* Desktop Layout: Anchored right next to the sidebar */
+  position: fixed !important;
+  bottom: 20px;
+  left: 88px;
+
+  animation: popInNotifSide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+}
+
+@keyframes popInNotifSide {
+  from {
+    opacity: 0;
+    transform: translateX(-12px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+/* Mobile responsive styling: Centers the popup on smaller screens */
+@media (max-width: 768px) {
+  .notification-popup {
+    left: 50% !important;
+    transform: translateX(-50%);
+    bottom: 80px;
+    width: calc(100vw - 24px);
+    max-width: 400px;
+  }
+
+  @keyframes popInNotifSide {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(12px) scale(0.96);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0) scale(1);
+    }
+  }
+}
+
+.notification-popup-header {
+  background-color: #131417;
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+.notification-title {
+  color: #ffffff;
+  letter-spacing: -0.01em;
+  font-size: 0.95rem;
+}
+
+.notification-count-chip {
+  background-color: rgba(82, 201, 138, 0.15) !important;
+  color: #52c98a !important;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border: 1px solid rgba(82, 201, 138, 0.25);
+  padding: 0.25em 0.6em;
+}
+
+.notification-action-btn {
+  color: #9ca3af;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.15s ease;
+}
+
+.notification-action-btn:hover {
+  color: #52c98a;
+  background-color: rgba(82, 201, 138, 0.1);
+  border-color: rgba(82, 201, 138, 0.3);
+}
+
+/* ===== Notification List & Items ===== */
+.notification-list {
+  max-height: 400px;
+  scrollbar-width: thin;
+  scrollbar-color: #2a2d35 transparent;
+}
+
+.notification-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background-color: #2a2d35;
+  border-radius: 4px;
+}
+
+.notification-item {
+  background-color: transparent;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.notification-item:hover {
+  background-color: #1f2228 !important;
+}
+
+.notification-item-unread {
+  background-color: rgba(82, 201, 138, 0.045);
+}
+
+.notification-item-unread:hover {
+  background-color: rgba(82, 201, 138, 0.085) !important;
+}
+
+.notification-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #38d39f 0%, #1f8a65 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  box-shadow: 0 3px 10px rgba(56, 211, 159, 0.22);
+}
+
+.notification-sender-name {
+  color: #f3f4f6;
+  font-size: 0.88rem;
+}
+
+.notification-time {
+  color: #9ca3af;
+  font-size: 0.7rem;
+}
+
+.notification-preview {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.notification-item-unread .notification-preview {
+  color: #e5e7eb;
+  font-weight: 500;
+}
+
+.notification-unread-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #52c98a;
+  box-shadow: 0 0 8px rgba(82, 201, 138, 0.7);
+  flex-shrink: 0;
+}
+
+/* 'X' Remove Button */
+.notification-delete-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.03);
+  color: #9ca3af;
+  opacity: 0;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 0.7rem;
+  transition: all 0.15s ease;
+}
+
+.notification-item:hover .notification-delete-btn {
+  opacity: 1;
+}
+
+.notification-delete-btn:hover {
+  background-color: rgba(255, 77, 79, 0.18) !important;
+  border-color: rgba(255, 77, 79, 0.3) !important;
+  color: #ff4d4f !important;
+  transform: scale(1.08);
+}
+
+.notification-empty-icon {
+  color: #6b7280;
+  opacity: 0.5;
+}

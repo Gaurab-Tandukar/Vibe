@@ -40,7 +40,6 @@ router.put(
 );
 
 router.put("/profile/password", protect, updateUserPassword);
-router.patch("/users/:id/verify", protect, authorize("ADMIN"), setUserVerified);
-
+router.patch("/:id/verify", protect, authorize("ADMIN"), setUserVerified);
 
 module.exports = router;

@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import FooterImg from "../assets/vibe-footer-img.jpeg";
-import "./css/Footer.css";
+import FooterImg from "../../assets/vibe-footer-img.jpeg";
+import "../css/Footer.css";
 
 export default function Footer() {
   return (

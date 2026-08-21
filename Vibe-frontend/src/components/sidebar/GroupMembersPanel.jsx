@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { resolveMediaUrl } from "../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
 import {
   getGroupMembers,
   removeGroupMember,
   leaveGroup,
-} from "../api/conversationService";
+} from "../../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
-import AddMemberModal from "./AddMemberModel";
-import EditGroupModal from "./EditGroupModal";
-import ConfirmModal from "./ConfirmModal";
-import { useToast } from "../context/ToastContext";
-import "./css/Sidebar.css";
+import AddMemberModal from "../chat/AddMemberModal";
+import EditGroupModal from "../chat/EditGroupModal";
+import ConfirmModal from "../ui/ConfirmModal";
+import { useToast } from "../../context/ToastContext";
+import "../css/Sidebar.css";
 
 const GroupMembersPanel = ({
   group,
@@ -318,17 +318,28 @@ const GroupMembersPanel = ({
             {group?.name}
           </h6>
 
-          {isAdmin && (
+          <div className="d-flex align-items-center gap-1 flex-shrink-0">
+            {isAdmin && (
+              <button
+                type="button"
+                className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: "28px", height: "28px" }}
+                title="Edit group"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="bi bi-pencil" style={{ fontSize: "0.85rem" }}></i>
+              </button>
+            )}
             <button
               type="button"
               className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0"
               style={{ width: "28px", height: "28px" }}
-              title="Edit group"
-              onClick={() => setShowEditModal(true)}
+              title="Close sidebar"
+              onClick={() => window.dispatchEvent(new CustomEvent("vibe:close-sidebar"))}
             >
-              <i className="bi bi-pencil" style={{ fontSize: "0.85rem" }}></i>
+              <i className="bi bi-layout-sidebar-inset" style={{ fontSize: "0.85rem" }}></i>
             </button>
-          )}
+          </div>
         </div>
 
         {/* Search */}

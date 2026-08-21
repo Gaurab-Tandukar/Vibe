@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
-import { resolveMediaUrl } from "../utils/mediaUrl";
-import { addGroupMember } from "../api/conversationService";
-import { getUserDisplayName } from "./Sidebarhelpers";
-import { useToast } from "../context/ToastContext";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { addGroupMember } from "../../api/conversationService";
+import { getUserDisplayName } from "../sidebar/Sidebarhelpers";
+import { useToast } from "../../context/ToastContext";
 
 const AddMemberModal = ({
   show,

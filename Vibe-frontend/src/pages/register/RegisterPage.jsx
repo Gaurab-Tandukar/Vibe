@@ -1,8 +1,8 @@
 import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
-import FormField from "../../components/FormField";
-import CloseBtn from "../../components/CloseBtn";
+import FormField from "../../components/ui/FormField";
+import CloseBtn from "../../components/ui/CloseBtn";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 
 // ── Validation rules ──

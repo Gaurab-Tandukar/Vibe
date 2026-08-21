@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { resolveMediaUrl } from "../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
 import {
   updateGroup,
   transferAdmin,
   setMemberNickname,
-} from "../api/conversationService";
-import { getUserDisplayName } from "./Sidebarhelpers";
-import ConfirmModal from "./ConfirmModal";
-import { useToast } from "../context/ToastContext";
-import "./css/EditGroup.css";
+} from "../../api/conversationService";
+import { getUserDisplayName } from "../sidebar/Sidebarhelpers";
+import ConfirmModal from "../ui/ConfirmModal";
+import { useToast } from "../../context/ToastContext";
+import "../css/EditGroup.css";
 
 const EditGroupModal = ({
   show,

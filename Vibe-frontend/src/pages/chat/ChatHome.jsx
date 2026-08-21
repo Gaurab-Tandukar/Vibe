@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
-import Sidebar from "../../components/Sidebar";
-import IdeWorkspace from "../../components/IdeWorkspace";
+import Sidebar from "../../components/sidebar/Sidebar";
+import IdeWorkspace from "../../components/workspace/IdeWorkspace";
 
 const normalizeChatId = (chat) => String(chat?._id ?? chat?.id ?? "");
 
@@ -68,9 +68,6 @@ export default function ChatHome() {
     setOpenChats((prev) => prev.filter((c) => String(c.id) !== String(chatId)));
   };
 
-  // Called when a group's name/avatar is edited (from GroupMembersPanel,
-  // via Sidebar) so any already-open chat tab for it stays in sync instead
-  // of showing stale data until the tab is reopened.
   const handleChatUpdated = (chatId, updates) => {
     setOpenChats((prev) =>
       prev.map((c) =>
@@ -80,19 +77,20 @@ export default function ChatHome() {
   };
 
   const handleChatDragStart = (event, chat) => {
+    // Use the correct ref name
     ideWorkspaceRef.current?.startChatDrag(event, chat, (droppedChat) => {
-      setOpenChats((prev) =>
-        prev.some((c) => c.id === droppedChat.id)
-          ? prev
-          : [...prev, droppedChat],
-      );
+      setOpenChats((prev) => {
+        const id = String(droppedChat._id || droppedChat.id);
+        if (prev.some((c) => String(c._id || c.id) === id)) return prev;
+        return [...prev, droppedChat];
+      });
     });
   };
 
   return (
     <div
-      className="d-flex min-vh-100 sage--bg text-dark"
-      style={{ transition: "margin-left 0.2s ease" }}
+      className="d-flex min-vh-100 sage--bg text-dark position-relative overflow-hidden"
+      style={{ height: "100vh", height: "100dvh", width: "100vw" }}
     >
       <Sidebar
         onSelectChat={handleSelectChat}
@@ -102,8 +100,7 @@ export default function ChatHome() {
 
       <div
         id="main-content"
-        className="flex-grow-1 d-flex flex-column"
-        style={{ transition: "margin-left 0.2s ease" }}
+        className="flex-grow-1 d-flex flex-column h-100 overflow-hidden"
       >
         <IdeWorkspace
           ref={ideWorkspaceRef}

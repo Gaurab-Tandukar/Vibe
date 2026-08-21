@@ -1,4 +1,4 @@
-import Navbar from "../../components/Navbar";
+import Navbar from "../../components/layout/Navbar";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import {
@@ -11,7 +11,7 @@ import { useRef } from "react";
 import teamMember1 from "../../assets/team-gaurab.jpg";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 import "./css/About.css";
-import Footer from "../../components/Footer";
+import Footer from "../../components/layout/Footer";
 
 const team = [
   {

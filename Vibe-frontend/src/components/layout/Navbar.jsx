@@ -1,6 +1,7 @@
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import vibeIcon from "../assets/vibe-icon.png";
+import { useAuth } from "../../hooks/useAuth";
+import NotificationDropdown from "../notification/NotificationDropdown";
+import vibeIcon from "../../assets/vibe-icon.png";
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -155,6 +156,9 @@ export default function Navbar() {
               <div className="d-grid gap-2 d-lg-flex align-items-lg-center mt-auto mt-lg-0">
                 {isAuthenticated ? (
                   <>
+                    <div className="me-lg-2 mb-2 mb-lg-0 d-flex justify-content-center">
+                      <NotificationDropdown variant="light" align="end" />
+                    </div>
                     <span className="navbar-text mb-2 mb-lg-0 me-lg-2 text-center text-white">
                       Hi, {user?.username}
                     </span>

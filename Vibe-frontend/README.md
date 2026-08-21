@@ -28,7 +28,7 @@ Vibe-frontend/
     │
     ├── api/                    # Axios services
     │   ├── axiosInstance.js
-    │   ├── authSevice.js
+    │   ├── authService.js
     │   ├── conversationService.js
     │   ├── messageService.js
     │   ├── profileService.js

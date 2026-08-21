@@ -1,45 +1,51 @@
 const jwt = require("jsonwebtoken");
 const User = require("../model/userModel");
+const ApiError = require("../util/ApiError");
+const asyncHandler = require("./asyncHandler");
+const env = require("../config/env");
 
-// Authentication
-const protect = async (req, res, next) => {
+/**
+ * Authentication Middleware: Validates Bearer token and attaches user to req
+ */
+const protect = asyncHandler(async (req, res, next) => {
   let token;
 
-  // Check for Bearer token in Authorization header
   if (
     req.headers.authorization &&
-    req.headers.authorization.startsWith("Bearer")
+    req.headers.authorization.startsWith("Bearer ")
   ) {
     token = req.headers.authorization.split(" ")[1];
   }
 
   if (!token) {
-    return res.status(401).json({ message: "No token, authorization denied" });
+    throw ApiError.unauthorized("Authentication token required");
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, env.JWT_SECRET);
+    const user = await User.findById(decoded.id).select("-passwordHash");
 
-    // Get user from database
-    req.user = await User.findById(decoded.id).select("-passwordHash");
-
-    if (!req.user) {
-      return res.status(401).json({ message: "User not found" });
+    if (!user) {
+      throw ApiError.unauthorized("User account no longer exists");
     }
 
+    req.user = user;
     next();
   } catch (err) {
-    res.status(401).json({ message: "Token is not valid" });
+    if (err instanceof ApiError) throw err;
+    throw ApiError.unauthorized("Invalid or expired authentication token");
   }
-};
+});
 
-// Role Based Authorization
+/**
+ * Role Based Authorization Middleware
+ */
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!roles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: `Access denied. Role '${req.user.role}' is not allowed`,
-      });
+    if (!req.user || !roles.includes(req.user.role)) {
+      throw ApiError.forbidden(
+        `Access denied. Role '${req.user?.role || "UNKNOWN"}' is not allowed`,
+      );
     }
     next();
   };

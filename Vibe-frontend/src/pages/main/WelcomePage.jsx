@@ -4,8 +4,40 @@ import Logo from "../../assets/vibe-icon.png";
 export default function WelcomePage() {
   const navigate = useNavigate();
 
+  const handleStartConversation = () => {
+    const isMobile = window.innerWidth <= 991;
+
+    // Mobile/tablet: the sidebar renders collapsed off-screen by default,
+    // so open the drawer before trying to focus the search input inside it.
+    if (isMobile) {
+      window.dispatchEvent(new Event("vibe:open-sidebar"));
+      setTimeout(() => {
+        const searchInput = document.querySelector(".sidebar-search input");
+        if (searchInput) searchInput.focus();
+      }, 320); // matches + small buffer over Sidebar.css's 0.28s slide-in
+    } else {
+      const searchInput = document.querySelector(".sidebar-search input");
+      if (searchInput) searchInput.focus();
+    }
+  };
+
   return (
     <div className="flex-grow-1 d-flex flex-column justify-content-between h-100 p-4 p-md-5">
+      {/* Mobile-only top bar with menu access — otherwise there is no way to
+          reach the sidebar on mobile until a chat is already open */}
+      <div className="d-flex d-lg-none align-items-center gap-2 mb-3">
+        <button
+          type="button"
+          className="btn btn-sm btn-light border rounded-circle p-0 d-flex align-items-center justify-content-center text-secondary shadow-sm"
+          style={{ width: 36, height: 36 }}
+          title="Open menu"
+          onClick={() => window.dispatchEvent(new Event("vibe:open-sidebar"))}
+        >
+          <i className="bi bi-list" style={{ fontSize: "1.1rem" }} />
+        </button>
+        <span className="fw-bold text-dark">Vibe</span>
+      </div>
+
       {/* Header/Hero Section */}
       <div
         className="text-center mx-auto my-auto py-5"
@@ -27,13 +59,7 @@ export default function WelcomePage() {
           <button
             className="btn btn-primary btn-lg rounded-pill px-4 shadow-sm"
             style={{ backgroundColor: "#52c98a", borderColor: "#52c98a" }}
-            onClick={() => {
-              // Focus the sidebar search input
-              const searchInput = document.querySelector(
-                ".sidebar-search input",
-              );
-              if (searchInput) searchInput.focus();
-            }}
+            onClick={handleStartConversation}
           >
             <i className="bi bi-chat-plus-fill me-2"></i>
             Start a Conversation

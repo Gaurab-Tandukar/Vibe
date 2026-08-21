@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from "react";
-import { useCall } from "../hooks/useCall";
+import { useCall } from "../../hooks/useCall";
 
 export default function VideoCall() {
   const {
