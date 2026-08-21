@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { useCall } from "../hooks/useCall";
 import { useSocket } from "../context/SocketContext";
+import { useToast } from "../context/ToastContext";
 import {
   getMessages,
   sendMessage as sendMessageApi,
@@ -20,6 +21,7 @@ import { toggleReaction } from "../api/reactionService";
 import { uploadAttachment } from "../api/attachmentService";
 import { blockUser, unblockUser } from "../api/conversationService";
 import { resolveMediaUrl } from "../utils/mediaUrl";
+import ConfirmModal from "./ConfirmModal";
 import doodlePattern from "../assets/doodle-pattern.svg";
 import "./css/ChatWindow.css";
 import "./css/Call.css";
@@ -121,7 +123,7 @@ export default function ChatWindow({
     Boolean(initialIsBlockedByOther),
   );
 
-  const [toast, setToast] = useState(null);
+  const { showToast } = useToast();
   const [messageToDelete, setMessageToDelete] = useState(null);
   const [editingMessageId, setEditingMessageId] = useState(null);
   const [editText, setEditText] = useState("");
@@ -142,23 +144,6 @@ export default function ChatWindow({
   const isTypingRef = useRef(false);
   const typingTimeoutRef = useRef(null);
   const typingExpiryTimeoutsRef = useRef(new Map());
-
-  const showToast = useCallback((message, type = "success") => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 3000);
-  }, []);
-
-  useEffect(() => {
-    const handleGlobalToast = (e) => {
-      if (e.detail?.message) {
-        showToast(e.detail.message, e.detail.type || "info");
-      }
-    };
-    window.addEventListener("vibe:toast", handleGlobalToast);
-    return () => {
-      window.removeEventListener("vibe:toast", handleGlobalToast);
-    };
-  }, [showToast]);
 
   const clearAllTypingExpiryTimers = () => {
     typingExpiryTimeoutsRef.current.forEach((timeoutId) =>
@@ -563,7 +548,7 @@ export default function ChatWindow({
       await editMessageApi(editingMessageId, trimmed);
     } catch (err) {
       console.error("Failed to edit message:", err?.response?.data || err);
-      showToast(err?.response?.data?.message || "Edit failed", "error");
+      showToast(err?.response?.data?.message || "Edit failed", { type: "error" });
     } finally {
       setEditingMessageId(null);
       setEditText("");
@@ -583,7 +568,7 @@ export default function ChatWindow({
   const handleStartCall = (callType) => {
     if (!recipientId || isConversationBlocked) return;
     if (!isRecipientOnline) {
-      showToast(`${name || "User"} is currently offline`, "error");
+      showToast(`${name || "User"} is currently offline`, { type: "error" });
       return;
     }
     startCall(recipientId, chatId, callType);
@@ -627,7 +612,7 @@ export default function ChatWindow({
             detail: { conversationId: chatId, blocked: nextBlocked },
           }),
         );
-        showToast("User unblocked", "success");
+        showToast("User unblocked", { type: "success" });
       } else {
         const res = await blockUser(chatId);
         const blockedBy = res?.data?.blockedBy;
@@ -638,7 +623,7 @@ export default function ChatWindow({
             detail: { conversationId: chatId, blocked: nextBlocked },
           }),
         );
-        showToast("User blocked", "success");
+        showToast("User blocked", { type: "success" });
 
         if (typeof onClose === "function") {
           setTimeout(() => {
@@ -650,7 +635,7 @@ export default function ChatWindow({
       console.error("Failed to toggle block:", err?.response?.data || err);
       showToast(
         err?.response?.data?.message || "Something went wrong",
-        "error",
+        { type: "error" },
       );
     }
   };
@@ -1416,50 +1401,15 @@ export default function ChatWindow({
         </button>
       </form>
 
-      {messageToDelete && (
-        <div className="modal-backdrop-custom">
-          <div
-            className="card shadow-sm border-0 rounded-4 p-3"
-            style={{ maxWidth: 320, width: "90%" }}
-          >
-            <div className="card-body p-1 text-center">
-              <i className="bi bi-exclamation-circle text-danger fs-1 mb-2 d-block" />
-              <h6 className="fw-bold mb-1">Delete Message?</h6>
-              <p className="text-muted small mb-3">
-                Are you sure you want to delete this message? This action cannot
-                be undone.
-              </p>
-              <div className="d-flex gap-2 justify-content-center">
-                <button
-                  type="button"
-                  className="btn btn-light rounded-pill px-3 btn-sm text-secondary fw-semibold"
-                  onClick={() => setMessageToDelete(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-danger rounded-pill px-3 btn-sm fw-semibold"
-                  onClick={confirmDelete}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {toast && (
-        <div
-          className={`position-fixed bottom-0 start-50 translate-middle-x mb-4 px-4 py-2 rounded-pill shadow text-white ${
-            toast.type === "error" ? "bg-danger" : "bg-success"
-          }`}
-          style={{ zIndex: 9999, fontSize: "0.9rem" }}
-        >
-          {toast.message}
-        </div>
-      )}
+      <ConfirmModal
+        open={!!messageToDelete}
+        title="Delete Message?"
+        message="Are you sure you want to delete this message? This action cannot be undone."
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setMessageToDelete(null)}
+      />
     </div>
   );
 }

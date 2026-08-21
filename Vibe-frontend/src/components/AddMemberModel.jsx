@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import { addGroupMember } from "../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
+import { useToast } from "../context/ToastContext";
 
 const AddMemberModal = ({
   show,
@@ -10,6 +11,7 @@ const AddMemberModal = ({
   candidateUsers,
   onAdded,
 }) => {
+  const { showToast } = useToast();
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [submitting, setSubmitting] = useState(false);
@@ -56,16 +58,24 @@ const AddMemberModal = ({
     setSubmitting(true);
     setError("");
     try {
-      // Backend only supports one member per call
+      const count = selectedIds.size;
       for (const userId of selectedIds) {
         await addGroupMember(conversationId, userId);
       }
       setQuery("");
       setSelectedIds(new Set());
+      showToast(`${count} member${count > 1 ? "s" : ""} added to group`, {
+        type: "success",
+      });
       if (onAdded) onAdded();
     } catch (err) {
       console.error("Failed to add member(s):", err?.response?.data || err);
-      setError(err?.response?.data?.message || "Couldn't add member(s).");
+      const msg = err?.response?.data?.message || "Couldn't add member(s).";
+      setError(msg);
+      showToast("Failed to add member(s)", {
+        description: msg,
+        type: "error",
+      });
     } finally {
       setSubmitting(false);
     }

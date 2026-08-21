@@ -2,8 +2,10 @@ import { useMemo, useState, useRef } from "react";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import { createConversation, updateGroup } from "../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
+import { useToast } from "../context/ToastContext";
 
 const NewGroupModal = ({ show, onClose, allUsers, onCreated }) => {
+  const { showToast } = useToast();
   const [groupName, setGroupName] = useState("");
   const [query, setQuery] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -89,10 +91,18 @@ const NewGroupModal = ({ show, onClose, allUsers, onCreated }) => {
       }
 
       onCreated(conv);
+      showToast(`Group "${groupName.trim()}" created`, {
+        description: `Successfully added ${selectedIds.size} member${selectedIds.size > 1 ? "s" : ""}.`,
+        type: "success",
+      });
       resetAndClose();
     } catch (err) {
       console.error("Failed to create group:", err);
       setError("Couldn't create the group. Try again.");
+      showToast("Failed to create group", {
+        description: err?.response?.data?.message || "Please try again later.",
+        type: "error",
+      });
     } finally {
       setSubmitting(false);
     }

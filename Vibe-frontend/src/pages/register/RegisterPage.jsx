@@ -1,9 +1,57 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import FormField from "../../components/FormField";
 import CloseBtn from "../../components/CloseBtn";
 import doodlePattern from "../../assets/doodle-pattern.svg";
+
+// ── Validation rules ──
+const makeValidators = (form) => ({
+  firstName: (v) =>
+    !v.trim()
+      ? "First name is required."
+      : v.trim().length < 2
+        ? "At least 2 characters."
+        : "",
+  lastName: (v) =>
+    !v.trim()
+      ? "Last name is required."
+      : v.trim().length < 2
+        ? "At least 2 characters."
+        : "",
+  username: (v) =>
+    !v.trim()
+      ? "Username is required."
+      : v.trim().length < 3
+        ? "At least 3 characters."
+        : !/^[a-zA-Z0-9_]+$/.test(v.trim())
+          ? "Only letters, numbers, and underscores."
+          : "",
+  phoneNumber: (v) =>
+    !v.trim()
+      ? "Phone number is required."
+      : v.replace(/\D/g, "").length < 7
+        ? "Enter a valid phone number (min 7 digits)."
+        : "",
+  email: (v) =>
+    !v.trim()
+      ? "Email is required."
+      : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())
+        ? "Enter a valid email address."
+        : "",
+  password: (v) =>
+    !v
+      ? "Password is required."
+      : v.length < 6
+        ? "Minimum 6 characters."
+        : "",
+  confirmPassword: (v) =>
+    !v
+      ? "Please confirm your password."
+      : v !== form.password
+        ? "Passwords do not match."
+        : "",
+});
 
 const INITIAL_FORM = {
   firstName: "",
@@ -21,52 +69,44 @@ export default function RegisterPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState(INITIAL_FORM);
+  const [touched, setTouched] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
+  const validators = makeValidators(form);
+
   function handleChange(e) {
     const { name, value, type, checked } = e.target;
-    setForm({
-      ...form,
+    setForm((prev) => ({
+      ...prev,
       [name]: type === "checkbox" ? checked : value,
-    });
+    }));
   }
+
+  const handleBlur = useCallback((e) => {
+    setTouched((prev) => ({ ...prev, [e.target.name]: true }));
+  }, []);
+
+  function getError(field) {
+    return validators[field]?.(form[field]) || "";
+  }
+
+  const fieldKeys = Object.keys(validators);
+  const allFieldsValid = fieldKeys.every((k) => !getError(k));
+  const allValid = allFieldsValid && form.agreeToTerms;
 
   async function handleSubmit(e) {
     e.preventDefault();
     setFormError("");
 
-    const {
-      firstName,
-      lastName,
-      username,
-      phoneNumber,
-      email,
-      password,
-      confirmPassword,
-      agreeToTerms,
-    } = form;
+    // Mark everything touched
+    const allTouched = {};
+    fieldKeys.forEach((k) => (allTouched[k] = true));
+    setTouched(allTouched);
 
-    if (
-      !firstName.trim() ||
-      !lastName.trim() ||
-      !username.trim() ||
-      !phoneNumber.trim() ||
-      !email.trim() ||
-      !password
-    ) {
-      setFormError("Please fill in all required fields.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setFormError("Passwords do not match.");
-      return;
-    }
-    if (password.length < 6) {
-      setFormError("Password must be at least 6 characters long.");
-      return;
-    }
-    if (!agreeToTerms) {
+    if (!allFieldsValid) return;
+
+    if (!form.agreeToTerms) {
       setFormError("You must agree to the Terms and Conditions to register.");
       return;
     }
@@ -141,7 +181,10 @@ export default function RegisterPage() {
                   value={form.firstName}
                   placeholder="e.g. Billie"
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
+                  touched={touched.firstName}
+                  error={getError("firstName")}
                 />
               </div>
               <div className="col-12 col-md-6">
@@ -151,7 +194,10 @@ export default function RegisterPage() {
                   value={form.lastName}
                   placeholder="e.g. Jean"
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
+                  touched={touched.lastName}
+                  error={getError("lastName")}
                 />
               </div>
             </div>
@@ -164,7 +210,10 @@ export default function RegisterPage() {
                   value={form.username}
                   placeholder="BillieJeanNotMyLover"
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
+                  touched={touched.username}
+                  error={getError("username")}
                 />
               </div>
               <div className="col-12 col-md-6">
@@ -174,7 +223,10 @@ export default function RegisterPage() {
                   value={form.phoneNumber}
                   placeholder="123-456-7890"
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   required
+                  touched={touched.phoneNumber}
+                  error={getError("phoneNumber")}
                 />
               </div>
             </div>
@@ -186,7 +238,10 @@ export default function RegisterPage() {
               value={form.email}
               placeholder="billiejean@example.com"
               onChange={handleChange}
+              onBlur={handleBlur}
               required
+              touched={touched.email}
+              error={getError("email")}
             />
 
             <div className="row g-2">
@@ -198,8 +253,11 @@ export default function RegisterPage() {
                   value={form.password}
                   placeholder="At least 6 chars"
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   autoComplete="new-password"
                   required
+                  touched={touched.password}
+                  error={getError("password")}
                 />
               </div>
               <div className="col-12 col-md-6">
@@ -210,21 +268,25 @@ export default function RegisterPage() {
                   value={form.confirmPassword}
                   placeholder="Re-enter password"
                   onChange={handleChange}
+                  onBlur={handleBlur}
                   autoComplete="new-password"
                   required
+                  touched={touched.confirmPassword}
+                  error={getError("confirmPassword")}
                 />
               </div>
             </div>
 
+            {/* Password match indicator */}
             {form.password && form.confirmPassword && (
               <div className="mb-2">
                 {form.password === form.confirmPassword ? (
-                  <span className="text-success extra-small d-flex align-items-center gap-1">
+                  <span className="field-valid-msg">
                     <i className="bi bi-check-circle-fill" /> Passwords match
                   </span>
                 ) : (
-                  <span className="text-danger extra-small d-flex align-items-center gap-1">
-                    <i className="bi bi-x-circle-fill" /> Passwords do not match
+                  <span className="field-error-msg">
+                    <i className="bi bi-x-circle-fill" style={{ fontSize: "0.72rem" }} /> Passwords do not match
                   </span>
                 )}
               </div>
@@ -267,7 +329,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               className="btn btn-success w-100 py-2.5 rounded-pill shadow-sm mt-2"
-              disabled={submitting}
+              disabled={submitting || !allValid}
             >
               {submitting ? (
                 <span

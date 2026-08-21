@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import FormField from "../../components/FormField";
@@ -6,26 +6,50 @@ import Button from "../../components/Button";
 import CloseBtn from "../../components/CloseBtn";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 
+// ── Validation rules ──
+const validators = {
+  username: (v) => (!v.trim() ? "Username or email is required." : ""),
+  password: (v) => (!v ? "Password is required." : ""),
+};
+
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ username: "", password: "" });
+  const [touched, setTouched] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState("");
 
   function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+    // Clear inline error as user types (re-validate on the fly)
+    if (touched[name]) {
+      // keep touched, error recalculates via getError
+    }
   }
+
+  const handleBlur = useCallback((e) => {
+    setTouched((prev) => ({ ...prev, [e.target.name]: true }));
+  }, []);
+
+  function getError(field) {
+    return validators[field]?.(form[field]) || "";
+  }
+
+  const allValid = Object.keys(validators).every((k) => !getError(k));
 
   async function handleSubmit(e) {
     e.preventDefault();
     setFormError("");
 
-    if (!form.username.trim() || !form.password) {
-      setFormError("Enter your username and password.");
-      return;
-    }
+    // Mark everything touched so errors show
+    const allTouched = {};
+    Object.keys(validators).forEach((k) => (allTouched[k] = true));
+    setTouched(allTouched);
+
+    if (!allValid) return;
 
     setSubmitting(true);
     const result = await login(form);
@@ -86,8 +110,11 @@ export default function LoginPage() {
               value={form.username}
               placeholder="e.g. BillieJeanNotMyLover"
               onChange={handleChange}
+              onBlur={handleBlur}
               autoComplete="username"
               required
+              touched={touched.username}
+              error={getError("username")}
             />
 
             <FormField
@@ -97,8 +124,11 @@ export default function LoginPage() {
               value={form.password}
               placeholder="••••••••"
               onChange={handleChange}
+              onBlur={handleBlur}
               autoComplete="current-password"
               required
+              touched={touched.password}
+              error={getError("password")}
             />
 
             <Button

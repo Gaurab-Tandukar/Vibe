@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useToast } from "../../context/ToastContext";
 import { fetchProfile, updateProfile } from "../../api/profileService";
 import Loader from "../../components/Loader";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
@@ -8,6 +9,7 @@ import doodlePattern from "../../assets/doodle-pattern.svg";
 
 export default function EditProfilePage() {
   const { updateUser, logout } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
 
   const avatarInputRef = useRef(null);
@@ -245,12 +247,19 @@ export default function EditProfilePage() {
 
       const data = await updateProfile(formData);
       updateUser(data);
+      showToast("Profile updated successfully", {
+        description: "Your changes have been saved to your profile.",
+        type: "success",
+      });
       navigate("/profile");
     } catch (err) {
       console.error(err);
-      setError(
-        err.response?.data?.message || "Failed to save profile. Try again.",
-      );
+      const msg = err.response?.data?.message || "Failed to save profile. Try again.";
+      setError(msg);
+      showToast("Failed to save profile", {
+        description: msg,
+        type: "error",
+      });
       setSaving(false);
     }
   }
