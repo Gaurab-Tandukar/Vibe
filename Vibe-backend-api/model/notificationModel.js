@@ -24,11 +24,6 @@ const notificationSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
-
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
   },
   {
     timestamps: true, // Adds createdAt & updatedAt
@@ -40,21 +35,6 @@ const notificationSchema = new mongoose.Schema(
 notificationSchema.index({ user: 1, isRead: 1 }); // Get unread notifications
 notificationSchema.index({ message: 1 }); // For message-related notifications
 notificationSchema.index({ createdAt: -1 }); // Sort by newest
-
-// Virtuals for population
-notificationSchema.virtual("userDetails", {
-  ref: "User",
-  localField: "user",
-  foreignField: "_id",
-  justOne: true,
-});
-
-notificationSchema.virtual("messageDetails", {
-  ref: "Message",
-  localField: "message",
-  foreignField: "_id",
-  justOne: true,
-});
 
 const Notification = mongoose.model("Notification", notificationSchema);
 

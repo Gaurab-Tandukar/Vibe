@@ -24,6 +24,7 @@ import NewGroupModal from "./NewGroupModal";
 import StatusDot from "../../pages/profile/component/StatusDot";
 import ConversationItem from "./ConversationItem";
 import BlockedUsersModal from "./BlockedUsersModal";
+import NotificationDropdown from "../notification/NotificationDropdown";
 
 import Logo from "../../assets/vibe-logo.png";
 import "../css/Sidebar.css";
@@ -115,7 +116,30 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
   const currentUserId = user?._id || user?.id;
   const joinedConversationIdsRef = useRef(new Set());
 
-  const [isCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.innerWidth <= 991;
+    }
+    return false;
+  });
+
+  // Listen for global open/close sidebar events (e.g. from back button in ChatHeader)
+  useEffect(() => {
+    const handleOpenSidebar = () => setIsCollapsed(false);
+    const handleCloseSidebar = () => setIsCollapsed(true);
+    const handleToggleSidebar = () => setIsCollapsed((prev) => !prev);
+
+    window.addEventListener("vibe:open-sidebar", handleOpenSidebar);
+    window.addEventListener("vibe:close-sidebar", handleCloseSidebar);
+    window.addEventListener("vibe:toggle-sidebar", handleToggleSidebar);
+
+    return () => {
+      window.removeEventListener("vibe:open-sidebar", handleOpenSidebar);
+      window.removeEventListener("vibe:close-sidebar", handleCloseSidebar);
+      window.removeEventListener("vibe:toggle-sidebar", handleToggleSidebar);
+    };
+  }, []);
+
   const [activeGroupId, setActiveGroupId] = useState(null);
   const [activeChatId, setActiveChatId] = useState(null);
   const [showNewDMModal, setShowNewDMModal] = useState(false);
@@ -198,6 +222,134 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
     });
   }, [socket, conversations]);
 
+  // Real-time socket listeners for incoming messages and notifications in sidebar
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (msg) => {
+      const convId =
+        typeof msg.conversation === "object"
+          ? msg.conversation?._id || msg.conversation?.id
+          : msg.conversation;
+      if (!convId) return;
+
+      const senderId =
+        typeof msg.sender === "object"
+          ? msg.sender?._id || msg.sender?.id
+          : msg.sender;
+      const isFromMe = String(senderId) === String(currentUserId);
+
+      // Join socket room for new conversation if not already joined
+      if (!joinedConversationIdsRef.current.has(String(convId))) {
+        socket.emit("joinConversation", String(convId));
+        joinedConversationIdsRef.current.add(String(convId));
+      }
+
+      setConversations((prev) => {
+        const index = prev.findIndex((c) => String(c._id) === String(convId));
+        if (index === -1) {
+          // New conversation not in local list, fetch fresh list
+          getMyConversations()
+            .then((refreshed) => {
+              if (refreshed) setConversations(refreshed);
+            })
+            .catch(console.error);
+          return prev;
+        }
+
+        const existing = prev[index];
+        const unreadBy = Array.isArray(existing.unreadBy)
+          ? [...existing.unreadBy]
+          : [];
+        if (
+          !isFromMe &&
+          !unreadBy.some((id) => String(id) === String(currentUserId))
+        ) {
+          unreadBy.push(currentUserId);
+        }
+
+        const updated = {
+          ...existing,
+          lastMessageAt: msg.createdAt || new Date().toISOString(),
+          updatedAt: msg.createdAt || new Date().toISOString(),
+          unreadBy,
+        };
+
+        const next = [...prev];
+        next.splice(index, 1);
+        return [updated, ...next];
+      });
+    };
+
+    const handleMessagesRead = ({ conversationId, userId }) => {
+      if (String(userId) !== String(currentUserId)) return;
+      setConversations((prev) =>
+        prev.map((c) => {
+          if (String(c._id) === String(conversationId)) {
+            return {
+              ...c,
+              unreadBy: (c.unreadBy || []).filter(
+                (id) => String(id) !== String(currentUserId),
+              ),
+            };
+          }
+          return c;
+        }),
+      );
+    };
+
+    const handleNewNotification = ({ conversationId }) => {
+      if (!conversationId) return;
+      setConversations((prev) => {
+        const found = prev.some(
+          (c) => String(c._id) === String(conversationId),
+        );
+        if (!found) {
+          getMyConversations()
+            .then((refreshed) => {
+              if (refreshed) setConversations(refreshed);
+            })
+            .catch(console.error);
+          return prev;
+        }
+        return prev.map((c) => {
+          if (String(c._id) === String(conversationId)) {
+            const unreadBy = Array.isArray(c.unreadBy) ? [...c.unreadBy] : [];
+            if (!unreadBy.some((id) => String(id) === String(currentUserId))) {
+              unreadBy.push(currentUserId);
+            }
+            return {
+              ...c,
+              lastMessageAt: new Date().toISOString(),
+              unreadBy,
+            };
+          }
+          return c;
+        });
+      });
+    };
+
+    const handleMessageDeleted = ({ conversationId }) => {
+      setConversations((prev) =>
+        prev.map((c) =>
+          String(c._id) === String(conversationId) ? { ...c } : c,
+        ),
+      );
+    };
+
+    socket.on("newMessage", handleNewMessage);
+    socket.on("messagesRead", handleMessagesRead);
+    socket.on("newNotification", handleNewNotification);
+    socket.on("messageDeleted", handleMessageDeleted);
+
+    return () => {
+      socket.off("newMessage", handleNewMessage);
+      socket.off("messagesRead", handleMessagesRead);
+      socket.off("newNotification", handleNewNotification);
+      socket.off("messageDeleted", handleMessageDeleted);
+    };
+  }, [socket, currentUserId]);
+
   const handleSelectExistingConversation = (conv) => {
     if (conv.isGroup) {
       setActiveGroupId(conv._id);
@@ -205,6 +357,10 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
     } else {
       setActiveGroupId(null);
       setActiveChatId(conv._id);
+    }
+
+    if (window.innerWidth <= 991) {
+      setIsCollapsed(true);
     }
 
     if (onSelectChat) {
@@ -229,6 +385,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
     }
   };
 
+  const handleChatSelect = (payload) => {
+    if (window.innerWidth <= 991) {
+      setIsCollapsed(true);
+    }
+    if (onSelectChat) {
+      onSelectChat(payload);
+    }
+  };
+
   const handleConversationCreated = (conv, targetUser) => {
     setConversations((prev) =>
       prev.some((c) => c._id === conv._id)
@@ -238,6 +403,10 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
 
     setActiveChatId(conv._id);
     setActiveGroupId(conv.isGroup ? conv._id : null);
+
+    if (window.innerWidth <= 991) {
+      setIsCollapsed(true);
+    }
 
     if (onSelectChat) {
       const recipient = targetUser || getDMRecipient(conv, currentUserId);
@@ -471,11 +640,17 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
 
         {/* Direct Messages Icon */}
         <button
-          className={`sidebar-rail-btn btn p-0 mb-2 rounded-circle d-flex align-items-center justify-content-center ${
-            activeGroupId === null ? "active" : ""
-          }`}
+          className={`sidebar-rail-btn btn p-0 mb-2 rounded-circle d-flex align-items-center justify-content-center ${activeGroupId === null && !isCollapsed ? "active" : ""
+            }`}
           title="Direct Messages"
-          onClick={() => setActiveGroupId(null)}
+          onClick={() => {
+            if (activeGroupId === null) {
+              setIsCollapsed((prev) => !prev);
+            } else {
+              setActiveGroupId(null);
+              setIsCollapsed(false);
+            }
+          }}
           style={{ width: "42px", height: "42px" }}
         >
           <i className="bi bi-chat-dots-fill fs-5" />
@@ -493,13 +668,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
             return (
               <button
                 key={group._id}
-                className={`sidebar-rail-btn btn p-0 rounded-circle d-flex align-items-center justify-content-center overflow-hidden position-relative ${
-                  isActive ? "active" : ""
-                }`}
+                className={`sidebar-rail-btn btn p-0 rounded-circle d-flex align-items-center justify-content-center overflow-hidden position-relative ${isActive ? "active" : ""
+                  }`}
                 title={group.name}
                 onClick={() => {
                   setActiveGroupId(group._id);
                   setActiveChatId(group._id);
+                  if (window.innerWidth <= 991) {
+                    setIsCollapsed(true);
+                  }
                   if (onSelectChat) {
                     onSelectChat({
                       id: group._id,
@@ -538,6 +715,21 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
             <i className="bi bi-plus-lg fs-5" />
           </button>
         </div>
+
+        {/* Rail Collapse / Expand Toggle Button */}
+        <button
+          className="sidebar-rail-btn btn p-0 mt-2 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={() => setIsCollapsed((prev) => !prev)}
+          style={{
+            width: "42px",
+            height: "42px",
+          }}
+        >
+          <i
+            className={`bi ${isCollapsed ? "bi-chevron-double-right" : "bi-chevron-double-left"} fs-6`}
+          />
+        </button>
       </div>
 
       {/* Main Sidebar Content */}
@@ -572,6 +764,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
                   Messages
                 </span>
                 <div className="d-flex align-items-center gap-1">
+
+                  <button
+                    className="btn btn-sm sidebar-ghost-btn p-1 rounded-2"
+                    title="Collapse sidebar"
+                    onClick={() => setIsCollapsed(true)}
+                    style={{ width: "30px", height: "30px" }}
+                  >
+                    <i className="bi bi-layout-sidebar-inset" />
+                  </button>
                   <button
                     className="btn btn-sm sidebar-ghost-btn p-1 rounded-2"
                     title="Blocked Contacts"
@@ -626,7 +827,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
                     currentUserId={currentUserId}
                     activeChatId={activeChatId}
                     getUserStatus={getUserStatus}
-                    onSelectChat={onSelectChat}
+                    onSelectChat={handleChatSelect}
                     onToggleReadStatus={handleToggleReadStatus}
                     onTogglePin={handleTogglePin}
                     onToggleMute={handleToggleMute}
@@ -690,6 +891,20 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
             </div>
           </button>
 
+          <NotificationDropdown
+            onSelectChat={(chat) => {
+              const fullChat = conversations.find(
+                (c) => String(c._id) === String(chat.id || chat._id),
+              );
+              if (fullChat) {
+                handleSelectExistingConversation(fullChat);
+              } else {
+                handleChatSelect(chat);
+              }
+            }}
+            variant="dark"
+          />
+
           <button
             className="btn btn-sm sidebar-ghost-btn rounded-2 p-1"
             title="Settings"
@@ -700,6 +915,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
           </button>
         </div>
       </div>
+
+      {/* Mobile Backdrop when sidebar is expanded */}
+      {!isCollapsed && (
+        <div
+          className="sidebar-mobile-backdrop d-lg-none"
+          onClick={() => setIsCollapsed(true)}
+          title="Close sidebar"
+        />
+      )}
 
       {/* Modals */}
       <NewDirectMessageModal

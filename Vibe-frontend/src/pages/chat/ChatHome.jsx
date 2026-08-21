@@ -89,8 +89,8 @@ export default function ChatHome() {
 
   return (
     <div
-      className="d-flex min-vh-100 sage--bg text-dark"
-      style={{ transition: "margin-left 0.2s ease" }}
+      className="d-flex min-vh-100 sage--bg text-dark position-relative overflow-hidden"
+      style={{ height: "100vh", height: "100dvh", width: "100vw" }}
     >
       <Sidebar
         onSelectChat={handleSelectChat}
@@ -100,8 +100,7 @@ export default function ChatHome() {
 
       <div
         id="main-content"
-        className="flex-grow-1 d-flex flex-column"
-        style={{ transition: "margin-left 0.2s ease" }}
+        className="flex-grow-1 d-flex flex-column h-100 overflow-hidden"
       >
         <IdeWorkspace
           ref={ideWorkspaceRef}

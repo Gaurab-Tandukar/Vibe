@@ -29,10 +29,15 @@ const markBatchAsRead = asyncHandler(async (req, res) => {
   res.status(200).json(result);
 });
 
-// @desc   Mark all notifications as read
-// @route  PUT /api/notifications/read-all
 const markAllAsRead = asyncHandler(async (req, res) => {
   const result = await notificationService.markAllAsRead(req.user._id);
+  res.status(200).json(result);
+});
+
+// @desc   Delete / remove a single notification
+// @route  DELETE /api/notifications/:id
+const deleteNotification = asyncHandler(async (req, res) => {
+  const result = await notificationService.deleteNotification(req.params.id, req.user._id);
   res.status(200).json(result);
 });
 
@@ -42,4 +47,5 @@ module.exports = {
   markAsRead,
   markBatchAsRead,
   markAllAsRead,
+  deleteNotification,
 };

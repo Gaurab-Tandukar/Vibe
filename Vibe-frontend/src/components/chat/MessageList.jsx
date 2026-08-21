@@ -9,6 +9,7 @@ export default function MessageList({
   hasMore,
   loadingMore,
   currentUserId,
+  isRecipientOnline,
   editingMessageId,
   openPickerFor,
   isConversationBlocked,
@@ -78,6 +79,8 @@ export default function MessageList({
               editingMessageId={editingMessageId}
               openPickerFor={openPickerFor}
               isConversationBlocked={isConversationBlocked}
+              isRecipientOnline={isRecipientOnline}
+              currentUserId={currentUserId}
               onDoubleClick={onDoubleClickMessage}
               onStartEdit={onStartEdit}
               onDeletePrompt={onDeletePrompt}

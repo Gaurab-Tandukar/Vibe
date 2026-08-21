@@ -63,6 +63,9 @@ export default function ChatWindow({
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState(null);
   const [inputText, setInputText] = useState("");
   const [sending, setSending] = useState(false);
   const [replyingTo, setReplyingTo] = useState(null);
@@ -112,8 +115,12 @@ export default function ChatWindow({
     async function fetchChatData() {
       setLoading(true);
       try {
-        const data = await getMessages(chatId);
-        if (isMounted) setMessages(data.messages || []);
+        const data = await getMessages(chatId, { limit: 50 });
+        if (isMounted) {
+          setMessages(data.messages || []);
+          setHasMore(Boolean(data.hasMore));
+          setNextCursor(data.nextCursor || null);
+        }
       } catch (err) {
         console.error("Failed to load messages:", err?.response?.data || err);
       } finally {
@@ -147,6 +154,40 @@ export default function ChatWindow({
     };
   }, [chatId, socket, clearAllTypingExpiryTimers]);
 
+  // Load older messages on scroll to top
+  const handleScroll = async () => {
+    if (!chatContainerRef.current || loading || loadingMore || !hasMore || !nextCursor)
+      return;
+
+    if (chatContainerRef.current.scrollTop <= 10) {
+      setLoadingMore(true);
+      const container = chatContainerRef.current;
+      const prevScrollHeight = container.scrollHeight;
+
+      try {
+        const data = await getMessages(chatId, { before: nextCursor, limit: 30 });
+        if (data.messages && data.messages.length > 0) {
+          setMessages((prev) => [...data.messages, ...prev]);
+          setHasMore(Boolean(data.hasMore));
+          setNextCursor(data.nextCursor || null);
+
+          // Maintain scroll position after prepending older messages
+          requestAnimationFrame(() => {
+            if (container) {
+              container.scrollTop = container.scrollHeight - prevScrollHeight;
+            }
+          });
+        } else {
+          setHasMore(false);
+        }
+      } catch (err) {
+        console.error("Failed to load older messages:", err);
+      } finally {
+        setLoadingMore(false);
+      }
+    }
+  };
+
   // Initial scroll to bottom
   useLayoutEffect(() => {
     if (!loading && messages.length > 0 && isInitialLoadRef.current) {
@@ -174,28 +215,32 @@ export default function ChatWindow({
     if (!socket || !chatId) return;
 
     const belongsHere = (conversation) => {
+      if (!conversation) return false;
       const id =
-        typeof conversation === "object" ? conversation._id : conversation;
+        typeof conversation === "object" ? conversation._id || conversation.id || conversation : conversation;
       return String(id) === String(chatId);
     };
 
     const handleNewMessage = (msg) => {
       if (!belongsHere(msg.conversation)) return;
       setMessages((prev) =>
-        prev.some((m) => m._id === msg._id) ? prev : [...prev, msg],
+        prev.some((m) => String(m._id) === String(msg._id)) ? prev : [...prev, msg],
       );
+      markMessagesRead(chatId).catch(() => {});
     };
 
     const handleMessageEdited = (msg) => {
       if (!belongsHere(msg.conversation)) return;
-      setMessages((prev) => prev.map((m) => (m._id === msg._id ? msg : m)));
+      setMessages((prev) =>
+        prev.map((m) => (String(m._id) === String(msg._id) ? msg : m)),
+      );
     };
 
     const handleMessageDeleted = ({ messageId, conversationId }) => {
       if (!belongsHere(conversationId)) return;
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === messageId
+          String(m._id) === String(messageId)
             ? {
                 ...m,
                 isDeleted: true,
@@ -210,7 +255,7 @@ export default function ChatWindow({
 
     const handleReactionUpdated = ({ messageId, reactions }) => {
       setMessages((prev) =>
-        prev.map((m) => (m._id === messageId ? { ...m, reactions } : m)),
+        prev.map((m) => (String(m._id) === String(messageId) ? { ...m, reactions } : m)),
       );
     };
 
@@ -257,12 +302,26 @@ export default function ChatWindow({
       clearTypingFor(userId);
     };
 
+    const handleMessagesRead = ({ conversationId, userId }) => {
+      if (!belongsHere(conversationId)) return;
+      setMessages((prev) =>
+        prev.map((m) => {
+          const readBy = Array.isArray(m.readBy) ? [...m.readBy] : [];
+          if (!readBy.some((id) => String(id?._id || id) === String(userId))) {
+            readBy.push(userId);
+          }
+          return { ...m, readBy };
+        }),
+      );
+    };
+
     socket.on("newMessage", handleNewMessage);
     socket.on("messageEdited", handleMessageEdited);
     socket.on("messageDeleted", handleMessageDeleted);
     socket.on("reactionUpdated", handleReactionUpdated);
     socket.on("userTyping", handleUserTyping);
     socket.on("userStoppedTyping", handleUserStoppedTyping);
+    socket.on("messagesRead", handleMessagesRead);
 
     return () => {
       socket.off("newMessage", handleNewMessage);
@@ -271,6 +330,7 @@ export default function ChatWindow({
       socket.off("reactionUpdated", handleReactionUpdated);
       socket.off("userTyping", handleUserTyping);
       socket.off("userStoppedTyping", handleUserStoppedTyping);
+      socket.off("messagesRead", handleMessagesRead);
     };
   }, [socket, chatId, currentUserId]);
 
@@ -508,7 +568,11 @@ export default function ChatWindow({
         messagesEndRef={messagesEndRef}
         messages={messages}
         loading={loading}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
+        onScroll={handleScroll}
         currentUserId={currentUserId}
+        isRecipientOnline={isRecipientOnline}
         editingMessageId={editingMessageId}
         openPickerFor={openPickerFor}
         isConversationBlocked={isConversationBlocked}

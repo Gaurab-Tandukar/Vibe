@@ -19,6 +19,8 @@ export default function MessageItem({
   editingMessageId,
   openPickerFor,
   isConversationBlocked,
+  isRecipientOnline,
+  currentUserId,
   onDoubleClick,
   onStartEdit,
   onDeletePrompt,
@@ -33,6 +35,13 @@ export default function MessageItem({
         minute: "2-digit",
       })
     : "";
+
+  const isSeen =
+    Array.isArray(msg.readBy) &&
+    msg.readBy.some((id) => {
+      const uid = typeof id === "object" ? id?._id || id?.id : id;
+      return uid && String(uid) !== String(currentUserId);
+    });
 
   const reactionSummary = (() => {
     if (!msg.reactions?.length) return [];
@@ -364,19 +373,61 @@ export default function MessageItem({
         )}
       </div>
 
-      <span
-        className="mt-1 text-muted"
+      <div
+        className="mt-1 d-flex align-items-center gap-1 text-muted"
         style={{
           fontSize: "0.68rem",
           paddingLeft: !isMe ? "40px" : undefined,
           paddingRight: !isMe ? undefined : "4px",
-          textAlign: isMe ? "right" : "left",
           alignSelf: isMe ? "flex-end" : "flex-start",
         }}
       >
-        {time}
-        {msg.isEdited && !msg.isDeleted ? " · edited" : ""}
-      </span>
+        <span>{time}</span>
+        {msg.isEdited && !msg.isDeleted && <span>· edited</span>}
+
+        {isMe && !msg.isDeleted && (
+          <span
+            className="d-inline-flex align-items-center ms-0.5"
+            title={
+              isSeen
+                ? "Seen"
+                : isRecipientOnline
+                  ? "Delivered"
+                  : "Sent"
+            }
+          >
+            {isSeen ? (
+              <i
+                className="bi bi-check2-all"
+                style={{
+                  color: "#38d39f",
+                  fontSize: "0.92rem",
+                  lineHeight: 1,
+                  fontWeight: "bold",
+                }}
+              />
+            ) : isRecipientOnline ? (
+              <i
+                className="bi bi-check2-all text-secondary"
+                style={{
+                  fontSize: "0.92rem",
+                  lineHeight: 1,
+                  opacity: 0.85,
+                }}
+              />
+            ) : (
+              <i
+                className="bi bi-check2 text-secondary"
+                style={{
+                  fontSize: "0.88rem",
+                  lineHeight: 1,
+                  opacity: 0.75,
+                }}
+              />
+            )}
+          </span>
+        )}
+      </div>
     </div>
   );
 }

@@ -107,13 +107,13 @@ class MessageService {
     if (io) {
       io.to(conversationId).emit("newMessage", fullMessage);
       notifyRecipientIds.forEach((userId) => {
-        const socketId = io.onlineUsers?.get(userId.toString());
-        if (socketId) {
-          io.to(socketId).emit("newNotification", {
+        const entry = io.onlineUsers?.get(userId.toString());
+        if (entry?.socketId) {
+          io.to(entry.socketId).emit("newNotification", {
             conversationId,
             messageId: message._id,
             preview: content,
-            sender: fullMessage.sender.username,
+            sender: fullMessage.sender?.username || "Someone",
           });
         }
       });

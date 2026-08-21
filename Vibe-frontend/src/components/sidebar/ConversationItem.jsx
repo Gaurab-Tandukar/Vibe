@@ -77,9 +77,9 @@ export default function ConversationItem({
         // Pass the enriched object (same as click)
         onDragStart(e, name, avatar, buildChatPayload());
       }}
-      className={`sidebar-nav-item d-flex align-items-center gap-2 p-2 rounded-3 text-start position-relative w-100 ${
+      className={`sidebar-chat-item d-flex align-items-center gap-2 p-2 rounded-3 text-start position-relative w-100 ${
         isSelected ? "active" : ""
-      }`}
+      } ${isUnread ? "sidebar-chat-item-unread" : ""}`}
       style={{ cursor: "pointer" }}
       onClick={handleClick}
     >
@@ -158,7 +158,7 @@ export default function ConversationItem({
           onClick={(e) => e.stopPropagation()}
           style={{ fontSize: "1.1rem" }}
         >
-          <i className="bi bi-three-dots" style={{ color: "gray" }} />
+          <i className="bi bi-three-dots" />
         </button>
 
         <ul className="dropdown-menu dropdown-menu-end sidebar-context-menu shadow">

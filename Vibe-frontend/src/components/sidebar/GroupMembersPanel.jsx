@@ -318,17 +318,28 @@ const GroupMembersPanel = ({
             {group?.name}
           </h6>
 
-          {isAdmin && (
+          <div className="d-flex align-items-center gap-1 flex-shrink-0">
+            {isAdmin && (
+              <button
+                type="button"
+                className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: "28px", height: "28px" }}
+                title="Edit group"
+                onClick={() => setShowEditModal(true)}
+              >
+                <i className="bi bi-pencil" style={{ fontSize: "0.85rem" }}></i>
+              </button>
+            )}
             <button
               type="button"
               className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0"
               style={{ width: "28px", height: "28px" }}
-              title="Edit group"
-              onClick={() => setShowEditModal(true)}
+              title="Close sidebar"
+              onClick={() => window.dispatchEvent(new CustomEvent("vibe:close-sidebar"))}
             >
-              <i className="bi bi-pencil" style={{ fontSize: "0.85rem" }}></i>
+              <i className="bi bi-layout-sidebar-inset" style={{ fontSize: "0.85rem" }}></i>
             </button>
-          )}
+          </div>
         </div>
 
         {/* Search */}

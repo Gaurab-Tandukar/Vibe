@@ -5,7 +5,6 @@ export default function ChatHeader({
   avatarUrl,
   isGroup,
   recipientId,
-  recipientUsername,
   isRecipientOnline,
   statusText,
   typingUsers,
@@ -23,44 +22,63 @@ export default function ChatHeader({
 
   return (
     <div className="d-flex align-items-center justify-content-between px-3 py-2 border-bottom flex-shrink-0 bg-white">
-      <div
-        className="d-flex align-items-center gap-2 overflow-hidden"
-        style={{ cursor: isGroup ? "default" : "pointer" }}
-        onClick={onViewProfile}
-        title={isGroup ? undefined : "View profile"}
-      >
-        <Avatar
-          sender={{ username: name, avatarUrl }}
-          size={40}
-          fallbackBg={isGroup ? "bg-primary" : "bg-success"}
-        />
-        <div className="d-flex flex-column overflow-hidden">
-          <span
-            className="fw-semibold text-truncate mb-0"
-            style={{ fontSize: "0.95rem" }}
-          >
-            {name}
-          </span>
-          <span
-            className="text-muted small d-flex align-items-center gap-1"
-            style={{ fontSize: "0.72rem" }}
-          >
-            {typingUsers.size > 0 ? (
-              `${typingEntries.map((t) => t.username).join(", ")} typing...`
-            ) : statusText ? (
-              <>
-                <span
-                  className="rounded-circle d-inline-block flex-shrink-0"
-                  style={{
-                    width: 7,
-                    height: 7,
-                    backgroundColor: isRecipientOnline ? "#2ecc71" : "#adb5bd",
-                  }}
-                />
-                {statusText}
-              </>
-            ) : null}
-          </span>
+      <div className="d-flex align-items-center gap-2 overflow-hidden">
+        {/* Mobile-only back button — returns to the conversation list */}
+        <button
+          type="button"
+          className="btn btn-sm btn-light border rounded-circle p-0 d-flex d-lg-none align-items-center justify-content-center text-secondary shadow-sm flex-shrink-0"
+          style={{ width: 34, height: 34 }}
+          title="Back to conversations"
+          onClick={(e) => {
+            e.stopPropagation();
+            window.dispatchEvent(new Event("vibe:open-sidebar"));
+          }}
+        >
+          <i
+            className="bi bi-arrow-left d-flex align-items-center justify-content-center"
+            style={{ fontSize: "0.95rem", lineHeight: 1 }}
+          />
+        </button>
+
+        <div
+          className="d-flex align-items-center gap-2 overflow-hidden"
+          style={{ cursor: isGroup ? "default" : "pointer" }}
+          onClick={onViewProfile}
+          title={isGroup ? undefined : "View profile"}
+        >
+          <Avatar
+            sender={{ username: name, avatarUrl }}
+            size={40}
+            fallbackBg={isGroup ? "bg-primary" : "bg-success"}
+          />
+          <div className="d-flex flex-column overflow-hidden">
+            <span
+              className="fw-semibold text-truncate mb-0"
+              style={{ fontSize: "0.95rem" }}
+            >
+              {name}
+            </span>
+            <span
+              className="text-muted small d-flex align-items-center gap-1"
+              style={{ fontSize: "0.72rem" }}
+            >
+              {typingUsers.size > 0 ? (
+                `${typingEntries.map((t) => t.username).join(", ")} typing...`
+              ) : statusText ? (
+                <>
+                  <span
+                    className="rounded-circle d-inline-block flex-shrink-0"
+                    style={{
+                      width: 7,
+                      height: 7,
+                      backgroundColor: isRecipientOnline ? "#2ecc71" : "#adb5bd",
+                    }}
+                  />
+                  {statusText}
+                </>
+              ) : null}
+            </span>
+          </div>
         </div>
       </div>
 
