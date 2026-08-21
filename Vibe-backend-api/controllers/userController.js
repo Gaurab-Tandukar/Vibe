@@ -1,269 +1,61 @@
-const User = require("../model/userModel");
-const passHash = require("../util/password");
-const generateToken = require("../util/jwtToken");
+const userService = require("../services/userService");
+const asyncHandler = require("../middleware/asyncHandler");
 
 // @desc   Register User
 // @route  POST /api/users/register
-const registerUser = async (req, res) => {
-  try {
-    const { firstName, lastName, username, email, phoneNumber, password } =
-      req.body;
-    console.log(req.body);
-    // Validation
-    if (
-      !firstName ||
-      !lastName ||
-      !username ||
-      !email ||
-      !phoneNumber ||
-      !password
-    ) {
-      return res.status(400).json({ message: "Please add all fields" });
-    }
-
-    const userExists = await User.findOne({
-      $or: [{ email }, { username }],
-    });
-
-    if (userExists) {
-      return res.status(400).json({ message: "User already exists" });
-    }
-
-    const hashedPassword = await passHash.hashpass(password);
-
-    const user = await User.create({
-      firstName,
-      lastName,
-      username,
-      email,
-      phoneNumber,
-      passwordHash: hashedPassword,
-    });
-
-    res.status(201).json({
-      _id: user._id,
-      username: user.username,
-      email: user.email,
-      token: generateToken(user._id),
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+const registerUser = asyncHandler(async (req, res) => {
+  const result = await userService.register(req.body);
+  res.status(201).json(result);
+});
 
 // @desc   Login user
 // @route  POST /api/users/login
-const loginUser = async (req, res) => {
-  try {
-    const { username, password } = req.body;
+const loginUser = asyncHandler(async (req, res) => {
+  const result = await userService.login(req.body);
+  res.status(200).json(result);
+});
 
-    if (!username || !password) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    const user = await User.findOne({ username });
-
-    if (user && (await passHash.hashpass(password, user.passwordHash))) {
-      res.json({
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        email: user.email,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(401).json({ message: "Invalid credentials" });
-    }
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// @desc   get user profile
+// @desc   Get authenticated user profile
 // @route  GET /api/users/profile
-const getUserProfile = async (req, res) => {
-  res.status(200).json(req.user);
-};
+const getUserProfile = asyncHandler(async (req, res) => {
+  const user = await userService.getProfile(req.user._id);
+  res.status(200).json(user);
+});
 
-// @desc   get user by username
-// @route  GET /api/profile/:username
-const getUserByUsername = async (req, res) => {
-  try {
-    const { username } = req.params;
+// @desc   Get user by username
+// @route  GET /api/users/profile/:username
+const getUserByUsername = asyncHandler(async (req, res) => {
+  const user = await userService.getByUsername(req.params.username);
+  res.status(200).json(user);
+});
 
-    const user = await User.findOne({ username }).select("-passwordHash");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc   get all users
+// @desc   Get all users
 // @route  GET /api/users/all
-const getAllUsers = async (req, res) => {
-  try {
-    const users = await User.find().select("-passwordHash");
-    res.status(200).json(users);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+const getAllUsers = asyncHandler(async (req, res) => {
+  const users = await userService.getAllUsers();
+  res.status(200).json(users);
+});
 
-// @desc   update User Profile
+// @desc   Update User Profile
 // @route  PUT /api/users/profile
-const updateUserProfile = async (req, res) => {
-  try {
-    const currentUserId = req.user._id;
-    const {
-      firstName,
-      lastName,
-      email,
-      bio,
-      aboutMe,
-      connections,
-      tags,
-      selectedBadges,
-    } = req.body;
+const updateUserProfile = asyncHandler(async (req, res) => {
+  const updatedUser = await userService.updateProfile(req.user._id, req.body, req.files);
+  res.status(200).json(updatedUser);
+});
 
-    const updates = {};
-    if (firstName !== undefined) updates.firstName = firstName;
-    if (lastName !== undefined) updates.lastName = lastName;
-    if (email !== undefined) updates.email = email;
-    if (bio !== undefined) updates.bio = bio;
-    if (aboutMe !== undefined) updates.aboutMe = aboutMe;
-
-    // connections/tags come through as JSON strings when sent via
-    // multipart/form-data (FormData) alongside the avatar/banner files.
-    // If they're already arrays (e.g. a plain JSON request), use as-is.
-    if (connections !== undefined) {
-      try {
-        updates.connections =
-          typeof connections === "string"
-            ? JSON.parse(connections)
-            : connections;
-      } catch (err) {
-        return res
-          .status(400)
-          .json({ message: "connections must be valid JSON" });
-      }
-    }
-
-    if (tags !== undefined) {
-      try {
-        updates.tags = typeof tags === "string" ? JSON.parse(tags) : tags;
-      } catch (err) {
-        return res.status(400).json({ message: "tags must be valid JSON" });
-      }
-    }
-
-    if (selectedBadges !== undefined) {
-      let parsedSelectedBadges;
-      try {
-        parsedSelectedBadges =
-          typeof selectedBadges === "string"
-            ? JSON.parse(selectedBadges)
-            : selectedBadges;
-      } catch (err) {
-        return res
-          .status(400)
-          .json({ message: "selectedBadges must be valid JSON" });
-      }
-
-      if (!Array.isArray(parsedSelectedBadges)) {
-        return res
-          .status(400)
-          .json({ message: "selectedBadges must be an array" });
-      }
-
-      if (parsedSelectedBadges.length > 3) {
-        return res
-          .status(400)
-          .json({ message: "You can only select up to 3 badges" });
-      }
-
-      updates.selectedBadges = parsedSelectedBadges;
-    }
-
-    // req.files instead of req.file since we now accept multiple file fields
-    if (req.files?.avatar) {
-      updates.avatarUrl = `/uploads/avatars/${req.files.avatar[0].filename}`;
-    }
-    if (req.files?.banner) {
-      updates.bannerUrl = `/uploads/banners/${req.files.banner[0].filename}`;
-    }
-
-    const user = await User.findByIdAndUpdate(currentUserId, updates, {
-      returnDocument: "after",
-      runValidators: true,
-    }).select("-passwordHash");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-
-// @desc   update User Password
+// @desc   Update User Password
 // @route  PUT /api/users/profile/password
-const updateUserPassword = async (req, res) => {
-  try {
-    const currentUserId = req.user._id;
-    const { oldPassword, newPassword } = req.body;
-
-    if (!oldPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "Both old and new password are required" });
-    }
-
-    const user = await User.findById(currentUserId);
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    if (!(await passHash.hashpass(oldPassword, user.passwordHash))) {
-      return res.status(401).json({ message: "Old password is incorrect" });
-    }
-
-    user.passwordHash = await passHash.hashpass(newPassword);
-    await user.save();
-
-    res.status(200).json({ message: "Password updated successfully" });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+const updateUserPassword = asyncHandler(async (req, res) => {
+  const result = await userService.updatePassword(req.user._id, req.body);
+  res.status(200).json(result);
+});
 
 // @desc   Verify/unverify a user (admin only)
 // @route  PATCH /api/users/:id/verify
-const setUserVerified = async (req, res) => {
-  try {
-    const { isVerified } = req.body;
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isVerified: !!isVerified },
-      { new: true, runValidators: true },
-    ).select("-passwordHash");
-
-    if (!user) return res.status(404).json({ message: "User not found" });
-    res.status(200).json(user);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
+const setUserVerified = asyncHandler(async (req, res) => {
+  const user = await userService.setVerified(req.params.id, req.body.isVerified);
+  res.status(200).json(user);
+});
 
 module.exports = {
   registerUser,

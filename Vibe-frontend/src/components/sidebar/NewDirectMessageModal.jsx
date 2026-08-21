@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { resolveMediaUrl } from "../utils/mediaUrl";
-import { createConversation } from "../api/conversationService";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { createConversation } from "../../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
 
 const NewDirectMessageModal = ({ show, onClose, allUsers, onCreated }) => {

@@ -1,23 +1,6 @@
 import { useEffect, useState } from "react";
-import "./css/Loader.css";
+import "../css/Loader.css";
 
-/**
- * Loader — Sage / RootMint themed
- * Full-screen, centered loading overlay: a plain spinner (track in the
- * theme's soft border color, active arc in the accent green) plus a
- * cycling status line underneath. No card, no logo, no dots.
- *
- * Uses your theme's CSS variables (--sage-*) when they're already defined
- * on the page, with matching fallbacks so it still looks right on its own.
- *
- * Requires Font Awesome to be loaded on the page (you already have it) —
- * set `useIcon` to false to fall back to a pure CSS spinner instead.
- *
- * Props:
- *  - messages: array   (status lines that cycle underneath)
- *  - messageInterval: number (ms between message changes, default 1800)
- *  - useIcon: bool      (use Font Awesome fa-spinner instead of CSS ring, default true)
- */
 export default function Loader({
   messages = [
     "Watering the roots...",

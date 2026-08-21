@@ -4,13 +4,20 @@ import {
   useImperativeHandle,
   useRef,
   useState,
+  useCallback,
+  createContext,
+  useContext,
 } from "react";
 import { Layout, Model, Actions } from "flexlayout-react";
+import "../css/IdeWorkspace.css";
 import "flexlayout-react/style/light.css";
-import WelcomePage from "../pages/main/WelcomePage";
-import ChatWindow from "./ChatWindow";
+import WelcomePage from "../../pages/main/WelcomePage";
+import ChatWindow from "../chat/ChatWindow";
 
 const normalizeChatId = (chat) => String(chat?._id ?? chat?.id ?? "");
+
+// Live source of truth for all open chats
+const OpenChatsContext = createContext([]);
 
 const initialJson = {
   global: {
@@ -32,7 +39,6 @@ const initialJson = {
   },
 };
 
-// Carries everything ChatWindow needs into the tab's config.
 const buildTabJson = (chat) => {
   const chatId = normalizeChatId(chat);
   return {
@@ -42,6 +48,7 @@ const buildTabJson = (chat) => {
     component: "chatWindow",
     config: {
       chatId,
+      // keep a snapshot only as fallback
       name: chat?.name || "Chat",
       avatarUrl: chat?.avatarUrl,
       recipientId: chat?.recipientId,
@@ -53,16 +60,41 @@ const buildTabJson = (chat) => {
   };
 };
 
+/**
+ * Thin wrapper that always reads the LATEST chat data from context.
+ * This is what makes the header dynamic for both click-opened and drag-opened tabs.
+ */
+function LiveChatWindow({ chatId, fallbackConfig, onClose }) {
+  const openChats = useContext(OpenChatsContext);
+
+  const latest = openChats.find((c) => normalizeChatId(c) === String(chatId));
+
+  const props = {
+    chatId,
+    name: latest?.name ?? fallbackConfig?.name ?? "Chat",
+    avatarUrl: latest?.avatarUrl ?? fallbackConfig?.avatarUrl,
+    recipientId: latest?.recipientId ?? fallbackConfig?.recipientId,
+    recipientUsername:
+      latest?.recipientUsername ?? fallbackConfig?.recipientUsername,
+    isGroup: Boolean(latest?.isGroup ?? fallbackConfig?.isGroup),
+    initialIsBlocked: Boolean(latest?.isBlocked ?? fallbackConfig?.isBlocked),
+    initialIsBlockedByOther: Boolean(
+      latest?.isBlockedByOther ?? fallbackConfig?.isBlockedByOther,
+    ),
+  };
+
+  return <ChatWindow {...props} onClose={onClose} />;
+}
+
 const IdeWorkspace = forwardRef(function IdeWorkspace(
   { openChats, onCloseChat },
   ref,
 ) {
   const [model] = useState(() => Model.fromJson(initialJson));
   const layoutRef = useRef(null);
-
-  // Only relevant while openChats is empty (WelcomePage overlay showing).
   const [isDragging, setIsDragging] = useState(false);
 
+  // Keep tabs in sync with openChats (mainly for tab title + existence)
   useEffect(() => {
     if (!openChats || openChats.length === 0) return;
 
@@ -77,19 +109,13 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
       } else {
         model.doAction(Actions.selectTab(chatId));
 
-        // Keep an already-open tab's cached name/avatar in sync — e.g.
-        // when a group's avatar or name is edited while its tab is open.
-        const nextConfig = buildTabJson(chat).config;
-        const currentConfig = existingNode.getConfig() || {};
-        const configChanged =
-          currentConfig.name !== nextConfig.name ||
-          currentConfig.avatarUrl !== nextConfig.avatarUrl;
-
-        if (configChanged) {
+        // Only update the visible tab title (name).
+        // Content props are handled live by LiveChatWindow + context.
+        const nextName = chat?.name || "Chat";
+        if (existingNode.getName() !== nextName) {
           model.doAction(
             Actions.updateNodeAttributes(chatId, {
-              name: nextConfig.name,
-              config: nextConfig,
+              name: nextName,
             }),
           );
         }
@@ -113,7 +139,7 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
 
         if (existingNode) {
           event.preventDefault();
-          layoutRef.current?.addTabToActiveTabSet(buildTabJson(chat));
+          model.doAction(Actions.selectTab(chatId));
           return;
         }
 
@@ -141,61 +167,58 @@ const IdeWorkspace = forwardRef(function IdeWorkspace(
     return action;
   };
 
-  const factory = (node) => {
-    const component = node.getComponent();
+  const factory = useCallback(
+    (node) => {
+      const component = node.getComponent();
 
-    if (component === "chatWindow") {
-      const config = node.getConfig() || {};
+      if (component === "chatWindow") {
+        const config = node.getConfig() || {};
+        const chatId = config.chatId;
 
-      return (
-        <ChatWindow
-          key={config.chatId}
-          chatId={config.chatId}
-          name={config.name}
-          avatarUrl={config.avatarUrl}
-          recipientId={config.recipientId}
-          recipientUsername={config.recipientUsername}
-          isGroup={config.isGroup}
-          initialIsBlocked={config.isBlocked}
-          initialIsBlockedByOther={config.isBlockedByOther}
-          onClose={() => {
-            // Close this tab programmatically
-            model.doAction(Actions.deleteTab(config.chatId));
-            // Also notify parent so openChats stays in sync
-            if (onCloseChat) {
-              onCloseChat(config.chatId);
-            }
-          }}
-        />
-      );
-    }
+        return (
+          <LiveChatWindow
+            key={chatId}
+            chatId={chatId}
+            fallbackConfig={config}
+            onClose={() => {
+              model.doAction(Actions.deleteTab(chatId));
+              if (onCloseChat) {
+                onCloseChat(chatId);
+              }
+            }}
+          />
+        );
+      }
 
-    return null;
-  };
+      return null;
+    },
+    [model, onCloseChat],
+  );
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      {/* Show WelcomePage as an overlay when no chats are open */}
-      {openChats.length === 0 && (
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            zIndex: 1,
-            pointerEvents: isDragging ? "none" : "auto",
-          }}
-        >
-          <WelcomePage />
-        </div>
-      )}
+    <OpenChatsContext.Provider value={openChats || []}>
+      <div style={{ position: "relative", width: "100%", height: "100%" }}>
+        {openChats.length === 0 && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              zIndex: 1,
+              pointerEvents: isDragging ? "none" : "auto",
+            }}
+          >
+            <WelcomePage />
+          </div>
+        )}
 
-      <Layout
-        factory={factory}
-        model={model}
-        onAction={handleAction}
-        ref={layoutRef}
-      />
-    </div>
+        <Layout
+          factory={factory}
+          model={model}
+          onAction={handleAction}
+          ref={layoutRef}
+        />
+      </div>
+    </OpenChatsContext.Provider>
   );
 });
 

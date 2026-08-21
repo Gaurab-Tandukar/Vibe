@@ -1,7 +1,7 @@
-import Navbar from "../../components/Navbar";
+import Navbar from "../../components/layout/Navbar";
 import ContactForm from "./component/ContactForm";
 import doodlePattern from "../../assets/doodle-pattern.svg";
-import Footer from "../../components/Footer";
+import Footer from "../../components/layout/Footer";
 
 export default function ContactPage() {
   return (

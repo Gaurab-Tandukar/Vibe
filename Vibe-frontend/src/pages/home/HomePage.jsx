@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import Navbar from "../../components/Navbar";
+import Navbar from "../../components/layout/Navbar";
 import Hero from "./component/Hero";
 import heroBg from "../../assets/Hero-img.jpg";
 import HeroNavBtn from "./component/HeroNavBtn";
@@ -8,7 +8,7 @@ import FeatureSection from "./component/FeatureSection";
 import HowItWorks from "./component/HowItWorks";
 import StatsStrip from "./component/Statsstrip";
 import Testimonials from "./component/Testimonials";
-import Footer from "../../components/Footer";
+import Footer from "../../components/layout/Footer";
 
 export default function HomePage() {
   return (

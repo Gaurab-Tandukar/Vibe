@@ -1,17 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { resolveMediaUrl } from "../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
 import {
   getGroupMembers,
   removeGroupMember,
   leaveGroup,
-} from "../api/conversationService";
+} from "../../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
-import AddMemberModal from "./AddMemberModel";
-import EditGroupModal from "./EditGroupModal";
-import ConfirmModal from "./ConfirmModal";
-import { useToast } from "../context/ToastContext";
-import "./css/Sidebar.css";
+import AddMemberModal from "../chat/AddMemberModal";
+import EditGroupModal from "../chat/EditGroupModal";
+import ConfirmModal from "../ui/ConfirmModal";
+import { useToast } from "../../context/ToastContext";
+import "../css/Sidebar.css";
 
 const GroupMembersPanel = ({
   group,

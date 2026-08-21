@@ -1,22 +1,18 @@
-// server.js
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const dotenv = require("dotenv");
 const connectDB = require("./config/dbConfig");
 const cors = require("cors");
 const errorHandler = require("./middleware/Errorhandler");
+const env = require("./config/env");
 
 // pathing for file upload
 const path = require("path");
 
-// Load environment variables
-dotenv.config();
-
 const app = express();
 
-const allowedOrigins = process.env.CLIENT_URL
-  ? [process.env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"]
+const allowedOrigins = env.CLIENT_URL
+  ? [env.CLIENT_URL, "http://localhost:5173", "http://localhost:3000"]
   : ["http://localhost:5173", "http://localhost:3000"];
 
 app.use(
@@ -72,10 +68,10 @@ app.set("io", io);
 const startServer = async () => {
   await connectDB();
 
-  const PORT = process.env.PORT || 3000;
+  const PORT = env.PORT || 3000;
 
   server.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Server running on port ${PORT} [${env.NODE_ENV}]`);
   });
 };
 

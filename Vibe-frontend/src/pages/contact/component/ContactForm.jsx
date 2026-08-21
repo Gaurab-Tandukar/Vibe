@@ -1,6 +1,6 @@
 import { useState } from "react";
-import FormField from "../../../components/FormField";
-import Button from "../../../components/Button";
+import FormField from "../../../components/ui/FormField";
+import Button from "../../../components/ui/Button";
 
 const INITIAL_FORM = {
   name: "",

@@ -1,4 +1,4 @@
-import { useCall } from "../hooks/useCall";
+import { useCall } from "../../hooks/useCall";
 
 // Mount once near the root of your app, self-hides unless call.status === "incoming"
 export default function IncomingCallModal({ getUserById }) {

@@ -1,6 +1,6 @@
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "../hooks/useAuth";
-import vibeIcon from "../assets/vibe-icon.png";
+import { useAuth } from "../../hooks/useAuth";
+import vibeIcon from "../../assets/vibe-icon.png";
 
 export default function Navbar() {
   const { isAuthenticated, user, logout } = useAuth();

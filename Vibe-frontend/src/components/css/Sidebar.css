@@ -10,7 +10,9 @@
   --sbd-text: #f2f3f5;
   --sbd-muted: #8b8d94;
   --sbd-accent: #52c98a; /* brightened sage-accent for legibility on dark */
-
+  --sbd-bg: #16171a;
+  --sbd-rail-w: 72px;
+  --sbd-total-w: 320px;
   font-family: "Itim", cursive;
 }
 
@@ -489,4 +491,60 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--sbd-muted);
+}
+
+/* ===== Rail buttons (matches the classes used in Sidebar.jsx) ===== */
+.sidebar-dark .sidebar-rail-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0 !important; /* remove Bootstrap btn padding */
+  border-radius: 50%;
+  border: none;
+  background-color: var(--sbd-panel);
+  color: var(--sbd-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden; /* clips group avatars neatly to the shape */
+  position: relative;
+  transition:
+    border-radius 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.sidebar-dark .sidebar-rail-btn:hover,
+.sidebar-dark .sidebar-rail-btn.active {
+  border-radius: 16px;
+  background-color: var(--sbd-accent);
+  color: #16171a;
+}
+
+/* Icons (chat, plus) stay centered */
+.sidebar-dark .sidebar-rail-btn i {
+  font-size: 1.25rem;
+  line-height: 1;
+  color: inherit;
+}
+
+/* Group Avatars: Fill the entire button cleanly */
+.sidebar-dark .sidebar-rail-btn img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+  display: block;
+}
+
+/* Main Vibe Logo: Keep contained properly without stretching or clipping */
+.sidebar-dark .sidebar-rail-btn img[alt="Vibe"] {
+  width: 28px !important;
+  height: 28px !important;
+  object-fit: contain;
+}
+
+/* Optional: give the home/logo button a subtle ring on hover */
+.sidebar-dark .sidebar-rail-btn:first-child:hover {
+  background-color: transparent;
+  box-shadow: 0 0 0 2px var(--sbd-accent);
+  border-radius: 16px;
 }
