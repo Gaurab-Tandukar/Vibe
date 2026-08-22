@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useSocket } from "../../context/SocketContext";
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 import {
   getMyConversations,
   getAllUsers,
@@ -640,8 +640,9 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
 
         {/* Direct Messages Icon */}
         <button
-          className={`sidebar-rail-btn btn p-0 mb-2 rounded-circle d-flex align-items-center justify-content-center ${activeGroupId === null && !isCollapsed ? "active" : ""
-            }`}
+          className={`sidebar-rail-btn btn p-0 mb-2 rounded-circle d-flex align-items-center justify-content-center ${
+            activeGroupId === null && !isCollapsed ? "active" : ""
+          }`}
           title="Direct Messages"
           onClick={() => {
             if (activeGroupId === null) {
@@ -668,8 +669,9 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
             return (
               <button
                 key={group._id}
-                className={`sidebar-rail-btn btn p-0 rounded-circle d-flex align-items-center justify-content-center overflow-hidden position-relative ${isActive ? "active" : ""
-                  }`}
+                className={`sidebar-rail-btn btn p-0 rounded-circle d-flex align-items-center justify-content-center overflow-hidden position-relative ${
+                  isActive ? "active" : ""
+                }`}
                 title={group.name}
                 onClick={() => {
                   setActiveGroupId(group._id);
@@ -764,7 +766,6 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
                   Messages
                 </span>
                 <div className="d-flex align-items-center gap-1">
-
                   <button
                     className="btn btn-sm sidebar-ghost-btn p-1 rounded-2"
                     title="Collapse sidebar"

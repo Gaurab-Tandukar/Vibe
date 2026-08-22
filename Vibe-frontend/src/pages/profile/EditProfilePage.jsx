@@ -4,7 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import { fetchProfile, updateProfile } from "../../api/profileService";
 import Loader from "../../components/ui/Loader";
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 
 export default function EditProfilePage() {
@@ -212,6 +212,7 @@ export default function EditProfilePage() {
   // user just cleared their bio), drop it from the selection automatically.
   useEffect(() => {
     const eligibleLabels = new Set(badgePool.map((b) => b.label));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedBadges((prev) => {
       const next = prev.filter((label) => eligibleLabels.has(label));
       return next.length === prev.length ? prev : next;
@@ -254,7 +255,8 @@ export default function EditProfilePage() {
       navigate("/profile");
     } catch (err) {
       console.error(err);
-      const msg = err.response?.data?.message || "Failed to save profile. Try again.";
+      const msg =
+        err.response?.data?.message || "Failed to save profile. Try again.";
       setError(msg);
       showToast("Failed to save profile", {
         description: msg,

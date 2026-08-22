@@ -4,7 +4,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { fetchProfile, getUserByUsername } from "../../api/profileService";
 import { createConversation } from "../../api/conversationService";
 import Loader from "../../components/ui/Loader";
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 import StatusDot from "./component/StatusDot";
 
@@ -55,7 +55,7 @@ export default function ProfilePage() {
   }, [isOwnProfile, username]);
 
   const taskBadges = useMemo(() => {
-    const list = [];;
+    const list = [];
 
     // Profile Pioneer badge
     if (profile?.bio || profile?.aboutMe || profile?.avatarUrl) {
@@ -136,9 +136,9 @@ export default function ProfilePage() {
     `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim();
   const memberSince = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString("en-US", {
-      month: "long",
-      year: "numeric",
-    })
+        month: "long",
+        year: "numeric",
+      })
     : "";
 
   const aboutMe = profile?.aboutMe;
@@ -316,7 +316,10 @@ export default function ProfilePage() {
                 disabled={startingChat}
               >
                 {startingChat ? (
-                  <span className="spinner-border spinner-border-sm" role="status" />
+                  <span
+                    className="spinner-border spinner-border-sm"
+                    role="status"
+                  />
                 ) : (
                   <>
                     <i className="bi bi-chat-dots-fill me-1" />
@@ -378,7 +381,10 @@ export default function ProfilePage() {
                         style={{ fontSize: "0.78rem" }}
                         onClick={() => navigate("/profile/edit")}
                       >
-                        <i className="bi bi-pencil-fill me-1" style={{ fontSize: "0.7rem" }} />
+                        <i
+                          className="bi bi-pencil-fill me-1"
+                          style={{ fontSize: "0.7rem" }}
+                        />
                         Edit badges
                       </button>
                     )}
