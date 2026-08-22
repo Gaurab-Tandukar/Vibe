@@ -20,14 +20,10 @@ app.use(
     origin: (origin, callback) => {
       // allow requests with no origin (like mobile apps or curl requests)
       if (!origin) return callback(null, true);
-      if (
-        allowedOrigins.includes(origin) ||
-        process.env.NODE_ENV !== "production" ||
-        allowedOrigins.includes("*")
-      ) {
+      if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
     },
     credentials: true,
   }),
@@ -56,7 +52,7 @@ const server = http.createServer(app);
 
 // attach socket.io to that server
 const io = new Server(server, {
-  cors: { origin: "*" },
+  cors: { origin: allowedOrigins, credentials: true },
 });
 
 // load our socket connection logic

@@ -2,6 +2,8 @@
 
 React 19 + Vite frontend for the Vibe real-time chat & WebRTC calling application.
 
+🔗 **Live:** [https://vibe-app.duckdns.org](https://vibe-app.duckdns.org)
+
 ---
 
 ## 📁 Folder Structure
@@ -9,6 +11,7 @@ React 19 + Vite frontend for the Vibe real-time chat & WebRTC calling applicatio
 ```
 Vibe-frontend/
 ├── .env                        # Environment variables (gitignored)
+├── .env.example                # Template — copy to .env and fill in
 ├── .gitignore
 ├── index.html
 ├── package.json
@@ -38,31 +41,48 @@ Vibe-frontend/
     ├── assets/                 # Static images & icons
     │
     ├── components/
-    │   ├── VideoCall.jsx           # Full-screen call UI
-    │   ├── IncommingCallModel.jsx  # Incoming call modal
-    │   ├── ChatWindow.jsx          # Message list, input, reactions
-    │   ├── Sidebar.jsx             # Conversation list & search
-    │   ├── Navbar.jsx
-    │   ├── NewGroupModal.jsx       # Create group conversation
-    │   ├── NewDirectMessageModal.jsx  # Start private chat
-    │   ├── EditGroupModal.jsx      # Edit group name/avatar
-    │   ├── GroupMembersPanel.jsx   # View/manage group members
-    │   ├── AddMemberModel.jsx      # Add members to a group
-    │   ├── ConversationSearch.jsx  # Search conversations
-    │   ├── ProtectedRoute.jsx      # Auth guard for private routes
-    │   ├── Loader.jsx              # Loading spinner
-    │   ├── Footer.jsx
-    │   ├── Button.jsx
-    │   ├── FormField.jsx
-    │   ├── CloseBtn.jsx
-    │   ├── IdeWorkspace.jsx
-    │   ├── Sidebarhelpers.jsx
+    │   ├── call/
+    │   │   ├── VideoCall.jsx           # Full-screen call UI
+    │   │   └── IncomingCallModal.jsx   # Incoming call modal
+    │   ├── chat/
+    │   │   ├── ChatWindow.jsx          # Message list, input, reactions
+    │   │   ├── MessageInput.jsx
+    │   │   ├── MessageItem.jsx
+    │   │   ├── MessageList.jsx
+    │   │   ├── ChatHeader.jsx
+    │   │   ├── AddMemberModal.jsx      # Add members to a group
+    │   │   ├── EditGroupModal.jsx      # Edit group name/avatar
+    │   │   ├── Avatar.jsx
+    │   │   └── ReplyPreviewBar.jsx
+    │   ├── sidebar/
+    │   │   ├── Sidebar.jsx             # Conversation list & search
+    │   │   ├── ConversationItem.jsx
+    │   │   ├── ConversationSearch.jsx  # Search conversations
+    │   │   ├── NewGroupModal.jsx       # Create group conversation
+    │   │   ├── NewDirectMessageModal.jsx # Start private chat
+    │   │   ├── GroupMembersPanel.jsx   # View/manage group members
+    │   │   └── BlockedUsersModal.jsx
+    │   ├── layout/
+    │   │   ├── Navbar.jsx
+    │   │   └── Footer.jsx
+    │   ├── notification/
+    │   │   └── NotificationDropdown.jsx
+    │   ├── ui/
+    │   │   ├── Button.jsx
+    │   │   ├── FormField.jsx
+    │   │   ├── CloseBtn.jsx
+    │   │   ├── ConfirmModal.jsx
+    │   │   ├── Loader.jsx              # Loading spinner
+    │   │   └── ProtectedRoute.jsx      # Auth guard for private routes
+    │   ├── workspace/
+    │   │   └── IdeWorkspace.jsx
     │   └── css/                    # Component-specific styles
     │
     ├── context/
     │   ├── AuthContext.jsx         # JWT + user state
     │   ├── SocketContext.jsx       # Socket.io connection
-    │   └── CallContext.jsx         # WebRTC call state & signaling
+    │   ├── CallContext.jsx         # WebRTC call state & signaling
+    │   └── ToastContext.jsx
     │
     ├── hooks/
     │   ├── useAuth.jsx
@@ -112,7 +132,11 @@ Vibe-frontend/
 
 ## ⚙️ Environment Variables
 
-Create a `.env` file in the root of `Vibe-frontend/`:
+Copy `.env.example` to `.env` in the root of `Vibe-frontend/` and fill in your own values:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 VITE_API_URL=http://localhost:3000
@@ -122,7 +146,7 @@ VITE_TURN_USERNAME=your_metered_username
 VITE_TURN_CREDENTIAL=your_metered_credential
 ```
 
-> Only variables prefixed with `VITE_` are exposed to the browser.
+> Only variables prefixed with `VITE_` are exposed to the browser. Vite bakes these in at **build time** — changing `.env` requires a rebuild (`npm run build`) to take effect, both locally and in deployment.
 
 ---
 
@@ -145,6 +169,14 @@ npm run preview   # optional local preview of the build
 
 ---
 
+## ☁️ Deployment
+
+In production, the `dist/` build output is served directly by Nginx as static files (no Node process needed for the frontend) — see the [root README's Deployment section](../readme.md#️-deployment) for the full architecture. Deploys are automated via GitHub Actions on every push to `main`.
+
+**Important:** `VITE_API_URL` must point to the deployed backend's HTTPS URL in production. WebRTC calling (`getUserMedia`) requires a [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts) — it will not work over plain `http://` on a non-localhost address.
+
+---
+
 ## 🔑 Authentication Flow
 
 1. User registers or logs in → receives JWT.
@@ -158,20 +190,20 @@ npm run preview   # optional local preview of the build
 
 ## 🗯️ Client-Side Routes
 
-| Path                 | Access       | Component         |
-| -------------------- | ------------ | ----------------- |
-| `/`                  | Guest only   | `HomePage`        |
-| `/login`             | Guest only   | `LoginPage`       |
-| `/register`          | Guest only   | `RegisterPage`    |
-| `/about`             | Public       | `AboutPage`       |
-| `/contact`           | Public       | `ContactPage`     |
-| `/privacy`           | Public       | `PrivacyPage`     |
-| `/terms`             | Public       | `TermsPage`       |
-| `/chat`              | Auth only    | `ChatHome`        |
-| `/profile`           | Auth only    | `ProfilePage`     |
-| `/profile/:username` | Auth only    | `ProfilePage`     |
-| `/profile/edit`      | Auth only    | `EditProfilePage` |
-| `*`                  | Public       | `ErrorPage`       |
+| Path                 | Access     | Component         |
+| -------------------- | ---------- | ----------------- |
+| `/`                  | Guest only | `HomePage`        |
+| `/login`             | Guest only | `LoginPage`       |
+| `/register`          | Guest only | `RegisterPage`    |
+| `/about`             | Public     | `AboutPage`       |
+| `/contact`           | Public     | `ContactPage`     |
+| `/privacy`           | Public     | `PrivacyPage`     |
+| `/terms`             | Public     | `TermsPage`       |
+| `/chat`              | Auth only  | `ChatHome`        |
+| `/profile`           | Auth only  | `ProfilePage`     |
+| `/profile/:username` | Auth only  | `ProfilePage`     |
+| `/profile/edit`      | Auth only  | `EditProfilePage` |
+| `*`                  | Public     | `ErrorPage`       |
 
 ---
 
@@ -180,8 +212,8 @@ npm run preview   # optional local preview of the build
 ### Key files
 
 - `src/context/CallContext.jsx` – call state, peer connection, signaling
-- `src/components/VideoCall.jsx` – full-screen UI + media element attachment
-- `src/components/IncommingCallModel.jsx` – accept / reject UI
+- `src/components/call/VideoCall.jsx` – full-screen UI + media element attachment
+- `src/components/call/IncomingCallModal.jsx` – accept / reject UI
 - `src/hooks/useCall.jsx` – convenience hook
 
 ### Flow summary
@@ -207,21 +239,21 @@ TURN is only used when a direct peer-to-peer connection cannot be established.
 
 ## 🎨 Main UI Components
 
-| Component                | Role                                              |
-| ------------------------ | ------------------------------------------------- |
-| `Sidebar`                | Conversation list, search, new chat/group         |
-| `ChatWindow`             | Message list, input, reactions, attachments       |
-| `VideoCall`              | Full-screen call overlay (remote + local video)   |
-| `IncommingCallModel`     | Incoming call accept/reject dialog                |
-| `NewGroupModal`          | Create a new group conversation                   |
-| `NewDirectMessageModal`  | Start a new private chat                          |
-| `EditGroupModal`         | Edit group name, avatar, description              |
-| `GroupMembersPanel`      | View members list, promote/remove                 |
-| `AddMemberModel`         | Add new members to an existing group              |
-| `ConversationSearch`     | Search across conversations                       |
-| `Navbar`                 | Top navigation bar                               |
-| `Loader`                 | Loading spinner for async states                  |
-| Various modals/forms     | Reusable `Button`, `FormField`, `CloseBtn`, etc.  |
+| Component               | Role                                             |
+| ----------------------- | ------------------------------------------------ |
+| `Sidebar`               | Conversation list, search, new chat/group        |
+| `ChatWindow`            | Message list, input, reactions, attachments      |
+| `VideoCall`             | Full-screen call overlay (remote + local video)  |
+| `IncomingCallModal`     | Incoming call accept/reject dialog               |
+| `NewGroupModal`         | Create a new group conversation                  |
+| `NewDirectMessageModal` | Start a new private chat                         |
+| `EditGroupModal`        | Edit group name, avatar, description             |
+| `GroupMembersPanel`     | View members list, promote/remove                |
+| `AddMemberModal`        | Add new members to an existing group             |
+| `ConversationSearch`    | Search across conversations                      |
+| `Navbar`                | Top navigation bar                               |
+| `Loader`                | Loading spinner for async states                 |
+| Various modals/forms    | Reusable `Button`, `FormField`, `CloseBtn`, etc. |
 
 ---
 
@@ -245,3 +277,4 @@ npm run lint      # ESLint
 - All real-time features (messages, typing, presence, calls) share the same Socket.io connection managed by `SocketContext`.
 - Bootstrap 5 is used for layout utilities; component-specific styles live in `src/components/css/`.
 - Only variables prefixed with `VITE_` are exposed to the browser bundle.
+- **Case sensitivity:** this project deploys to a Linux CI/production environment while development often happens on Windows, which is case-insensitive by default. Import paths (`import ... from "./utils/MediaURL"`) must match actual filenames exactly, including capitalization, or the production build will fail even though it works locally.

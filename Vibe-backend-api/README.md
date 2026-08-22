@@ -2,6 +2,8 @@
 
 Express 5 + Socket.io + MongoDB backend powering the Vibe real-time chat & calling application.
 
+🔗 **Live API:** [https://vibe-app.duckdns.org/api](https://vibe-app.duckdns.org/api)
+
 ---
 
 ## 📁 Folder Structure
@@ -9,13 +11,17 @@ Express 5 + Socket.io + MongoDB backend powering the Vibe real-time chat & calli
 ```
 Vibe-backend-api/
 ├── .env                        # Environment variables (gitignored)
+├── .env.example                # Template — copy to .env and fill in
+├── .dockerignore
 ├── .gitignore
+├── Dockerfile                  # Multi-stage build for production
 ├── package.json
 ├── package-lock.json
 ├── server.js                   # Entry point – starts Express + Socket.io
 │
 ├── config/
-│   └── dbConfig.js             # MongoDB connection
+│   ├── dbConfig.js             # MongoDB connection
+│   └── env.js                  # Centralized env var access
 │
 ├── controllers/
 │   ├── attachmentController.js
@@ -27,8 +33,10 @@ Vibe-backend-api/
 │
 ├── middleware/
 │   ├── authMiddleware.js       # JWT protect + authorize
+│   ├── asyncHandler.js
 │   ├── Errorhandler.js         # Global error handler
-│   └── uploadMiddleware.js     # Reusable Multer factory
+│   ├── uploadMiddleware.js     # Reusable Multer factory
+│   └── validationMiddleware.js
 │
 ├── model/
 │   ├── attachmentModel.js
@@ -47,13 +55,21 @@ Vibe-backend-api/
 │   ├── reactionRoute.js
 │   └── userRoute.js
 │
+├── services/
+│   ├── conversationService.js
+│   ├── messageService.js
+│   ├── notificationService.js
+│   └── userService.js
+│
 ├── socket/
 │   └── socketHandler.js        # Socket auth, rooms, messaging & call signaling
 │
 ├── scripts/
+│   ├── Backfilluserfields.js
 │   └── encryptExistingMessages.js
 │
 ├── util/
+│   ├── ApiError.js
 │   ├── encryption.js           # Message encryption helpers
 │   ├── jwtToken.js             # JWT sign / verify
 │   └── password.js             # bcrypt helpers
@@ -84,7 +100,11 @@ Vibe-backend-api/
 
 ## ⚙️ Environment Variables
 
-Create a `.env` file in the root of `Vibe-backend-api/`:
+Copy `.env.example` to `.env` in the root of `Vibe-backend-api/` and fill in your own values:
+
+```bash
+cp .env.example .env
+```
 
 ```env
 PORT=3000
@@ -94,9 +114,15 @@ MONGO_URI=mongodb://localhost:27017/vibe
 JWT_SECRET=your_super_secret_key_here
 JWT_EXPIRES_IN=30d
 
-# Optional – lock CORS to your deployed frontend URL
+# Encrypts message content at rest — required, the app will error on message
+# send if this is unset
+MESSAGE_ENCRYPTION_KEY=your_long_random_string
+
+# Locks CORS (REST + Socket.io) to this origin, plus localhost:5173/3000
 CLIENT_URL=https://your-frontend-domain.com
 ```
+
+> CORS is enforced against an explicit origin whitelist (`CLIENT_URL` + localhost). Requests from any other origin are rejected — make sure `CLIENT_URL` matches your deployed frontend's origin exactly (no trailing slash).
 
 ---
 
@@ -110,6 +136,25 @@ npm start     # production
 ```
 
 Server runs at `http://localhost:3000`.
+
+---
+
+## 🐳 Running with Docker
+
+```bash
+docker build -t vibe-backend:v1 .
+docker run -d --name vibe-backend -p 3000:3000 --env-file .env vibe-backend:v1
+```
+
+The production image is a multi-stage build (`node:20-alpine`) that installs dependencies in one stage and copies only the runtime artifacts into the final image, keeping it small.
+
+---
+
+## ☁️ Deployment
+
+In production this API runs as a Docker container on an EC2 instance, pulled from Amazon ECR, bound to `127.0.0.1:3000` and reverse-proxied by Nginx (which handles TLS and forwards `/api`, `/uploads`, and `/socket.io`, the latter with WebSocket upgrade headers). Deploys are automated via GitHub Actions on every push to `main`. See the [root README](../readme.md#️-deployment) for the full architecture diagram.
+
+Uploaded files are currently stored on a persistent Docker volume on the host — see [Known limitations](../SECURITY.md#known-limitations) for the planned move to Amazon S3.
 
 ---
 
@@ -145,7 +190,7 @@ io("http://localhost:3000", {
 Static uploads are served at:
 
 ```
-http://localhost:3000/uploads/<avatars|attachments|banners|groupAvatars>/<filename>
+/uploads/<avatars|attachments|banners|groupAvatars>/<filename>
 ```
 
 ---
@@ -182,7 +227,7 @@ http://localhost:3000/uploads/<avatars|attachments|banners|groupAvatars>/<filena
 - **User** – profile, password hash, avatar, online status
 - **Conversation** – private or group, name, members reference
 - **ConversationMember** – role (`admin` / `member`), join date
-- **Message** – text, sender, conversation, soft-delete, edit flag, readBy
+- **Message** – text (encrypted at rest), sender, conversation, soft-delete, edit flag, readBy
 - **Reaction** – emoji + user + message
 - **Attachment** – file metadata linked to message
 - **Notification** – type, recipient, related message/conversation, read status
@@ -203,14 +248,15 @@ http://localhost:3000/uploads/<avatars|attachments|banners|groupAvatars>/<filena
 npm run dev    # Development server (nodemon)
 npm start      # Production server
 # node scripts/encryptExistingMessages.js   # One-time migration helper
+# node scripts/Backfilluserfields.js        # One-time backfill helper
 ```
 
 ---
 
 ## 📝 Notes
 
-- Messages support soft-delete so conversation order and reply context stay intact.
+- Messages are encrypted at rest (`MESSAGE_ENCRYPTION_KEY`) and support soft-delete so conversation order and reply context stay intact.
 - Group notifications are collapsed on the client when a conversation has many unread items.
-- File storage is currently local (`uploads/`). Ready to be swapped for Cloudinary or S3.
-- CORS should be locked to the production frontend URL via the `CLIENT_URL` env variable before deployment.
+- File storage is currently local (`uploads/`, backed by a Docker volume in production). Migration to Amazon S3 is planned — see [Known limitations](../SECURITY.md#known-limitations).
+- CORS is enforced against an explicit whitelist via `CLIENT_URL` — do not deploy with a wildcard/open CORS policy.
 - Upload subfolders: `avatars/`, `attachments/`, `banners/`, `groupAvatars/`.

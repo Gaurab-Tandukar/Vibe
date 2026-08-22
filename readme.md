@@ -2,24 +2,26 @@
 
 A full-stack real-time chat application with private & group messaging, reactions, file attachments, live notifications, typing indicators, online presence, and **WebRTC audio/video calling**.
 
+🔗 **Live demo:** [https://vibe-app.duckdns.org](https://vibe-app.duckdns.org)
+
 ---
 
 ## ✨ Features
 
-| Feature                 | Description                                                                         |
-| ----------------------- | ----------------------------------------------------------------------------------- |
-| **Authentication**      | Register / Login with JWT (`x-auth-token`); guest routes redirect logged-in users   |
-| **Private Chat**        | 1-on-1 conversations with duplicate prevention                                      |
-| **Group Chat**          | Named groups with admin roles, add/remove members, leave group, admin transfer      |
-| **Messaging**           | Real-time text messages, edit, soft-delete, reply context preserved                 |
-| **Reactions**           | Emoji reactions on messages (toggle)                                                |
-| **Attachments**         | Image, PDF and other file uploads                                                   |
-| **Notifications**       | Real-time + grouped unread notifications                                            |
-| **Presence**            | Online / offline status + typing indicators                                         |
-| **Read Receipts**       | `readBy` tracking on messages                                                       |
-| **Audio / Video Calls** | WebRTC 1-1 calls with mute, camera toggle, and TURN fallback                        |
-| **Profiles**            | Avatar, banner, bio — view and edit your own or others' profiles                    |
-| **Legal Pages**         | Privacy Policy and Terms of Service pages                                           |
+| Feature                 | Description                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------- |
+| **Authentication**      | Register / Login with JWT (`x-auth-token`); guest routes redirect logged-in users |
+| **Private Chat**        | 1-on-1 conversations with duplicate prevention                                    |
+| **Group Chat**          | Named groups with admin roles, add/remove members, leave group, admin transfer    |
+| **Messaging**           | Real-time text messages, edit, soft-delete, reply context preserved               |
+| **Reactions**           | Emoji reactions on messages (toggle)                                              |
+| **Attachments**         | Image, PDF and other file uploads                                                 |
+| **Notifications**       | Real-time + grouped unread notifications                                          |
+| **Presence**            | Online / offline status + typing indicators                                       |
+| **Read Receipts**       | `readBy` tracking on messages                                                     |
+| **Audio / Video Calls** | WebRTC 1-1 calls with mute, camera toggle, and TURN fallback                      |
+| **Profiles**            | Avatar, banner, bio — view and edit your own or others' profiles                  |
+| **Legal Pages**         | Privacy Policy and Terms of Service pages                                         |
 
 ---
 
@@ -39,18 +41,18 @@ A full-stack real-time chat application with private & group messaging, reaction
 
 ### Frontend
 
-| Technology              | Version | Purpose                            |
-| ----------------------- | ------- | ---------------------------------- |
-| React                   | ^19.2   | UI library                         |
-| Vite                    | ^8.2    | Build tool & dev server            |
-| React Router DOM        | ^7.18   | Client-side routing                |
-| socket.io-client        | ^4.8    | Real-time events                   |
-| Axios                   | ^1.19   | HTTP requests                      |
-| Bootstrap 5             | ^5.3    | UI component base & layout         |
-| Bootstrap Icons         | ^1.13   | Icon set                           |
-| Font Awesome            | ^7.3    | Additional icons                   |
-| Native WebRTC           | —       | Audio / video peer-to-peer calls   |
-| Context API             | —       | Global state (auth, socket, calls) |
+| Technology       | Version | Purpose                            |
+| ---------------- | ------- | ---------------------------------- |
+| React            | ^19.2   | UI library                         |
+| Vite             | ^8.2    | Build tool & dev server            |
+| React Router DOM | ^7.18   | Client-side routing                |
+| socket.io-client | ^4.8    | Real-time events                   |
+| Axios            | ^1.19   | HTTP requests                      |
+| Bootstrap 5      | ^5.3    | UI component base & layout         |
+| Bootstrap Icons  | ^1.13   | Icon set                           |
+| Font Awesome     | ^7.3    | Additional icons                   |
+| Native WebRTC    | —       | Audio / video peer-to-peer calls   |
+| Context API      | —       | Global state (auth, socket, calls) |
 
 ### External Services
 
@@ -60,21 +62,38 @@ A full-stack real-time chat application with private & group messaging, reaction
 | **Metered.ca**               | STUN / TURN servers | Required for reliable WebRTC calls behind NAT |
 | **Google STUN**              | Free fallback STUN  | `stun:stun.l.google.com:19302`                |
 
+### Infrastructure & Deployment
+
+| Technology              | Purpose                                                                                            |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| Docker                  | Multi-stage build for the backend API                                                              |
+| Amazon ECR              | Container image registry                                                                           |
+| Amazon EC2              | Application host (Ubuntu, provisioned via Terraform)                                               |
+| Terraform               | Infrastructure as code (EC2, security group, Elastic IP)                                           |
+| Nginx                   | Reverse proxy — static frontend, `/api`, `/uploads`, `/socket.io` (with WebSocket upgrade support) |
+| Let's Encrypt / Certbot | Free TLS certificate, auto-renewing                                                                |
+| GitHub Actions          | CI/CD — builds, pushes to ECR, and redeploys on every push to `main`                               |
+
 ---
 
 ## 📁 Project Structure
 
 ```
 Vibe/
-├── Vibe-backend-api/     # Express + Socket.io + MongoDB
-├── Vibe-frontend/        # React + Vite
+├── .github/workflows/     # CI/CD pipeline (GitHub Actions)
+├── infra/                 # Terraform infrastructure-as-code
+├── Vibe-backend-api/      # Express + Socket.io + MongoDB
+├── Vibe-frontend/         # React + Vite
+├── LICENSE
+├── CONTRIBUTING.md
+├── SECURITY.md
 ├── .gitignore
-└── README.md             # ← you are here
+└── README.md              # ← you are here
 ```
 
 ---
 
-## 🚀 Installation & Setup
+## 🚀 Installation & Setup (local development)
 
 ### Prerequisites
 
@@ -94,50 +113,42 @@ cd Vibe
 ```bash
 cd Vibe-backend-api
 npm install
+cp .env.example .env   # then fill in your own values
+npm run dev             # development (nodemon)
 ```
 
-Create `.env` inside `Vibe-backend-api/`:
-
-```env
-PORT=3000
-MONGO_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=30d
-# Optional – lock CORS to your deployed frontend URL
-CLIENT_URL=https://your-frontend-domain.com
-```
-
-Start the backend:
-
-```bash
-npm run dev    # development (nodemon)
-npm start      # production
-```
-
-API available at `http://localhost:3000`.
+API available at `http://localhost:3000`. See [`Vibe-backend-api/README.md`](./Vibe-backend-api/README.md) for the full list of environment variables.
 
 ### 3. Frontend setup
 
 ```bash
 cd ../Vibe-frontend
 npm install
-```
-
-Create `.env` inside `Vibe-frontend/`:
-
-```env
-VITE_API_URL=http://localhost:3000
-VITE_TURN_USERNAME=your_metered_username
-VITE_TURN_CREDENTIAL=your_metered_credential
-```
-
-Start the frontend:
-
-```bash
+cp .env.example .env   # then fill in your own values
 npm run dev
 ```
 
-App will be available at `http://localhost:5173`.
+App available at `http://localhost:5173`. See [`Vibe-frontend/README.md`](./Vibe-frontend/README.md) for details.
+
+---
+
+## ☁️ Deployment
+
+The live demo runs on a single EC2 instance:
+
+```
+Browser ──HTTPS──▶ Nginx (reverse proxy + TLS) ──▶ Docker container (Express + Socket.io)
+                       │                                    │
+                       └──serves──▶ React static build      └──▶ MongoDB Atlas (external)
+```
+
+- Backend runs as a Docker container, pulled from Amazon ECR
+- Frontend is a static Vite build served directly by Nginx
+- Nginx handles TLS termination (Let's Encrypt) and proxies `/api`, `/uploads`, and `/socket.io` (with WebSocket upgrade headers) to the backend container
+- Infrastructure (EC2 instance, security group, Elastic IP) is provisioned via Terraform (`infra/`)
+- GitHub Actions builds and redeploys automatically on every push to `main`
+
+> **Note:** file uploads are currently stored on the server via a Docker volume rather than object storage. Migrating to Amazon S3 is a planned improvement — see [Known limitations](./SECURITY.md#known-limitations).
 
 ---
 
@@ -156,19 +167,19 @@ App will be available at `http://localhost:5173`.
 
 ## 📡 API Overview
 
-| Module        | Base Route           | Key Endpoints                                    |
-| ------------- | -------------------- | ------------------------------------------------ |
-| Users         | `/api/users`         | register, login, profile, avatar, password       |
-| Conversations | `/api/chats`         | create private/group, list, add/remove member    |
-| Messages      | `/api/messages`      | create, paginated get, edit, soft-delete         |
-| Reactions     | `/api/reactions`     | add/toggle, get by message                       |
-| Attachments   | `/api/attachments`   | upload, get by message                           |
-| Notifications | `/api/notifications` | list (grouped), unread count, mark read          |
+| Module        | Base Route           | Key Endpoints                                 |
+| ------------- | -------------------- | --------------------------------------------- |
+| Users         | `/api/users`         | register, login, profile, avatar, password    |
+| Conversations | `/api/chats`         | create private/group, list, add/remove member |
+| Messages      | `/api/messages`      | create, paginated get, edit, soft-delete      |
+| Reactions     | `/api/reactions`     | add/toggle, get by message                    |
+| Attachments   | `/api/attachments`   | upload, get by message                        |
+| Notifications | `/api/notifications` | list (grouped), unread count, mark read       |
 
 Static files are served from:
 
 ```
-http://localhost:3000/uploads/<avatars|attachments|banners|groupAvatars>/<filename>
+/uploads/<avatars|attachments|banners|groupAvatars>/<filename>
 ```
 
 ---
@@ -231,6 +242,14 @@ http://localhost:3000/uploads/<avatars|attachments|banners|groupAvatars>/<filena
 
 ---
 
+## 🤝 Contributing
+
+Contributions, bug reports, and suggestions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## 🔒 Security
+
+Found a vulnerability? Please see [SECURITY.md](./SECURITY.md) rather than opening a public issue.
+
 ## 📄 License
 
-This project is for educational / portfolio purposes.
+Released under the [MIT License](./LICENSE).
