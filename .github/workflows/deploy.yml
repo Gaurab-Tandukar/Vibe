@@ -1,0 +1,68 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        run: |
+          aws ecr get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
+
+      - name: Build & push backend image
+        working-directory: Vibe-backend-api
+        run: |
+          docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
+          docker push ${{ secrets.ECR_REPOSITORY }}:latest
+
+      - name: Build frontend
+        working-directory: Vibe-frontend
+        env:
+          VITE_API_URL: https://vibe-app.duckdns.org
+        run: |
+          npm install
+          npm run build
+
+      - name: Deploy frontend build over SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "Vibe-frontend/dist/*"
+          target: "/tmp/vibe-frontend"
+
+      - name: Redeploy backend container on EC2
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            sudo rm -rf /var/www/vibe/*
+            sudo cp -r /tmp/vibe-frontend/Vibe-frontend/dist/* /var/www/vibe/
+            sudo chown -R www-data:www-data /var/www/vibe
+            sudo chmod -R 755 /var/www/vibe
+            aws ecr get-login-password --region us-east-1 | \
+              docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
+            docker pull ${{ secrets.ECR_REPOSITORY }}:latest
+            docker stop vibe-backend && docker rm vibe-backend
+            docker run -d --name vibe-backend --restart unless-stopped \
+              -p 127.0.0.1:3000:3000 -v vibe-uploads:/app/uploads \
+              --env-file /home/ubuntu/vibe.env \
+              ${{ secrets.ECR_REPOSITORY }}:latest
+            sudo nginx -t && sudo systemctl reload nginx
