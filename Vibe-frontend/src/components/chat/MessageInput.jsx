@@ -1,5 +1,3 @@
-import { useRef } from "react";
-
 const formatFileSize = (bytes) => {
   if (bytes == null) return "";
   if (bytes < 1024) return `${bytes} B`;

@@ -1,4 +1,4 @@
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 import { getDMRecipient } from "./Sidebarhelpers";
 import StatusDot from "../../pages/profile/component/StatusDot";
 

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 import { getConversationDisplayName, getDMRecipient } from "./Sidebarhelpers";
 
 /**

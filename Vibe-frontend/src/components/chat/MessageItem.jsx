@@ -1,5 +1,5 @@
 import Avatar from "./Avatar";
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 
 const QUICK_EMOJIS = ["👍🏿", "🤣", "😮", "😢", "💀", "🤬"];
 

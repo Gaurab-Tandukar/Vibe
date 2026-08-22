@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 import { createConversation } from "../../api/conversationService";
 import { getUserDisplayName } from "./Sidebarhelpers";
 

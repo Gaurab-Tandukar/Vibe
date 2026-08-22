@@ -6,7 +6,6 @@ export default function MessageList({
   messagesEndRef,
   messages,
   loading,
-  hasMore,
   loadingMore,
   currentUserId,
   isRecipientOnline,
@@ -28,8 +27,10 @@ export default function MessageList({
     const current = messages[index];
     const next = messages[index + 1];
     if (!next) return true;
-    const currentSender = typeof current.sender === "object" ? current.sender._id : current.sender;
-    const nextSender = typeof next.sender === "object" ? next.sender._id : next.sender;
+    const currentSender =
+      typeof current.sender === "object" ? current.sender._id : current.sender;
+    const nextSender =
+      typeof next.sender === "object" ? next.sender._id : next.sender;
     return String(currentSender) !== String(nextSender);
   };
 
@@ -62,7 +63,8 @@ export default function MessageList({
         </div>
       ) : (
         messages.map((msg, index) => {
-          const senderId = typeof msg.sender === "object" ? msg.sender._id : msg.sender;
+          const senderId =
+            typeof msg.sender === "object" ? msg.sender._id : msg.sender;
           const isMe = String(senderId) === String(currentUserId);
           const isLatest = index === messages.length - 1;
           const isTopMessage = index < 2;
@@ -95,7 +97,10 @@ export default function MessageList({
 
       {typingUsers.size > 0 && (
         <div className="d-flex flex-column align-items-start chat-bubble-row">
-          <div className="d-flex align-items-end gap-2" style={{ maxWidth: "70%" }}>
+          <div
+            className="d-flex align-items-end gap-2"
+            style={{ maxWidth: "70%" }}
+          >
             <Avatar sender={firstTypingSender} />
             <div
               className="px-3 py-2 rounded-4 shadow-sm bg-white chat-bubble-other"

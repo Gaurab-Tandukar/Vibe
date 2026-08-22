@@ -1,4 +1,4 @@
-import { resolveMediaUrl } from "../../utils/mediaUrl";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 import { getUserDisplayName } from "./Sidebarhelpers";
 
 export default function BlockedUsersModal({
