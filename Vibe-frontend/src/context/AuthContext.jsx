@@ -16,6 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [error, setError] = useState(null);
 
   // Hydrate user profile on fresh page load if token exists
+  // Hydrate user profile on fresh page load if token exists
   useEffect(() => {
     async function hydrateUser() {
       const token = localStorage.getItem(STORAGE_KEYS.TOKEN);
@@ -26,6 +27,15 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(fullUser));
         setUser(fullUser);
       } catch (err) {
+        // Token is invalid / expired / user not found → treat as logged out
+        if (err.response?.status === 401 || err.response?.status === 403) {
+          localStorage.removeItem(STORAGE_KEYS.TOKEN);
+          localStorage.removeItem(STORAGE_KEYS.USER);
+          setUser(null);
+          return; // Don't log this as an error
+        }
+
+        // Only log unexpected errors
         console.error("Failed to sync profile data:", err);
       }
     }
