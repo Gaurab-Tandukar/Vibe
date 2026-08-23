@@ -28,6 +28,7 @@ export default function MessageItem({
   onReact,
   onTogglePicker,
   onScrollToMessage,
+  onRetrySend,
 }) {
   const time = msg.createdAt
     ? new Date(msg.createdAt).toLocaleTimeString([], {
@@ -35,6 +36,9 @@ export default function MessageItem({
         minute: "2-digit",
       })
     : "";
+
+  const isSending = msg.sendStatus === "sending";
+  const isFailed = msg.sendStatus === "failed";
 
   const isSeen =
     Array.isArray(msg.readBy) &&
@@ -70,12 +74,10 @@ export default function MessageItem({
       msg.content?.toLowerCase().includes("missed") ||
       msg.content?.toLowerCase().includes("declined");
 
-    // Aggressively remove any emoji character to get rid of the duplicate icon
     let cleanContent = msg.content
       .replace(/[\p{Emoji_Presentation}\p{Extended_Pictographic}]/gu, "")
       .trim();
 
-    // Provide a clean fallback if removing emojis leaves it empty
     if (!cleanContent) {
       cleanContent = isVideo
         ? isMissed
@@ -204,7 +206,7 @@ export default function MessageItem({
         style={{ maxWidth: "70%" }}
       >
         {/* Sender Actions (left side of bubble) */}
-        {isMe && !msg.isDeleted && (
+        {isMe && !msg.isDeleted && !isSending && !isFailed && (
           <div className="chat-bubble-actions d-flex gap-1 order-0 mb-2">
             <button
               type="button"
@@ -234,7 +236,7 @@ export default function MessageItem({
         )}
 
         <div
-          onDoubleClick={() => onDoubleClick(msg)}
+          onDoubleClick={() => !isSending && !isFailed && onDoubleClick(msg)}
           className={`position-relative px-3 py-2 rounded-4 shadow-sm chat-bubble-animated ${
             isLatest ? "chat-bubble-latest" : ""
           } ${editingMessageId === msg._id ? "chat-bubble-editing" : ""} ${
@@ -250,6 +252,7 @@ export default function MessageItem({
             borderBottomLeftRadius: !isMe ? 4 : undefined,
             marginBottom: reactionSummary.length > 0 ? 10 : 0,
             cursor: msg.isDeleted ? "default" : "pointer",
+            opacity: isSending ? 0.6 : isFailed ? 0.75 : 1,
           }}
         >
           {openPickerFor === msg._id && (
@@ -309,6 +312,7 @@ export default function MessageItem({
               fontSize: "0.95rem",
               lineHeight: "1.4",
               fontStyle: msg.isDeleted ? "italic" : "normal",
+              whiteSpace: msg.isDeleted ? "normal" : "pre-wrap",
             }}
           >
             {msg.isDeleted ? (
@@ -382,50 +386,71 @@ export default function MessageItem({
           alignSelf: isMe ? "flex-end" : "flex-start",
         }}
       >
-        <span>{time}</span>
-        {msg.isEdited && !msg.isDeleted && <span>· edited</span>}
-
-        {isMe && !msg.isDeleted && (
-          <span
-            className="d-inline-flex align-items-center ms-0.5"
-            title={
-              isSeen
-                ? "Seen"
-                : isRecipientOnline
-                  ? "Delivered"
-                  : "Sent"
-            }
+        {isFailed ? (
+          <button
+            type="button"
+            className="btn btn-link btn-sm p-0 text-danger d-inline-flex align-items-center gap-1"
+            style={{ fontSize: "0.68rem", textDecoration: "none" }}
+            onClick={() => onRetrySend?.(msg)}
           >
-            {isSeen ? (
-              <i
-                className="bi bi-check2-all"
-                style={{
-                  color: "#38d39f",
-                  fontSize: "0.92rem",
-                  lineHeight: 1,
-                  fontWeight: "bold",
-                }}
-              />
-            ) : isRecipientOnline ? (
-              <i
-                className="bi bi-check2-all text-secondary"
-                style={{
-                  fontSize: "0.92rem",
-                  lineHeight: 1,
-                  opacity: 0.85,
-                }}
-              />
-            ) : (
-              <i
-                className="bi bi-check2 text-secondary"
-                style={{
-                  fontSize: "0.88rem",
-                  lineHeight: 1,
-                  opacity: 0.75,
-                }}
-              />
+            <i className="bi bi-exclamation-circle-fill" />
+            Failed to send · Tap to retry
+          </button>
+        ) : (
+          <>
+            <span>{time}</span>
+            {msg.isEdited && !msg.isDeleted && <span>· edited</span>}
+
+            {isMe && !msg.isDeleted && (
+              <span
+                className="d-inline-flex align-items-center ms-0.5"
+                title={
+                  isSending
+                    ? "Sending..."
+                    : isSeen
+                      ? "Seen"
+                      : isRecipientOnline
+                        ? "Delivered"
+                        : "Sent"
+                }
+              >
+                {isSending ? (
+                  <i
+                    className="bi bi-clock text-secondary"
+                    style={{ fontSize: "0.82rem", lineHeight: 1, opacity: 0.7 }}
+                  />
+                ) : isSeen ? (
+                  <i
+                    className="bi bi-check2-all"
+                    style={{
+                      color: "#38d39f",
+                      fontSize: "0.92rem",
+                      lineHeight: 1,
+                      fontWeight: "bold",
+                    }}
+                  />
+                ) : isRecipientOnline ? (
+                  <i
+                    className="bi bi-check2-all text-secondary"
+                    style={{
+                      fontSize: "0.92rem",
+                      lineHeight: 1,
+                      opacity: 0.85,
+                    }}
+                  />
+                ) : (
+                  <i
+                    className="bi bi-check2 text-secondary"
+                    style={{
+                      fontSize: "0.88rem",
+                      lineHeight: 1,
+                      opacity: 0.75,
+                    }}
+                  />
+                )}
+              </span>
             )}
-          </span>
+          </>
         )}
       </div>
     </div>

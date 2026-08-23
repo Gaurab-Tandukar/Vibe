@@ -43,6 +43,9 @@ const formatRelativeTime = (isoString) => {
   return `${Math.floor(diffHr / 24)}d ago`;
 };
 
+const makeTempId = () =>
+  `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
 export default function ChatWindow({
   chatId,
   name,
@@ -73,6 +76,7 @@ export default function ChatWindow({
   const [pendingAttachment, setPendingAttachment] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState(null);
+  const [newMessageCount, setNewMessageCount] = useState(0);
 
   const [isBlocked, setIsBlocked] = useState(Boolean(initialIsBlocked));
   const isBlockedByOther = Boolean(initialIsBlockedByOther);
@@ -98,6 +102,11 @@ export default function ChatWindow({
   const typingTimeoutRef = useRef(null);
   const typingExpiryTimeoutsRef = useRef(new Map());
 
+  // FIFO queue of our own optimistic message tempIds still awaiting
+  // reconciliation — either by the HTTP response or the socket echo,
+  // whichever arrives first.
+  const pendingSendsRef = useRef([]);
+
   const clearAllTypingExpiryTimers = useCallback(() => {
     typingExpiryTimeoutsRef.current.forEach((timeoutId) =>
       clearTimeout(timeoutId),
@@ -111,6 +120,7 @@ export default function ChatWindow({
 
     let isMounted = true;
     isInitialLoadRef.current = true;
+    pendingSendsRef.current = [];
 
     async function fetchChatData() {
       setLoading(true);
@@ -141,6 +151,7 @@ export default function ChatWindow({
       setUploadError(null);
       setOpenPickerFor(null);
       setMessageToDelete(null);
+      setNewMessageCount(0);
 
       if (isTypingRef.current) {
         socket?.emit("stopTyping", chatId);
@@ -156,22 +167,30 @@ export default function ChatWindow({
 
   // Load older messages on scroll to top
   const handleScroll = async () => {
-    if (!chatContainerRef.current || loading || loadingMore || !hasMore || !nextCursor)
-      return;
+    const container = chatContainerRef.current;
+    if (container) {
+      const isNearBottom =
+        container.scrollHeight - container.scrollTop - container.clientHeight <
+        80;
+      if (isNearBottom && newMessageCount > 0) setNewMessageCount(0);
+    }
 
-    if (chatContainerRef.current.scrollTop <= 10) {
+    if (!container || loading || loadingMore || !hasMore || !nextCursor) return;
+
+    if (container.scrollTop <= 10) {
       setLoadingMore(true);
-      const container = chatContainerRef.current;
       const prevScrollHeight = container.scrollHeight;
 
       try {
-        const data = await getMessages(chatId, { before: nextCursor, limit: 30 });
+        const data = await getMessages(chatId, {
+          before: nextCursor,
+          limit: 30,
+        });
         if (data.messages && data.messages.length > 0) {
           setMessages((prev) => [...data.messages, ...prev]);
           setHasMore(Boolean(data.hasMore));
           setNextCursor(data.nextCursor || null);
 
-          // Maintain scroll position after prepending older messages
           requestAnimationFrame(() => {
             if (container) {
               container.scrollTop = container.scrollHeight - prevScrollHeight;
@@ -199,16 +218,36 @@ export default function ChatWindow({
     }
   }, [loading, chatId, messages.length]);
 
-  // Auto-scroll on new message if near bottom
+  // Auto-scroll on new message if near bottom; otherwise surface a
+  // "new messages" pill instead of silently appending off-screen.
   useEffect(() => {
     if (loading || isInitialLoadRef.current || !chatContainerRef.current)
       return;
     const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
     const isNearBottom = scrollHeight - scrollTop - clientHeight < 180;
+
     if (isNearBottom) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+      setNewMessageCount(0);
+      return;
     }
-  }, [messages.length, loading]);
+
+    const lastMessage = messages[messages.length - 1];
+    const lastSenderId = lastMessage?.sender?._id || lastMessage?.sender;
+    const isFromOther =
+      lastMessage && String(lastSenderId) !== String(currentUserId);
+
+    if (isFromOther) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setNewMessageCount((prev) => prev + 1);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length, loading, currentUserId]);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setNewMessageCount(0);
+  };
 
   // Socket listeners for real-time chat updates
   useEffect(() => {
@@ -217,15 +256,38 @@ export default function ChatWindow({
     const belongsHere = (conversation) => {
       if (!conversation) return false;
       const id =
-        typeof conversation === "object" ? conversation._id || conversation.id || conversation : conversation;
+        typeof conversation === "object"
+          ? conversation._id || conversation.id || conversation
+          : conversation;
       return String(id) === String(chatId);
     };
 
     const handleNewMessage = (msg) => {
       if (!belongsHere(msg.conversation)) return;
-      setMessages((prev) =>
-        prev.some((m) => String(m._id) === String(msg._id)) ? prev : [...prev, msg],
-      );
+
+      const senderId = msg.sender?._id || msg.sender;
+      const isOwnMessage = String(senderId) === String(currentUserId);
+
+      setMessages((prev) => {
+        if (prev.some((m) => String(m._id) === String(msg._id))) return prev;
+
+        // If this is the server echo of a message we sent optimistically,
+        // reconcile it into the existing temp bubble instead of appending
+        // a duplicate — handles the case where the socket event beats the
+        // HTTP response back to the client.
+        if (isOwnMessage && pendingSendsRef.current.length > 0) {
+          const tempId = pendingSendsRef.current.shift();
+          const idx = prev.findIndex((m) => m._id === tempId);
+          if (idx !== -1) {
+            const next = [...prev];
+            next[idx] = { ...msg, isOptimistic: false };
+            return next;
+          }
+        }
+
+        return [...prev, msg];
+      });
+
       markMessagesRead(chatId).catch(() => {});
     };
 
@@ -255,7 +317,9 @@ export default function ChatWindow({
 
     const handleReactionUpdated = ({ messageId, reactions }) => {
       setMessages((prev) =>
-        prev.map((m) => (String(m._id) === String(messageId) ? { ...m, reactions } : m)),
+        prev.map((m) =>
+          String(m._id) === String(messageId) ? { ...m, reactions } : m,
+        ),
       );
     };
 
@@ -369,6 +433,50 @@ export default function ChatWindow({
     }
   };
 
+  // Shared send logic — used both by the initial send and by retry, so
+  // a failed message can be re-attempted without duplicating this code.
+  const performSend = async ({
+    content,
+    type,
+    attachments,
+    replyTo,
+    tempId,
+  }) => {
+    try {
+      const data = await sendMessageApi({
+        conversationId: chatId,
+        content,
+        type,
+        attachments,
+        replyTo: replyTo ? replyTo._id : undefined,
+      });
+
+      const realMessage = data?.message || data;
+
+      setMessages((prev) => {
+        const idx = prev.findIndex((m) => m._id === tempId);
+        // Already reconciled by the socket echo — nothing to do.
+        if (idx === -1) return prev;
+        const next = [...prev];
+        next[idx] = { ...realMessage, isOptimistic: false };
+        return next;
+      });
+      pendingSendsRef.current = pendingSendsRef.current.filter(
+        (id) => id !== tempId,
+      );
+    } catch (err) {
+      console.error("Failed to send message:", err?.response?.data || err);
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === tempId ? { ...m, sendStatus: "failed" } : m,
+        ),
+      );
+      pendingSendsRef.current = pendingSendsRef.current.filter(
+        (id) => id !== tempId,
+      );
+    }
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
     const content = inputText.trim();
@@ -381,28 +489,68 @@ export default function ChatWindow({
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     }
 
-    setSending(true);
-    try {
-      // ✅ CORRECT – pass an object
-      await sendMessageApi({
-        conversationId: chatId,
-        content,
-        type: pendingAttachment ? "file" : "text",
-        attachments: pendingAttachment ? [pendingAttachment] : [],
-        replyTo: replyingTo ? replyingTo._id : undefined,
-      });
+    const tempId = makeTempId();
+    const attachmentsSnapshot = pendingAttachment ? [pendingAttachment] : [];
+    const replyToSnapshot = replyingTo;
+    const type = pendingAttachment ? "file" : "text";
 
-      setInputText("");
-      setPendingAttachment(null);
-      setReplyingTo(null);
-    } catch (err) {
-      console.error("Failed to send message:", err?.response?.data || err);
-      showToast(err?.response?.data?.message || "Failed to send message", {
-        type: "error",
-      });
-    } finally {
-      setSending(false);
-    }
+    const optimisticMessage = {
+      _id: tempId,
+      conversation: chatId,
+      sender: {
+        _id: currentUserId,
+        username: user?.username,
+        avatarUrl: user?.avatarUrl,
+      },
+      content,
+      type,
+      attachments: attachmentsSnapshot,
+      replyTo: replyToSnapshot || undefined,
+      createdAt: new Date().toISOString(),
+      readBy: [],
+      reactions: [],
+      isOptimistic: true,
+      sendStatus: "sending",
+    };
+
+    // Clear the composer immediately — the UI shouldn't wait on the
+    // network round-trip to feel responsive.
+    setMessages((prev) => [...prev, optimisticMessage]);
+    pendingSendsRef.current.push(tempId);
+    setInputText("");
+    setPendingAttachment(null);
+    setReplyingTo(null);
+    setSending(true);
+
+    await performSend({
+      content,
+      type,
+      attachments: attachmentsSnapshot,
+      replyTo: replyToSnapshot,
+      tempId,
+    });
+
+    setSending(false);
+    requestAnimationFrame(() => inputRef.current?.focus());
+  };
+
+  // Retry a failed optimistic message in place — keeps its position and
+  // tempId, just flips it back to "sending" and re-fires the request.
+  const handleRetrySend = async (failedMsg) => {
+    const tempId = failedMsg._id;
+
+    setMessages((prev) =>
+      prev.map((m) => (m._id === tempId ? { ...m, sendStatus: "sending" } : m)),
+    );
+    pendingSendsRef.current.push(tempId);
+
+    await performSend({
+      content: failedMsg.content,
+      type: failedMsg.type,
+      attachments: failedMsg.attachments,
+      replyTo: failedMsg.replyTo,
+      tempId,
+    });
   };
 
   const confirmDelete = async () => {
@@ -563,31 +711,53 @@ export default function ChatWindow({
         </div>
       )}
 
-      <MessageList
-        chatContainerRef={chatContainerRef}
-        messagesEndRef={messagesEndRef}
-        messages={messages}
-        loading={loading}
-        hasMore={hasMore}
-        loadingMore={loadingMore}
-        onScroll={handleScroll}
-        currentUserId={currentUserId}
-        isRecipientOnline={isRecipientOnline}
-        editingMessageId={editingMessageId}
-        openPickerFor={openPickerFor}
-        isConversationBlocked={isConversationBlocked}
-        typingUsers={typingUsers}
-        onDoubleClickMessage={handleDoubleClickMessage}
-        onStartEdit={handleStartEdit}
-        onDeletePrompt={(id) => setMessageToDelete(id)}
-        onStartReply={(msg) => setReplyingTo(msg)}
-        onReact={handleReact}
-        onTogglePicker={(id) =>
-          setOpenPickerFor((prev) => (prev === id ? null : id))
-        }
-        onScrollToMessage={scrollToMessage}
-        doodlePattern={doodlePattern}
-      />
+      <div className="position-relative flex-grow-1 overflow-hidden d-flex flex-column">
+        <MessageList
+          chatContainerRef={chatContainerRef}
+          messagesEndRef={messagesEndRef}
+          messages={messages}
+          loading={loading}
+          hasMore={hasMore}
+          loadingMore={loadingMore}
+          onScroll={handleScroll}
+          currentUserId={currentUserId}
+          isRecipientOnline={isRecipientOnline}
+          editingMessageId={editingMessageId}
+          openPickerFor={openPickerFor}
+          isConversationBlocked={isConversationBlocked}
+          typingUsers={typingUsers}
+          onDoubleClickMessage={handleDoubleClickMessage}
+          onStartEdit={handleStartEdit}
+          onDeletePrompt={(id) => setMessageToDelete(id)}
+          onStartReply={(msg) => setReplyingTo(msg)}
+          onReact={handleReact}
+          onTogglePicker={(id) =>
+            setOpenPickerFor((prev) => (prev === id ? null : id))
+          }
+          onScrollToMessage={scrollToMessage}
+          onRetrySend={handleRetrySend}
+          doodlePattern={doodlePattern}
+        />
+
+        {newMessageCount > 0 && (
+          <button
+            type="button"
+            className="btn btn-success btn-sm rounded-pill shadow position-absolute d-flex align-items-center gap-2"
+            style={{
+              bottom: 16,
+              left: "50%",
+              transform: "translateX(-50%)",
+              zIndex: 5,
+              paddingLeft: "0.9rem",
+              paddingRight: "0.9rem",
+            }}
+            onClick={scrollToBottom}
+          >
+            <i className="bi bi-arrow-down" />
+            {newMessageCount} new message{newMessageCount > 1 ? "s" : ""}
+          </button>
+        )}
+      </div>
 
       <ReplyPreviewBar
         replyingTo={replyingTo}

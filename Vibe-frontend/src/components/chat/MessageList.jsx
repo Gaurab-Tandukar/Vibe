@@ -21,6 +21,7 @@ export default function MessageList({
   onReact,
   onTogglePicker,
   onScrollToMessage,
+  onRetrySend,
   doodlePattern,
 }) {
   const isLastInSenderGroup = (index) => {
@@ -90,6 +91,7 @@ export default function MessageList({
               onReact={onReact}
               onTogglePicker={onTogglePicker}
               onScrollToMessage={onScrollToMessage}
+              onRetrySend={onRetrySend}
             />
           );
         })
