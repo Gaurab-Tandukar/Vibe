@@ -43,7 +43,7 @@ jobs:
           VITE_TURN_USERNAME: ${{ secrets.VITE_TURN_USERNAME }}
           VITE_TURN_CREDENTIAL: ${{ secrets.VITE_TURN_CREDENTIAL }}
         run: |
-          npm install
+          npm ci
           npm run build
           echo "----- dist/assets right after CI build -----"
           ls -la dist/assets
