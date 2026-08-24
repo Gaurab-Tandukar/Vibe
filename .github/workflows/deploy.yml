@@ -20,14 +20,17 @@ jobs:
 
       - name: Login to ECR
         run: |
+          set -euo pipefail
           aws ecr get-login-password --region us-east-1 | \
           docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
 
       - name: Build & push backend image
         working-directory: Vibe-backend-api
         run: |
+          set -euo pipefail
           docker build -t ${{ secrets.ECR_REPOSITORY }}:latest .
           docker push ${{ secrets.ECR_REPOSITORY }}:latest
+          echo "Pushed digest: $(docker inspect --format='{{index .RepoDigests 0}}' ${{ secrets.ECR_REPOSITORY }}:latest)"
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -43,6 +46,7 @@ jobs:
           VITE_TURN_USERNAME: ${{ secrets.VITE_TURN_USERNAME }}
           VITE_TURN_CREDENTIAL: ${{ secrets.VITE_TURN_CREDENTIAL }}
         run: |
+          set -euo pipefail
           npm ci
           npm run build
 
@@ -61,17 +65,46 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
+          envs: AWS_ACCESS_KEY_ID,AWS_SECRET_ACCESS_KEY,AWS_SESSION_TOKEN
           script: |
+            set -euo pipefail
+
             sudo rm -rf /var/www/vibe/*
             sudo cp -r /tmp/vibe-frontend/Vibe-frontend/dist/* /var/www/vibe/
             sudo chown -R www-data:www-data /var/www/vibe
             sudo chmod -R 755 /var/www/vibe
+
+            # Use the freshly-forwarded GitHub Actions credentials for this
+            # login, NOT whatever is (or isn't) sitting in ~/.aws/credentials
+            # on this box. This avoids the box's own creds silently expiring
+            # out from under the deploy.
+            export AWS_ACCESS_KEY_ID
+            export AWS_SECRET_ACCESS_KEY
+            export AWS_SESSION_TOKEN
+
             aws ecr get-login-password --region us-east-1 | \
               docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY }}
+
+            # Remove any locally-cached image first so there is nothing for
+            # docker run to silently fall back to if the pull below were to
+            # ever fail. Combined with `set -e` above, a failed pull now
+            # aborts the whole script instead of quietly redeploying stale code.
+            docker rmi ${{ secrets.ECR_REPOSITORY }}:latest 2>/dev/null || true
+
             docker pull ${{ secrets.ECR_REPOSITORY }}:latest
-            docker stop vibe-backend && docker rm vibe-backend
+
+            if docker ps -a --format '{{.Names}}' | grep -q '^vibe-backend$'; then
+              docker stop vibe-backend
+              docker rm vibe-backend
+            fi
+
             docker run -d --name vibe-backend --restart unless-stopped \
               -p 127.0.0.1:3000:3000 -v vibe-uploads:/app/uploads \
               --env-file /home/ubuntu/vibe.env \
               ${{ secrets.ECR_REPOSITORY }}:latest
-            sudo nginx -t && sudo systemctl reload nginx
+
+            sudo nginx -t
+            sudo systemctl reload nginx
+
+            echo "Deployed image ID on this container: $(docker inspect --format='{{.Image}}' vibe-backend)"
