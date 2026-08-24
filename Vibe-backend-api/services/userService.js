@@ -7,8 +7,22 @@ const ApiError = require("../util/ApiError");
  * Enterprise Service Layer for User Operations
  */
 class UserService {
-  async register({ firstName, lastName, username, email, phoneNumber, password }) {
-    if (!firstName || !lastName || !username || !email || !phoneNumber || !password) {
+  async register({
+    firstName,
+    lastName,
+    username,
+    email,
+    phoneNumber,
+    password,
+  }) {
+    if (
+      !firstName ||
+      !lastName ||
+      !username ||
+      !email ||
+      !phoneNumber ||
+      !password
+    ) {
       throw ApiError.badRequest("Please provide all required fields");
     }
 
@@ -16,7 +30,11 @@ class UserService {
     const normalizedUsername = username.trim();
 
     const userExists = await User.findOne({
-      $or: [{ email: normalizedEmail }, { username: normalizedUsername }, { phoneNumber }],
+      $or: [
+        { email: normalizedEmail },
+        { username: normalizedUsername },
+        { phoneNumber },
+      ],
     });
 
     if (userExists) {
@@ -27,7 +45,9 @@ class UserService {
         throw ApiError.conflict("This username is already taken");
       }
       if (userExists.phoneNumber === phoneNumber) {
-        throw ApiError.conflict("An account with this phone number already exists");
+        throw ApiError.conflict(
+          "An account with this phone number already exists",
+        );
       }
       throw ApiError.conflict("User already exists");
     }
@@ -63,7 +83,7 @@ class UserService {
       $or: [{ username: cleanInput }, { email: cleanInput.toLowerCase() }],
     });
 
-    if (!user || !(await passHash.hashpass(password, user.passwordHash))) {
+    if (!user || !(await passHash.comparePass(password, user.passwordHash))) {
       throw ApiError.unauthorized("Invalid credentials");
     }
 
@@ -87,7 +107,9 @@ class UserService {
 
   async getByUsername(username) {
     const cleanUsername = username.trim();
-    const user = await User.findOne({ username: cleanUsername }).select("-passwordHash");
+    const user = await User.findOne({ username: cleanUsername }).select(
+      "-passwordHash",
+    );
     if (!user) throw ApiError.notFound("User not found");
     return user;
   }
@@ -98,7 +120,16 @@ class UserService {
 
   async updateProfile(userId, body, files) {
     const updates = {};
-    const { firstName, lastName, email, bio, aboutMe, connections, tags, selectedBadges } = body;
+    const {
+      firstName,
+      lastName,
+      email,
+      bio,
+      aboutMe,
+      connections,
+      tags,
+      selectedBadges,
+    } = body;
 
     if (firstName !== undefined) updates.firstName = firstName.trim();
     if (lastName !== undefined) updates.lastName = lastName.trim();
@@ -108,7 +139,10 @@ class UserService {
 
     if (connections !== undefined) {
       try {
-        updates.connections = typeof connections === "string" ? JSON.parse(connections) : connections;
+        updates.connections =
+          typeof connections === "string"
+            ? JSON.parse(connections)
+            : connections;
       } catch (err) {
         throw ApiError.badRequest("Connections must be valid JSON");
       }
@@ -125,7 +159,10 @@ class UserService {
     if (selectedBadges !== undefined) {
       let parsed;
       try {
-        parsed = typeof selectedBadges === "string" ? JSON.parse(selectedBadges) : selectedBadges;
+        parsed =
+          typeof selectedBadges === "string"
+            ? JSON.parse(selectedBadges)
+            : selectedBadges;
       } catch (err) {
         throw ApiError.badRequest("SelectedBadges must be valid JSON");
       }
@@ -169,7 +206,7 @@ class UserService {
     const user = await User.findById(userId);
     if (!user) throw ApiError.notFound("User not found");
 
-    if (!(await passHash.hashpass(oldPassword, user.passwordHash))) {
+    if (!(await passHash.comparePass(oldPassword, user.passwordHash))) {
       throw ApiError.unauthorized("Old password is incorrect");
     }
 

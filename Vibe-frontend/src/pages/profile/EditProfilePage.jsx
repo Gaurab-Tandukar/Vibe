@@ -2,8 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
-import { fetchProfile, updateProfile } from "../../api/profileService";
+import {
+  fetchProfile,
+  updateProfile,
+  updatePassword,
+} from "../../api/profileService";
 import Loader from "../../components/ui/Loader";
+import FormInput from "../../components/ui/FormField";
 import { resolveMediaUrl } from "../../utils/MediaURL";
 import doodlePattern from "../../assets/doodle-pattern.svg";
 
@@ -31,19 +36,29 @@ export default function EditProfilePage() {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
 
-  const [badges, setBadges] = useState([]); // all badges the user has obtained (read-only, from backend)
-  const [selectedBadges, setSelectedBadges] = useState([]); // labels of the badges chosen for display (max 3)
+  const [badges, setBadges] = useState([]);
+  const [selectedBadges, setSelectedBadges] = useState([]);
   const [stats, setStats] = useState({
     messagesSent: 0,
     totalChats: 0,
     groupsJoined: 0,
-  }); // read-only usage stats, used to compute stat-based achievement badges
+  });
   const MAX_DISPLAYED_BADGES = 3;
 
   const [avatarFile, setAvatarFile] = useState(null);
   const [bannerFile, setBannerFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
   const [bannerPreview, setBannerPreview] = useState(null);
+
+  // Password change (Danger Zone)
+  const [passwordForm, setPasswordForm] = useState({
+    oldPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
+  const [passwordTouched, setPasswordTouched] = useState({});
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -147,15 +162,12 @@ export default function EditProfilePage() {
         return prev.filter((l) => l !== label);
       }
       if (prev.length >= MAX_DISPLAYED_BADGES) {
-        // Already at the cap — ignore the click instead of exceeding the limit
         return prev;
       }
       return [...prev, label];
     });
   }
 
-  // The auto-earned achievement badges, computed live from the current
-  // (possibly unsaved) form state — same rules as on the profile page.
   const taskBadges = useMemo(() => {
     const list = [];
 
@@ -202,14 +214,11 @@ export default function EditProfilePage() {
     return list;
   }, [form.bio, form.aboutMe, avatarPreview, connections, tags, stats]);
 
-  // Achievement badges + backend-issued badges share the same 3 slots
   const badgePool = useMemo(
     () => [...taskBadges, ...badges],
     [taskBadges, badges],
   );
 
-  // If an achievement badge that was selected is no longer earned (e.g. the
-  // user just cleared their bio), drop it from the selection automatically.
   useEffect(() => {
     const eligibleLabels = new Set(badgePool.map((b) => b.label));
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -222,6 +231,83 @@ export default function EditProfilePage() {
   function handleLogout() {
     logout();
     navigate("/login");
+  }
+
+  function handlePasswordChange(e) {
+    const { name, value } = e.target;
+    setPasswordForm((p) => ({ ...p, [name]: value }));
+    if (passwordError) setPasswordError(null);
+  }
+
+  function handlePasswordBlur(e) {
+    setPasswordTouched((prev) => ({ ...prev, [e.target.name]: true }));
+  }
+
+  function getPasswordError(field) {
+    const { oldPassword, newPassword, confirmPassword } = passwordForm;
+    if (field === "oldPassword") {
+      return !oldPassword ? "Current password is required." : "";
+    }
+    if (field === "newPassword") {
+      if (!newPassword) return "New password is required.";
+      if (newPassword.length < 6)
+        return "New password must be at least 6 characters.";
+      return "";
+    }
+    if (field === "confirmPassword") {
+      if (!confirmPassword) return "Please confirm your new password.";
+      if (newPassword && confirmPassword !== newPassword)
+        return "Passwords do not match.";
+      return "";
+    }
+    return "";
+  }
+
+  async function handlePasswordUpdate(e) {
+    e.preventDefault();
+    setPasswordError(null);
+
+    setPasswordTouched({
+      oldPassword: true,
+      newPassword: true,
+      confirmPassword: true,
+    });
+
+    const hasFieldError =
+      getPasswordError("oldPassword") ||
+      getPasswordError("newPassword") ||
+      getPasswordError("confirmPassword");
+
+    if (hasFieldError) return;
+
+    setPasswordSaving(true);
+    try {
+      await updatePassword({
+        oldPassword: passwordForm.oldPassword,
+        newPassword: passwordForm.newPassword,
+      });
+      showToast("Password updated successfully", {
+        description: "Your password has been changed.",
+        type: "success",
+      });
+      setPasswordForm({
+        oldPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
+      setPasswordTouched({});
+    } catch (err) {
+      console.error(err);
+      const msg =
+        err.response?.data?.message || "Failed to update password. Try again.";
+      setPasswordError(msg);
+      showToast("Failed to update password", {
+        description: msg,
+        type: "error",
+      });
+    } finally {
+      setPasswordSaving(false);
+    }
   }
 
   async function handleSubmit(e) {
@@ -280,7 +366,6 @@ export default function EditProfilePage() {
         minHeight: "100vh",
       }}
     >
-      {/* Soft sage overlay */}
       <div
         className="position-absolute top-0 start-0 w-100 h-100"
         style={{ background: "sage--bg", zIndex: 0 }}
@@ -625,11 +710,115 @@ export default function EditProfilePage() {
               </button>
             </div>
 
+            {/* Danger Zone – Change Password */}
+            <div
+              className="mb-4 p-3 rounded-3"
+              style={{
+                border: "1px solid rgba(220, 53, 69, 0.35)",
+                backgroundColor: "rgba(220, 53, 69, 0.04)",
+              }}
+            >
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <i className="bi bi-exclamation-triangle-fill text-danger"></i>
+                <label className="form-label mb-0 text-danger fw-semibold">
+                  Danger Zone
+                </label>
+              </div>
+              <p className="text-secondary small mb-3">
+                Changing your password will require you to use the new one the
+                next time you log in.
+              </p>
+
+              {passwordError && (
+                <div
+                  className="alert alert-danger py-2 small mb-3"
+                  role="alert"
+                >
+                  <i className="bi bi-exclamation-circle-fill me-1" />
+                  {passwordError}
+                </div>
+              )}
+
+              <FormInput
+                label="Current password"
+                type="password"
+                name="oldPassword"
+                value={passwordForm.oldPassword}
+                placeholder="Enter your current password"
+                onChange={handlePasswordChange}
+                onBlur={handlePasswordBlur}
+                autoComplete="current-password"
+                touched={passwordTouched.oldPassword}
+                error={getPasswordError("oldPassword")}
+                disabled={passwordSaving}
+              />
+
+              <div className="row g-0 g-md-3">
+                <div className="col-md-6">
+                  <FormInput
+                    label="New password"
+                    type="password"
+                    name="newPassword"
+                    value={passwordForm.newPassword}
+                    placeholder="At least 6 characters"
+                    onChange={handlePasswordChange}
+                    onBlur={handlePasswordBlur}
+                    autoComplete="new-password"
+                    touched={passwordTouched.newPassword}
+                    error={getPasswordError("newPassword")}
+                    disabled={passwordSaving}
+                  />
+                </div>
+                <div className="col-md-6">
+                  <FormInput
+                    label="Confirm new password"
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordForm.confirmPassword}
+                    placeholder="Re-enter new password"
+                    onChange={handlePasswordChange}
+                    onBlur={handlePasswordBlur}
+                    autoComplete="new-password"
+                    touched={passwordTouched.confirmPassword}
+                    error={getPasswordError("confirmPassword")}
+                    disabled={passwordSaving}
+                  />
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className="btn btn-outline-danger rounded-pill px-4"
+                onClick={handlePasswordUpdate}
+                disabled={
+                  passwordSaving ||
+                  !!getPasswordError("oldPassword") ||
+                  !!getPasswordError("newPassword") ||
+                  !!getPasswordError("confirmPassword")
+                }
+              >
+                {passwordSaving ? (
+                  <>
+                    <span
+                      className="spinner-border spinner-border-sm me-1"
+                      role="status"
+                      aria-hidden="true"
+                    ></span>
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-shield-lock me-1"></i>
+                    Update password
+                  </>
+                )}
+              </button>
+            </div>
+
             <hr />
 
             {/* Footer buttons */}
             <div className="d-flex justify-content-between align-items-center">
-              {/* Left side – Logout */}
               <button
                 type="button"
                 className="btn btn-outline-danger rounded-pill px-4"
@@ -640,7 +829,6 @@ export default function EditProfilePage() {
                 Log out
               </button>
 
-              {/* Right side – Cancel + Save */}
               <div className="d-flex gap-2">
                 <button
                   type="button"
