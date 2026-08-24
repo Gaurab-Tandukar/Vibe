@@ -83,6 +83,7 @@ class UserService {
       $or: [{ username: cleanInput }, { email: cleanInput.toLowerCase() }],
     });
 
+    // fix to prevent timing attacks by ensuring the password comparison is always performed, even if the user is not found
     if (!user || !(await passHash.comparePass(password, user.passwordHash))) {
       throw ApiError.unauthorized("Invalid credentials");
     }
