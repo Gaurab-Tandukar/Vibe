@@ -7,18 +7,13 @@ export default function WelcomePage() {
   const handleStartConversation = () => {
     const isMobile = window.innerWidth <= 991;
 
-    // Mobile/tablet: the sidebar renders collapsed off-screen by default,
-    // so open the drawer before trying to focus the search input inside it.
+    // Mobile/tablet: open the sidebar first so the user can see the transition
     if (isMobile) {
       window.dispatchEvent(new Event("vibe:open-sidebar"));
-      setTimeout(() => {
-        const searchInput = document.querySelector(".sidebar-search input");
-        if (searchInput) searchInput.focus();
-      }, 320); // matches + small buffer over Sidebar.css's 0.28s slide-in
-    } else {
-      const searchInput = document.querySelector(".sidebar-search input");
-      if (searchInput) searchInput.focus();
     }
+
+    // Dispatch an event to open the New Direct Message modal directly
+    window.dispatchEvent(new Event("vibe:open-new-dm"));
   };
 
   return (
@@ -116,15 +111,15 @@ export default function WelcomePage() {
               <div className="d-flex align-items-center mb-2">
                 <div
                   className="rounded-3 p-2 text-white me-3"
-                  style={{ backgroundColor: "#6c757d" }}
+                  style={{ backgroundColor: "#3b82f6" }}
                 >
-                  <i className="bi bi-search fs-4"></i>
+                  <i className="bi bi-layout-split fs-4"></i>
                 </div>
-                <h6 className="fw-bold mb-0">Quick Search</h6>
+                <h6 className="fw-bold mb-0">Split Tab View</h6>
               </div>
               <p className="small text-muted mb-0">
-                Use the search bar in the chat panel to instantly filter
-                contacts and group chats.
+                Work across multiple chats simultaneously using IDE-style
+                side-by-side split panels.
               </p>
             </div>
           </div>

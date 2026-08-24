@@ -222,6 +222,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
     });
   }, [socket, conversations]);
 
+  // Listen for global event to open the new direct message modal
+  useEffect(() => {
+    const handleOpenNewDM = () => setShowNewDMModal(true);
+    window.addEventListener("vibe:open-new-dm", handleOpenNewDM);
+    return () => {
+      window.removeEventListener("vibe:open-new-dm", handleOpenNewDM);
+    };
+  }, []);
+
   // Real-time socket listeners for incoming messages and notifications in sidebar
   useEffect(() => {
     if (!socket) return;

@@ -90,7 +90,7 @@ export default function ChatHome() {
   return (
     <div
       className="d-flex min-vh-100 sage--bg text-dark position-relative overflow-hidden"
-      style={{ height: "100vh", height: "100dvh", width: "100vw" }}
+      style={{height: "100dvh", width: "100vw" }}
     >
       <Sidebar
         onSelectChat={handleSelectChat}
