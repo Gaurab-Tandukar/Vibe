@@ -11,7 +11,7 @@ import EditProfilePage from "../pages/profile/EditProfilePage";
 import ChatHome from "../pages/chat/ChatHome";
 import PrivacyPage from "../pages/legal/PrivacyPage";
 import TermsPage from "../pages/legal/TermsPage";
-import ErrorPage from "../pages/error/ErrorPage";
+import ErrorPage from "../pages/legal/ErrorPage";
 
 export default function AppRoutes() {
   return (
