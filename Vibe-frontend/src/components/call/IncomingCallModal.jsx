@@ -1,22 +1,43 @@
 import { useCall } from "../../hooks/useCall";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 
 // Mount once near the root of your app, self-hides unless call.status === "incoming"
 export default function IncomingCallModal({ getUserById }) {
-  // getUserById: optional helper (userId) => { name, avatarUrl } for showing caller info,
-  // pull from your existing conversation/member state instead if you prefer.
   const { call, acceptCall, rejectCall } = useCall();
 
   if (call.status !== "incoming") return null;
 
-  const caller = getUserById ? getUserById(call.peerId) : null;
+  const caller = call.caller || (getUserById ? getUserById(call.peerId) : null);
+  const username = caller?.username ? `@${caller.username}` : "";
+  const fullName =
+    caller?.firstName && caller?.lastName
+      ? `${caller.firstName} ${caller.lastName}`
+      : caller?.name || "";
+  const displayName = username || fullName || "Someone";
+  const avatarUrl = caller?.avatarUrl ? resolveMediaUrl(caller.avatarUrl) : null;
+  const initial = (caller?.username || caller?.firstName || "U")
+    .charAt(0)
+    .toUpperCase();
 
   return (
     <div className="incoming-call-overlay">
       <div className="incoming-call-card">
-        {caller?.avatarUrl && (
-          <img src={caller.avatarUrl} alt="" className="incoming-call-avatar" />
+        {avatarUrl ? (
+          <img src={avatarUrl} alt={displayName} className="incoming-call-avatar" />
+        ) : (
+          <div
+            className="incoming-call-avatar d-flex align-items-center justify-content-center fw-bold fs-3 text-white"
+            style={{ backgroundColor: "var(--sbd-accent, #52c98a)" }}
+          >
+            {initial}
+          </div>
         )}
-        <div className="incoming-call-name">{caller?.name || "Someone"}</div>
+        <div className="incoming-call-name text-center">
+          <div>{displayName}</div>
+          {fullName && username && (
+            <div className="small text-muted fw-normal mt-1">{fullName}</div>
+          )}
+        </div>
         <div className="incoming-call-type">
           Incoming {call.callType === "video" ? "video" : "audio"} call…
         </div>

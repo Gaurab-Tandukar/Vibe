@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { resolveMediaUrl } from "../../utils/MediaURL";
 
 const formatFileSize = (bytes) => {
   if (bytes == null) return "";
@@ -25,6 +26,7 @@ export default function MessageInput({
   editText,
   onInputChange,
   onFileChange,
+  onPasteImage,
   onSend,
   onClearAttachment,
   onEditTextChange,
@@ -44,8 +46,52 @@ export default function MessageInput({
       e.preventDefault();
       onSend(e);
     }
-    // Shift+Enter falls through to the textarea's default behavior
-    // (insert a newline) — nothing to do here.
+  };
+
+  const handlePaste = (e) => {
+    if (isConversationBlocked || uploading || Boolean(pendingAttachment)) return;
+
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type && item.type.startsWith("image/")) {
+        const blob = item.getAsFile();
+        if (blob) {
+          e.preventDefault();
+          const ext = blob.type.split("/")[1] || "png";
+          const file = new File(
+            [blob],
+            blob.name && blob.name !== "image.png"
+              ? blob.name
+              : `clipboard_image_${Date.now()}.${ext}`,
+            { type: blob.type },
+          );
+          if (onPasteImage) {
+            onPasteImage(file);
+          }
+          return;
+        }
+      }
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    if (isConversationBlocked || uploading || Boolean(pendingAttachment)) return;
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type && file.type.startsWith("image/")) {
+        if (onPasteImage) {
+          onPasteImage(file);
+        }
+      } else if (onFileChange) {
+        onFileChange({ target: { files: [file] } });
+      }
+    }
   };
 
   return (
@@ -101,15 +147,36 @@ export default function MessageInput({
       {/* Pending Attachment / Upload State */}
       {(pendingAttachment || uploading || uploadError) && (
         <div className="px-3 py-2 border-top bg-light d-flex align-items-center justify-content-between">
-          <div className="overflow-hidden small">
-            {uploading && <span className="text-muted">Uploading...</span>}
+          <div className="overflow-hidden small d-flex align-items-center gap-2">
+            {uploading && (
+              <span className="text-muted d-flex align-items-center gap-1">
+                <span
+                  className="spinner-border spinner-border-sm text-success"
+                  role="status"
+                  aria-hidden="true"
+                />
+                Uploading image...
+              </span>
+            )}
             {uploadError && <span className="text-danger">{uploadError}</span>}
             {pendingAttachment && !uploading && (
-              <span className="text-success fw-semibold">
-                <i className="bi bi-paperclip me-1" />
-                {pendingAttachment.fileName} (
-                {formatFileSize(pendingAttachment.fileSize)})
-              </span>
+              <div className="d-flex align-items-center gap-2 overflow-hidden">
+                {pendingAttachment.fileType?.startsWith("image/") &&
+                pendingAttachment.fileUrl ? (
+                  <img
+                    src={resolveMediaUrl(pendingAttachment.fileUrl)}
+                    alt={pendingAttachment.fileName}
+                    className="rounded border flex-shrink-0"
+                    style={{ width: 34, height: 34, objectFit: "cover" }}
+                  />
+                ) : (
+                  <i className="bi bi-image text-success fs-5 flex-shrink-0" />
+                )}
+                <span className="text-success fw-semibold text-truncate">
+                  {pendingAttachment.fileName} (
+                  {formatFileSize(pendingAttachment.fileSize)})
+                </span>
+              </div>
             )}
           </div>
           <button
@@ -117,6 +184,7 @@ export default function MessageInput({
             className="btn btn-sm btn-light rounded-circle"
             style={{ width: 26, height: 26 }}
             onClick={onClearAttachment}
+            title="Remove attachment"
           >
             <i className="bi bi-x" />
           </button>
@@ -126,6 +194,8 @@ export default function MessageInput({
       {/* Input bar */}
       <form
         onSubmit={onSend}
+        onDragOver={(e) => e.preventDefault()}
+        onDrop={handleDrop}
         className="p-2 border-top bg-white d-flex align-items-end gap-2 flex-shrink-0"
       >
         <input
@@ -140,7 +210,7 @@ export default function MessageInput({
           type="button"
           className="btn btn-light btn-sm rounded-circle d-flex align-items-center justify-content-center text-secondary border flex-shrink-0"
           style={{ width: 38, height: 38 }}
-          title="Attach file"
+          title="Attach file or paste image"
           onClick={() => fileInputRef.current?.click()}
           disabled={
             uploading || Boolean(pendingAttachment) || isConversationBlocked
@@ -165,11 +235,12 @@ export default function MessageInput({
                 ? "You blocked this user"
                 : isBlockedByOther
                   ? "This user blocked you"
-                  : `Message ${name || ""}...`
+                  : `Message ${name || ""}`
             }
             value={inputText}
             onChange={onInputChange}
             onKeyDown={handleKeyDown}
+            onPaste={handlePaste}
             disabled={sending || isConversationBlocked}
           />
         </div>

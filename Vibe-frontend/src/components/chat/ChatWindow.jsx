@@ -433,6 +433,24 @@ export default function ChatWindow({
     }
   };
 
+  const handlePasteImage = async (file) => {
+    if (!file || isConversationBlocked || uploading) return;
+
+    setUploading(true);
+    setUploadError(null);
+
+    try {
+      const data = await uploadAttachment(file);
+      setPendingAttachment(data);
+    } catch (err) {
+      console.error("Clipboard image upload failed:", err);
+      setUploadError("Failed to upload pasted image");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   // Shared send logic — used both by the initial send and by retry, so
   // a failed message can be re-attempted without duplicating this code.
   const performSend = async ({
@@ -790,6 +808,7 @@ export default function ChatWindow({
         editText={editText}
         onInputChange={handleInputChange}
         onFileChange={handleFileChange}
+        onPasteImage={handlePasteImage}
         onSend={handleSend}
         onClearAttachment={() => {
           setPendingAttachment(null);

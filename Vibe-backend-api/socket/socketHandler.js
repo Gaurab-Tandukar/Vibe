@@ -94,6 +94,13 @@
         socket.currentCallPeerId = toUserId;
         io.to(callee.socketId).emit("call:incoming", {
           fromUserId: userId,
+          caller: {
+            _id: socket.user._id,
+            username: socket.user.username,
+            firstName: socket.user.firstName,
+            lastName: socket.user.lastName,
+            avatarUrl: socket.user.avatarUrl,
+          },
           conversationId,
           callType,
         });

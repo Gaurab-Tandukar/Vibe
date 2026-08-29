@@ -356,7 +356,7 @@ export function CallProvider({ children }) {
   useEffect(() => {
     if (!socket) return;
 
-    const onIncoming = ({ fromUserId, conversationId, callType }) => {
+    const onIncoming = ({ fromUserId, caller, conversationId, callType }) => {
       setCall((prev) => {
         if (prev.status !== "idle") {
           socket.emit("call:reject", {
@@ -369,6 +369,7 @@ export function CallProvider({ children }) {
         return {
           status: "incoming",
           peerId: fromUserId,
+          caller,
           conversationId,
           callType,
         };

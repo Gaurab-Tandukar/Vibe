@@ -687,13 +687,13 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
         }}
       >
         <button
-          className="sidebar-rail-btn btn p-0 mb-3 rounded-3 overflow-hidden d-flex align-items-center justify-content-center"
+          className="sidebar-rail-btn sidebar-home-btn btn p-0 mb-3 rounded-3 overflow-hidden d-flex align-items-center justify-content-center flex-shrink-0"
           title="Vibe Home"
           onClick={() => {
             setActiveGroupId(null);
             navigate("/");
           }}
-          style={{ width: "42px", height: "42px" }}
+          style={{ width: "42px", height: "42px", minHeight: "42px" }}
         >
           <img
             src={Logo}
@@ -702,11 +702,11 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
           />
         </button>
 
-        <div className="sidebar-rail-divider mb-3" />
+        <div className="sidebar-rail-divider mb-3 flex-shrink-0" />
 
         {/* Direct Messages Icon */}
         <button
-          className={`sidebar-rail-btn btn p-0 mb-2 rounded-circle d-flex align-items-center justify-content-center ${
+          className={`sidebar-rail-btn sidebar-dm-icon-btn btn p-0 mb-2 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 ${
             activeGroupId === null && !isCollapsed ? "active" : ""
           }`}
           title="Direct Messages"
@@ -718,13 +718,13 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
               setIsCollapsed(false);
             }
           }}
-          style={{ width: "42px", height: "42px" }}
+          style={{ width: "42px", height: "42px", minHeight: "42px" }}
         >
           <i className="bi bi-chat-dots-fill fs-5" />
         </button>
 
         {/* Group Chat Icons */}
-        <div className="d-flex flex-column align-items-center gap-2 overflow-auto w-100 flex-grow-1 sidebar-groups-scroll">
+        <div className="d-flex flex-column align-items-center gap-2 overflow-auto w-100 flex-grow-1 sidebar-groups-scroll py-1">
           {groupChats.map((group) => {
             const isActive = activeGroupId === group._id;
             const groupAvatar = group.avatarUrl
@@ -735,7 +735,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
             return (
               <button
                 key={group._id}
-                className={`sidebar-rail-btn btn p-0 rounded-circle d-flex align-items-center justify-content-center overflow-hidden position-relative ${
+                className={`sidebar-rail-btn sidebar-group-icon-btn btn p-0 rounded-circle d-flex align-items-center justify-content-center overflow-hidden position-relative flex-shrink-0 ${
                   isActive ? "active" : ""
                 }`}
                 title={group.name}
@@ -754,7 +754,7 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
                     });
                   }
                 }}
-                style={{ width: "42px", height: "42px" }}
+                style={{ width: "42px", height: "42px", minHeight: "42px" }}
               >
                 {groupAvatar ? (
                   <img
@@ -764,20 +764,20 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
                     style={{ objectFit: "cover" }}
                   />
                 ) : (
-                  <span className="fw-bold small">{initial}</span>
+                  <span className="fw-bold fs-6 group-icon-initial">{initial}</span>
                 )}
               </button>
             );
           })}
 
           <button
-            className="sidebar-rail-btn btn p-0 mt-1 rounded-circle d-flex align-items-center justify-content-center"
+            className="sidebar-rail-btn sidebar-add-group-btn btn p-0 mt-1 rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
             title="Create New Group"
             onClick={() => setShowNewGroupModal(true)}
             style={{
               width: "42px",
               height: "42px",
-              color: "var(--sbd-accent)",
+              minHeight: "42px",
             }}
           >
             <i className="bi bi-plus-lg fs-5" />

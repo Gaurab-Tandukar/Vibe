@@ -16,35 +16,101 @@
   font-family: "Itim", cursive;
 }
 
-/* Rail icons: circle -> rounded square on hover/active, Discord's signature move */
-.sidebar-dark .sidebar-rail-icon {
-  width: 48px;
-  height: 48px;
-  background-color: var(--sbd-panel);
-  color: var(--sbd-accent);
-  border: none;
-  transition:
-    border-radius 0.18s ease,
-    background-color 0.18s ease,
-    color 0.18s ease;
+/* Rail buttons styling */
+.sidebar-dark .sidebar-rail-btn {
+  background-color: var(--sbd-panel, #1c1d21);
+  color: var(--sbd-text, #f2f3f5);
+  border: 1px solid var(--sbd-border, #2c2d33);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  flex-shrink: 0;
 }
 
-.sidebar-dark .sidebar-rail-icon:hover,
-.sidebar-dark .sidebar-rail-icon.active {
-  border-radius: 16px !important;
-  background-color: var(--sbd-accent);
-  color: #16171a;
+.sidebar-dark .sidebar-rail-btn:hover {
+  background-color: var(--sbd-accent, #52c98a);
+  color: #0d1f14 !important; /* High contrast dark text on vibrant green */
+  border-color: var(--sbd-accent, #52c98a);
+  border-radius: 14px !important;
+  box-shadow: 0 4px 12px rgba(82, 201, 138, 0.35);
+  transform: translateY(-1px);
 }
 
-/* Logo button: no colored fill, ever — just a ring so it stays visible full-bleed */
-.sidebar-dark .sidebar-home-icon {
+.sidebar-dark .sidebar-rail-btn:hover .group-icon-initial {
+  color: #0d1f14 !important;
+  font-weight: 800;
+}
+
+.sidebar-dark .sidebar-rail-btn.active {
+  background-color: var(--sbd-accent, #52c98a) !important;
+  color: #0d1f14 !important;
+  border-color: var(--sbd-accent, #52c98a) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 4px 12px rgba(82, 201, 138, 0.4);
+}
+
+.sidebar-dark .sidebar-rail-btn.active .group-icon-initial {
+  color: #0d1f14 !important;
+  font-weight: 800;
+}
+
+.sidebar-dark .group-icon-initial {
+  color: var(--sbd-text, #f2f3f5);
+  transition: color 0.18s ease;
+  user-select: none;
+}
+
+/* Home logo button */
+.sidebar-dark .sidebar-home-btn {
   background-color: transparent;
+  border: 1px solid transparent;
 }
 
-.sidebar-dark .sidebar-home-icon:hover,
-.sidebar-dark .sidebar-home-icon.active {
-  background-color: transparent !important;
+.sidebar-dark .sidebar-home-btn:hover {
+  background-color: var(--sbd-hover, #26272c);
+  border-color: var(--sbd-border, #2c2d33);
   box-shadow: 0 0 0 2px var(--sbd-accent);
+  transform: none;
+}
+
+/* Add Group Button specific styling */
+.sidebar-dark .sidebar-add-group-btn {
+  background-color: rgba(82, 201, 138, 0.1);
+  color: var(--sbd-accent, #52c98a);
+  border: 1px dashed rgba(82, 201, 138, 0.4);
+}
+
+.sidebar-dark .sidebar-add-group-btn:hover {
+  background-color: var(--sbd-accent, #52c98a);
+  color: #0d1f14 !important;
+  border-style: solid;
+  border-color: var(--sbd-accent, #52c98a);
+  border-radius: 14px !important;
+}
+
+/* Group Rail Scroll container - never squishes, scrolls smoothly */
+.sidebar-groups-scroll {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.18) transparent;
+  min-height: 0;
+  width: 100%;
+}
+
+.sidebar-groups-scroll::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar-groups-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-groups-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.18);
+  border-radius: 3px;
+}
+
+.sidebar-groups-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sbd-accent, #52c98a);
 }
 
 /* Chat list items */
