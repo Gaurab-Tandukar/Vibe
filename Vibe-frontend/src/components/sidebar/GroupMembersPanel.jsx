@@ -160,7 +160,10 @@ const GroupMembersPanel = ({
         console.error("Failed to remove member:", err?.response?.data || err);
         const msg = err?.response?.data?.message || "Couldn't remove member.";
         setActionError(msg);
-        showToast("Failed to remove member", { description: msg, type: "error" });
+        showToast("Failed to remove member", {
+          description: msg,
+          type: "error",
+        });
       }
     } else if (confirmAction.type === "leave") {
       try {
@@ -284,7 +287,10 @@ const GroupMembersPanel = ({
                 navigate(`/profile/${u.username}`);
               }}
             >
-              <i className="bi bi-person text-secondary" style={{ fontSize: "0.85rem" }}></i>
+              <i
+                className="bi bi-person text-secondary"
+                style={{ fontSize: "0.85rem" }}
+              ></i>
             </button>
           )}
 
@@ -335,9 +341,14 @@ const GroupMembersPanel = ({
               className="sidebar-ghost-btn btn btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0"
               style={{ width: "28px", height: "28px" }}
               title="Close sidebar"
-              onClick={() => window.dispatchEvent(new CustomEvent("vibe:close-sidebar"))}
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("vibe:close-sidebar"))
+              }
             >
-              <i className="bi bi-layout-sidebar-inset" style={{ fontSize: "0.85rem" }}></i>
+              <i
+                className="bi bi-layout-sidebar-inset"
+                style={{ fontSize: "0.85rem" }}
+              ></i>
             </button>
           </div>
         </div>
@@ -358,14 +369,16 @@ const GroupMembersPanel = ({
 
         {/* Primary Actions */}
         <div className="d-flex align-items-center justify-content-between gap-2 mb-2">
-          <button
-            type="button"
-            className="group-action-btn group-action-btn--primary flex-grow-1"
-            onClick={() => setShowAddModal(true)}
-          >
-            <i className="bi bi-person-plus-fill"></i>
-            <span>Add Member</span>
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className="group-action-btn group-action-btn--primary flex-grow-1"
+              onClick={() => setShowAddModal(true)}
+            >
+              <i className="bi bi-person-plus-fill"></i>
+              <span>Add Member</span>
+            </button>
+          )}
 
           <button
             type="button"

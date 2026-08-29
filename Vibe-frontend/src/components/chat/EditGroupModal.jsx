@@ -236,40 +236,67 @@ const EditGroupModal = ({
             {activeTab === "general" && (
               <div className="d-flex flex-column gap-3">
                 <div className="d-flex align-items-center gap-3">
-                  <label
-                    htmlFor="group-avatar-input"
-                    className="sbd-avatar-picker flex-shrink-0"
-                    title="Change group photo"
-                  >
-                    {avatarPreview ? (
-                      <img
-                        src={avatarPreview}
-                        alt="Group avatar"
-                        className="w-100 h-100"
-                        style={{ objectFit: "cover" }}
+                  {/* Avatar — clickable only for admins */}
+                  {isAdmin ? (
+                    <label
+                      htmlFor="group-avatar-input"
+                      className="sbd-avatar-picker flex-shrink-0"
+                      title="Change group photo"
+                    >
+                      {avatarPreview ? (
+                        <img
+                          src={avatarPreview}
+                          alt="Group avatar"
+                          className="w-100 h-100"
+                          style={{ objectFit: "cover" }}
+                        />
+                      ) : (
+                        <span
+                          className="w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-white"
+                          style={{
+                            backgroundColor: "var(--sbd-accent)",
+                            fontSize: "1.5rem",
+                          }}
+                        >
+                          {(group?.name || "#").charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="sbd-avatar-overlay">
+                        <i className="bi bi-camera-fill"></i>
+                      </div>
+                      <input
+                        id="group-avatar-input"
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        className="d-none"
+                        onChange={handleAvatarChange}
                       />
-                    ) : (
-                      <span
-                        className="w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-white"
-                        style={{
-                          backgroundColor: "var(--sbd-accent)",
-                          fontSize: "1.5rem",
-                        }}
-                      >
-                        {(group?.name || "#").charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                    <div className="sbd-avatar-overlay">
-                      <i className="bi bi-camera-fill"></i>
-                    </div>
-                    <input
-                      id="group-avatar-input"
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      className="d-none"
-                      onChange={handleAvatarChange}
-                    />
-                  </label>
+                    </label>
+                  ) : (
+                    <span
+                      className="sbd-avatar-picker flex-shrink-0 d-flex align-items-center justify-content-center overflow-hidden"
+                      style={{ cursor: "default" }}
+                    >
+                      {avatarPreview ? (
+                        <img
+                          src={avatarPreview}
+                          alt="Group avatar"
+                          className="w-100 h-100"
+                          style={{ objectFit: "cover" }}
+                        />
+                      ) : (
+                        <span
+                          className="w-100 h-100 d-flex align-items-center justify-content-center fw-bold text-white"
+                          style={{
+                            backgroundColor: "var(--sbd-accent)",
+                            fontSize: "1.5rem",
+                          }}
+                        >
+                          {(group?.name || "#").charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </span>
+                  )}
 
                   <div className="flex-grow-1">
                     <label
@@ -278,46 +305,64 @@ const EditGroupModal = ({
                     >
                       Group Name
                     </label>
-                    <input
-                      type="text"
-                      className="form-control sbd-form-control"
-                      placeholder="Enter group name"
-                      value={nameDraft}
-                      onChange={(e) => {
-                        setNameDraft(e.target.value);
-                        setProfileSaved(false);
-                      }}
-                    />
+                    {isAdmin ? (
+                      <input
+                        type="text"
+                        className="form-control sbd-form-control"
+                        placeholder="Enter group name"
+                        value={nameDraft}
+                        onChange={(e) => {
+                          setNameDraft(e.target.value);
+                          setProfileSaved(false);
+                        }}
+                      />
+                    ) : (
+                      <p
+                        className="mb-0 fw-semibold"
+                        style={{
+                          color: "var(--sbd-text)",
+                          fontSize: "0.95rem",
+                        }}
+                      >
+                        {group?.name}
+                      </p>
+                    )}
                   </div>
                 </div>
 
-                {profileError && (
-                  <div className="text-danger small px-1">{profileError}</div>
-                )}
-
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    className="btn btn-sbd-accent w-100"
-                    onClick={handleSaveProfile}
-                    disabled={savingProfile}
-                  >
-                    {savingProfile ? (
-                      <span>
-                        <span
-                          className="spinner-border spinner-border-sm me-2"
-                          role="status"
-                          aria-hidden="true"
-                        ></span>
-                        Saving...
-                      </span>
-                    ) : profileSaved ? (
-                      "Saved ✓"
-                    ) : (
-                      "Save Changes"
+                {isAdmin && (
+                  <>
+                    {profileError && (
+                      <div className="text-danger small px-1">
+                        {profileError}
+                      </div>
                     )}
-                  </button>
-                </div>
+
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        className="btn btn-sbd-accent w-100"
+                        onClick={handleSaveProfile}
+                        disabled={savingProfile}
+                      >
+                        {savingProfile ? (
+                          <span>
+                            <span
+                              className="spinner-border spinner-border-sm me-2"
+                              role="status"
+                              aria-hidden="true"
+                            ></span>
+                            Saving...
+                          </span>
+                        ) : profileSaved ? (
+                          "Saved ✓"
+                        ) : (
+                          "Save Changes"
+                        )}
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
 
@@ -493,7 +538,9 @@ const EditGroupModal = ({
         open={showTransferConfirm}
         title="Transfer Ownership?"
         message={`Make ${(() => {
-          const target = otherMembers.find((m) => String(m.user?._id) === String(newAdminId));
+          const target = otherMembers.find(
+            (m) => String(m.user?._id) === String(newAdminId),
+          );
           return target ? getUserDisplayName(target.user) : "this member";
         })()} the admin? You will become a regular member.`}
         confirmLabel="Transfer"
