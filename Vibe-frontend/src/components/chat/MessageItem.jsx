@@ -29,6 +29,7 @@ export default function MessageItem({
   onTogglePicker,
   onScrollToMessage,
   onRetrySend,
+  onImageClick,
 }) {
   const time = msg.createdAt
     ? new Date(msg.createdAt).toLocaleTimeString([], {
@@ -144,19 +145,19 @@ export default function MessageItem({
 
     if (isImage) {
       return (
-        <a
-          href={fullUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="d-block mb-1"
+        <button
+          type="button"
+          className="d-block mb-1 p-0 border-0 bg-transparent"
+          onClick={() => onImageClick && onImageClick(fullUrl, att.fileName || "Image")}
+          title="Click to view full image"
         >
           <img
             src={fullUrl}
             alt={att.fileName || "attachment"}
-            className="rounded-3 shadow-sm"
-            style={{ maxWidth: 220, maxHeight: 180, objectFit: "cover" }}
+            className="rounded-3 shadow-sm chat-image-thumb"
+            style={{ maxWidth: 220, maxHeight: 180, objectFit: "cover", display: "block" }}
           />
-        </a>
+        </button>
       );
     }
 
