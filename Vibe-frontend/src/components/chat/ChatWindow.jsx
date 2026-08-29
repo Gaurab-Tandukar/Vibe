@@ -639,10 +639,20 @@ export default function ChatWindow({
         );
         setIsBlocked(nextBlocked);
         showToast("User unblocked", { type: "success" });
+        window.dispatchEvent(
+          new CustomEvent("vibe:conversation-block-changed", {
+            detail: { conversationId: chatId, blocked: false },
+          }),
+        );
       } else {
         await blockUser(chatId);
         setIsBlocked(true);
         showToast("User blocked", { type: "success" });
+        window.dispatchEvent(
+          new CustomEvent("vibe:conversation-block-changed", {
+            detail: { conversationId: chatId, blocked: true },
+          }),
+        );
         if (typeof onClose === "function") {
           setTimeout(() => onClose(), 800);
         }

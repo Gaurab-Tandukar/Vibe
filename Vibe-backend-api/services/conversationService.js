@@ -100,6 +100,7 @@ class ConversationService {
     return Conversation.find({
       participants: userId,
       hiddenBy: { $ne: userId },
+      blockedBy: { $ne: userId },
     })
       .populate("participants", POPULATE_FIELDS)
       .sort({ updatedAt: -1 });
@@ -490,6 +491,7 @@ class ConversationService {
       success: true,
       count: blockedUsers.length,
       data: blockedUsers,
+      users: blockedUsers,
     };
   }
 

@@ -158,11 +158,11 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
     (users, blockedEntries) => {
       const blockedIds = new Set(
         (blockedEntries || [])
-          .map((entry) => entry?.user?._id)
+          .map((entry) => entry?.user?._id || entry?.user?.id || entry?._id)
           .filter(Boolean)
           .map((id) => String(id)),
       );
-      return (users || []).filter((u) => !blockedIds.has(String(u?._id)));
+      return (users || []).filter((u) => !blockedIds.has(String(u?._id || u?.id)));
     },
     [],
   );
@@ -191,7 +191,10 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
           ? rawUsers.filter((u) => String(u._id) !== String(currentUserId))
           : rawUsers;
 
-        const blockedEntries = blockedResponse?.users || [];
+        const blockedEntries =
+          blockedResponse?.data ||
+          blockedResponse?.users ||
+          (Array.isArray(blockedResponse) ? blockedResponse : []);
         setBlockedUsers(blockedEntries);
         setAllUsers(
           removeBlockedUsersFromAllUsers(filteredUsers, blockedEntries),
@@ -206,6 +209,47 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
     loadSidebarData();
     return () => {
       isMounted = false;
+    };
+  }, [currentUserId, removeBlockedUsersFromAllUsers]);
+
+  // Listen for block status changes from chat window
+  useEffect(() => {
+    const handleBlockChanged = async () => {
+      try {
+        const [userConvs, usersResponse, blockedResponse] = await Promise.all([
+          getMyConversations(),
+          getAllUsers(),
+          getBlockedUsers(),
+        ]);
+        setConversations(userConvs || []);
+        const rawUsers = Array.isArray(usersResponse)
+          ? usersResponse
+          : usersResponse?.data || usersResponse?.users || [];
+        const filteredUsers = currentUserId
+          ? rawUsers.filter((u) => String(u._id) !== String(currentUserId))
+          : rawUsers;
+        const blockedEntries =
+          blockedResponse?.data ||
+          blockedResponse?.users ||
+          (Array.isArray(blockedResponse) ? blockedResponse : []);
+        setBlockedUsers(blockedEntries);
+        setAllUsers(
+          removeBlockedUsersFromAllUsers(filteredUsers, blockedEntries),
+        );
+      } catch (err) {
+        console.error("Failed to sync block status in sidebar:", err);
+      }
+    };
+
+    window.addEventListener(
+      "vibe:conversation-block-changed",
+      handleBlockChanged,
+    );
+    return () => {
+      window.removeEventListener(
+        "vibe:conversation-block-changed",
+        handleBlockChanged,
+      );
     };
   }, [currentUserId, removeBlockedUsersFromAllUsers]);
 
@@ -508,7 +552,8 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
 
     try {
       const res = await getBlockedUsers();
-      const blockedEntries = res?.users || [];
+      const blockedEntries =
+        res?.data || res?.users || (Array.isArray(res) ? res : []);
       setBlockedUsers(blockedEntries);
       setAllUsers((prev) =>
         removeBlockedUsersFromAllUsers(prev, blockedEntries),
@@ -525,9 +570,15 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
     try {
       await unblockUser(conversationId);
       const nextBlockedUsers = blockedUsers.filter(
-        (entry) => entry.conversationId !== conversationId,
+        (entry) => String(entry.conversationId) !== String(conversationId),
       );
       setBlockedUsers(nextBlockedUsers);
+
+      window.dispatchEvent(
+        new CustomEvent("vibe:conversation-block-changed", {
+          detail: { conversationId, blocked: false },
+        }),
+      );
 
       const [refreshed, usersResponse] = await Promise.all([
         getMyConversations(),
@@ -591,7 +642,13 @@ const Sidebar = ({ onSelectChat, onChatDragStart, onChatUpdated }) => {
   const { groupChats, directMessages } = useMemo(() => {
     const groups = conversations.filter((c) => c.isGroup);
     const dms = conversations
-      .filter((c) => !c.isGroup)
+      .filter((c) => {
+        if (c.isGroup) return false;
+        const isBlockedByMe =
+          Array.isArray(c.blockedBy) &&
+          c.blockedBy.some((id) => String(id) === String(currentUserId));
+        return !isBlockedByMe;
+      })
       .sort((a, b) => {
         const aPinned = a.pinnedBy?.includes(currentUserId) ? 1 : 0;
         const bPinned = b.pinnedBy?.includes(currentUserId) ? 1 : 0;

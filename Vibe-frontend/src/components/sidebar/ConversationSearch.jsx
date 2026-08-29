@@ -22,20 +22,28 @@ const ConversationSearch = ({
     const trimmed = query.trim().toLowerCase();
     if (!trimmed) return [];
 
-    return conversations.filter((conv) => {
-      const name = getConversationDisplayName(
-        conv,
-        currentUserId,
-      ).toLowerCase();
-      if (name.includes(trimmed)) return true;
+    return conversations
+      .filter((conv) => {
+        const isBlockedByMe =
+          !conv.isGroup &&
+          Array.isArray(conv.blockedBy) &&
+          conv.blockedBy.some((id) => String(id) === String(currentUserId));
+        return !isBlockedByMe;
+      })
+      .filter((conv) => {
+        const name = getConversationDisplayName(
+          conv,
+          currentUserId,
+        ).toLowerCase();
+        if (name.includes(trimmed)) return true;
 
-      if (!conv.isGroup) {
-        const recipient = getDMRecipient(conv, currentUserId);
-        const username = (recipient?.username || "").toLowerCase();
-        if (username.includes(trimmed)) return true;
-      }
-      return false;
-    });
+        if (!conv.isGroup) {
+          const recipient = getDMRecipient(conv, currentUserId);
+          const username = (recipient?.username || "").toLowerCase();
+          if (username.includes(trimmed)) return true;
+        }
+        return false;
+      });
   }, [conversations, currentUserId, query]);
 
   const handleSelect = (conv) => {
