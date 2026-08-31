@@ -244,11 +244,11 @@ Static files are served from:
 
 ## 🤝 Contributing
 
-Contributions, bug reports, and suggestions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md).
+Contributions, bug reports, and suggestions are welcome — see [CONTRIBUTING.md](./Contributing.md).
 
 ## 🔒 Security
 
-Found a vulnerability? Please see [SECURITY.md](./SECURITY.md) rather than opening a public issue.
+Found a vulnerability? Please see [SECURITY.md](./Security.md) rather than opening a public issue.
 
 ## 📄 License
 
